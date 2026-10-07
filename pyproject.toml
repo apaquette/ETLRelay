@@ -23,9 +23,7 @@ dependencies = [
 [dependency-groups]
 dev = [
     "pytest>=8,<9",
-    "pytest-cov>=6,<8",
-    "pyright>=1.1,<2",
-    "ruff>=0.13,<1"
+    "pytest-cov>=6,<8"
 ]
 
 [tool.hatch.build.targets.wheel]
@@ -44,5 +42,12 @@ select = ["E", "F", "I", "UP", "B"]
 
 [tool.pyright]
 include = ["src", "tests"]
+exclude = [
+    "**/__pycache__",
+    ".venv"
+]
 typeCheckingMode = "standard"
 pythonVersion = "3.12"
+venvPath = "."
+venv = ".venv"
+extraPaths = ["src"]
