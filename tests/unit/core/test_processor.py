@@ -1,5 +1,5 @@
-from flowforge.batch import Batch
-from flowforge.processor import Processor
+from flowforge.core.batch import Batch
+from flowforge.core.processor import Processor
 
 
 class IdentitfyProcessor:

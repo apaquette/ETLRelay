@@ -1,4 +1,4 @@
-from flowforge.batch import Batch
+from flowforge.core.batch import Batch
 
 
 class TestBatch:
