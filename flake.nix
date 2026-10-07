@@ -2,41 +2,58 @@
   description = "Development environment for the FlowForge ETL project";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.11";
-    flake-utils.url = "github:numtide/flake-utils";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-26.05";
+
+    fix-python.url = "github:GuillaumeDesforges/fix-python";
   };
 
-  outputs = { self, nixpkgs, flake-utils }:
-    flake-utils.lib.eachDefaultSystem (system:
-      let
-        pkgs = import nixpkgs {
-          inherit system;
-        };
-      in
-      {
-        devShells.default = pkgs.mkShell {
-          packages = with pkgs; [
-            python312
-            uv
-            git
-            ruff
-            pyright
-          ];
+  outputs =
+    { nixpkgs, fix-python, ... }:
+    let
+      systems = nixpkgs.lib.systems.flakeExposed;
+    in
+    {
+      devShells = nixpkgs.lib.genAttrs systems (
+        system:
+        let
+          pkgs = nixpkgs.legacyPackages.${system};
+        in
+        {
+          default = pkgs.mkShell {
+            packages = [
+              pkgs.python312
+              pkgs.uv
+              pkgs.git
+              pkgs.ruff
+              pkgs.pyright
+              fix-python.packages.${system}.default
+            ];
 
-          shellHook = ''
-            export UV_PYTHON_PREFERENCE=only-system
-            export UV_PROJECT_ENVIRONMENT="$PWD/.venv"
+            env = {
+              UV_PYTHON_PREFERENCE = "only-system";
+              UV_PYTHON_DOWNLOADS = "never";
+            };
 
-            echo "FlowForge development environment"
-            echo "Python: $(python --version)"
-            echo "uv:     $(uv --version)"
-            echo "Ruff:   $(ruff --version)"
-            echo "Pyright: $(pyright --version)"
+            shellHook = ''
+              if [ ! -x "$PWD/.venv/bin/python" ]; then
+                python -m venv "$PWD/.venv" --copies
+              fi
 
-            # Git Configuration
-            git config --global user.name "Alex Paquette"
-            git config --global user.email "alexandre.d.paquette@gmail.com"
-          '';
-        };
-      });
+              export VIRTUAL_ENV="$PWD/.venv"
+              export PATH="$VIRTUAL_ENV/bin:$PATH"
+
+              echo "FlowForge development environment"
+              echo "Python: $(python --version)"
+              echo "uv:     $(uv --version)"
+              echo "Ruff:   $(ruff --version)"
+              echo "Pyright: $(pyright --version)"
+
+              # Git Configuration
+              git config --global user.name "Alex Paquette"
+              git config --global user.email "alexandre.d.paquette@gmail.com"
+            '';
+          };
+        }
+      );
+    };
 }
