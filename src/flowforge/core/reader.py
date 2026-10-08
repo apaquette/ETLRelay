@@ -5,6 +5,10 @@ from typing import Protocol, runtime_checkable
 from flowforge.core.batch import Batch
 
 
+class ReaderError(Exception):
+    """Raised when a Reader fails to read or parse input data."""
+    pass
+
 @runtime_checkable
 class Reader(Protocol):
     """Read serialized data into a FlowForge Batch."""

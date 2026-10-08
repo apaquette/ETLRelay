@@ -5,6 +5,10 @@ from typing import Protocol, runtime_checkable
 from flowforge.core.batch import Batch
 
 
+class WriterError(Exception):
+    """Raised when a Writer fails to serialize or write data."""
+    pass
+
 @runtime_checkable
 class Writer(Protocol):
     """Write a FlowForge Batch as serialized data."""
