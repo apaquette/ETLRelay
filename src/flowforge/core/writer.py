@@ -1,5 +1,5 @@
 
-from typing import Protocol, runtime_checkable
+from typing import BinaryIO, Protocol, runtime_checkable
 
 from flowforge.core.batch import Batch
 
@@ -11,7 +11,7 @@ class WriterError(Exception):
 @runtime_checkable
 class Writer(Protocol):
     """Write a FlowForge Batch as serialized data."""
-    def write(self, batch: Batch) -> None:
+    def write(self, batch: Batch, stream: BinaryIO) -> None:
         """Serialize and write a batch to the given path.
 
         Raises:

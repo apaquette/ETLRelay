@@ -59,13 +59,10 @@ class PathValidator:
             raise PathValidationError(
                 f"Path {path} is outside the base directory"
             )
-        
-        if not resolved_path.exists():
-            raise PathValidationError(
-                f"Path {path} does not exist"
-            )
 
         return resolved_path
+
+
 
 class PathValidationError(Exception):
     """Raised when a filesystem path fails validation."""

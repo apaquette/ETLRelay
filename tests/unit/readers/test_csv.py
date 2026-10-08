@@ -1,69 +1,46 @@
+from io import BytesIO
 
-from pathlib import Path
-
+import pyarrow as pa
 import pytest
 
-from flowforge.core.batch import Batch
+from flowforge.core.reader import Reader
 from flowforge.readers.csv import CsvReader
 
 
 class TestCsvReader:
-    def test_reader_meets_protocol(self, tmp_path: Path):
-        from flowforge.core.reader import Reader
-        reader = CsvReader(tmp_path)
+    def test_reader_meets_protocol(self):
+        reader = CsvReader()
+
         assert isinstance(reader, Reader)
 
-    def test_reader_can_read_valid_csv_file(self, tmp_path):
-        # Create a temporary CSV file
-        csv_content = "name,age\nAlice,30\nBob,25"
-        csv_file = tmp_path / "test.csv"
-        csv_file.write_text(csv_content)
+    def test_reader_can_read_valid_csv_data(self):
+        csv_content = b"name,age\nAlice,30\nBob,25"
+        stream = BytesIO(csv_content)
 
-        # Read the CSV file using the reader
-        reader = CsvReader(csv_file)
-        data = reader.read()
+        reader = CsvReader()
+        data = reader.read(stream)
 
-        # Assert that the data read matches the expected output
-        expected_data = Batch([
-            {"name": "Alice", "age": "30"},
-            {"name": "Bob", "age": "25"}
-        ])
-        assert data.table == expected_data.table
-    
-    def test_reader_handles_empty_csv_file(self, tmp_path):
-        # Create an empty CSV file
-        csv_file = tmp_path / "empty.csv"
-        csv_file.write_text("")
+        assert data.table.to_pylist() == [
+            {"name": "Alice", "age": 30},
+            {"name": "Bob", "age": 25},
+        ]
 
-        # Read the empty CSV file using the reader
-        reader = CsvReader(csv_file)
-        data = reader.read()
+    def test_reader_handles_csv_with_header_and_no_rows(self):
+        stream = BytesIO(b"name,age\n")
 
-        # Assert that the data read is an empty Batch
-        expected_data = Batch([])
-        assert data.table == expected_data.table
-    
-    def test_reader_raises_error_for_nonexistent_file(self):
-        # Attempt to read a non-existent CSV file
-        non_existent_file = Path("non_existent.csv")
-        reader = CsvReader(non_existent_file)
+        reader = CsvReader()
+        data = reader.read(stream)
 
-        with pytest.raises(FileNotFoundError):
-            reader.read()
+        assert data.table.num_rows == 0
+        assert data.table.column_names == ["name", "age"]
 
-    
-    def test_csv_reader_raises_reader_error_for_invalid_encoding(
-        self,
-        tmp_path: Path,
-    ):
-        path = tmp_path / "invalid_encoding.csv"
-        path.write_bytes(
-            b"name,description\n"
-            b"Alice,\xff\xfe\n"
+    def test_reader_raises_error_for_malformed_csv(self):
+        stream = BytesIO(
+            b"name,age\n"
+            b"Alice,30,extra\n"
         )
 
-        reader = CsvReader(path)
+        reader = CsvReader()
 
-        with pytest.raises(UnicodeDecodeError):
-            reader.read()
-    
+        with pytest.raises(pa.ArrowInvalid):
+            reader.read(stream)

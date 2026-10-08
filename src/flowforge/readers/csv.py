@@ -1,45 +1,32 @@
 """CSV reader implementation for FlowForge.
 
-This module provides functionality for reading CSV files and converting
-their contents into FlowForge Batch objects.
+This module provides functionality for reading CSV data from a binary
+stream and converting the parsed data into FlowForge Batch objects.
 """
 
-import csv
-from pathlib import Path
+from typing import BinaryIO
+
+import pyarrow.csv as pa_csv
 
 from flowforge.core.batch import Batch
 
 
 class CsvReader:
-    """Read CSV files and convert their contents into Batch objects."""
+    """Read CSV data from a binary stream and convert it into a Batch."""
 
-    def __init__(self, path: Path):
-        """Initialize a CSV reader for the given file.
+    def read(self, stream: BinaryIO) -> Batch:
+        """Read and parse CSV data from the supplied binary stream.
 
         Args:
-            path: The path to the CSV file to read.
-        """
-        self.path = path
-
-    def read(self) -> Batch:
-        """Read the configured CSV file and return its contents as a Batch.
-
-        The CSV file is read using the standard library CSV parser.
-        Each row is represented as a dictionary mapping column names to
-        their corresponding values.
+            stream: A binary stream containing CSV data.
 
         Returns:
-            A Batch containing the rows read from the CSV file.
+            A Batch containing the parsed CSV data.
 
         Raises:
-            OSError: If the file cannot be opened or read.
-            UnicodeDecodeError: If the file cannot be decoded as UTF-8.
-            csv.Error: If the CSV data cannot be parsed.
+            pyarrow.ArrowInvalid: If the CSV data cannot be parsed.
+            OSError: If an error occurs while reading from the stream.
         """
-        data = []
-        with open(self.path, newline="", encoding="utf-8") as csvfile:
-            reader = csv.DictReader(csvfile)
-            for row in reader:
-                data.append(row)
+        table = pa_csv.read_csv(stream)
 
-        return Batch(data)
+        return Batch(table)
