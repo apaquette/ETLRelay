@@ -1,0 +1,17 @@
+
+from pathlib import Path
+from typing import Protocol, runtime_checkable
+
+from flowforge.core.batch import Batch
+
+
+@runtime_checkable
+class Writer(Protocol):
+    """Write a FlowForge Batch as serialized data."""
+    def write(self, batch: Batch, path: Path) -> None:
+        """Serialize and write a batch to the given path.
+
+        Raises:
+            WriterError: If the batch cannot be serialized or written.
+        """
+        ...
