@@ -18,9 +18,15 @@ class TestCsvReader:
         stream = BytesIO(csv_content)
 
         reader = CsvReader()
-        data = reader.read(stream)
+        batches = list(reader.read(stream))
 
-        assert data.table.to_pylist() == [
+        rows = [
+            row
+            for batch in batches
+            for row in batch.table.to_pylist()
+        ]
+
+        assert rows == [
             {"name": "Alice", "age": 30},
             {"name": "Bob", "age": 25},
         ]
@@ -29,10 +35,9 @@ class TestCsvReader:
         stream = BytesIO(b"name,age\n")
 
         reader = CsvReader()
-        data = reader.read(stream)
+        batches = list(reader.read(stream))
 
-        assert data.table.num_rows == 0
-        assert data.table.column_names == ["name", "age"]
+        assert batches == []
 
     def test_reader_raises_error_for_malformed_csv(self):
         stream = BytesIO(
@@ -43,4 +48,4 @@ class TestCsvReader:
         reader = CsvReader()
 
         with pytest.raises(pa.ArrowInvalid):
-            reader.read(stream)
+            list(reader.read(stream))

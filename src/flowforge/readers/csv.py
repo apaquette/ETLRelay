@@ -1,32 +1,36 @@
 """CSV reader implementation for FlowForge.
 
 This module provides functionality for reading CSV data from a binary
-stream and converting the parsed data into FlowForge Batch objects.
+stream and yielding the parsed data as FlowForge Batch objects.
 """
 
+from collections.abc import Iterable
 from typing import BinaryIO
 
+import pyarrow as pa
 import pyarrow.csv as pa_csv
 
 from flowforge.core.batch import Batch
 
 
 class CsvReader:
-    """Read CSV data from a binary stream and convert it into a Batch."""
+    """Read CSV data from a binary stream and yield batches."""
 
-    def read(self, stream: BinaryIO) -> Batch:
-        """Read and parse CSV data from the supplied binary stream.
+    def read(self, stream: BinaryIO) -> Iterable[Batch]:
+        """Read CSV data from a binary stream and yield batches.
 
         Args:
             stream: A binary stream containing CSV data.
 
-        Returns:
-            A Batch containing the parsed CSV data.
+        Yields:
+            Batches containing parsed CSV data, one per record batch
+            produced by PyArrow's streaming CSV reader.
 
         Raises:
             pyarrow.ArrowInvalid: If the CSV data cannot be parsed.
             OSError: If an error occurs while reading from the stream.
         """
-        table = pa_csv.read_csv(stream)
-
-        return Batch(table)
+        reader = pa_csv.open_csv(stream)
+        for record_batch in reader:
+            table = pa.Table.from_batches([record_batch])
+            yield Batch(table)
