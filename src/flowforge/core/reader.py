@@ -1,5 +1,5 @@
 
-from typing import Protocol, runtime_checkable
+from typing import BinaryIO, Protocol, runtime_checkable
 
 from flowforge.core.batch import Batch
 
@@ -11,7 +11,7 @@ class ReaderError(Exception):
 @runtime_checkable
 class Reader(Protocol):
     """Read serialized data into a FlowForge Batch."""
-    def read(self) -> Batch:
+    def read(self, stream: BinaryIO) -> Batch:
         """Read and deserialize data from the given path.
 
         Raises:
