@@ -51,6 +51,8 @@
               # Git Configuration
               git config --global user.name "Alex Paquette"
               git config --global user.email "alexandre.d.paquette@gmail.com"
+
+              exec fish
             '';
           };
         }
