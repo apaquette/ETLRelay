@@ -1,50 +1,34 @@
-"""CSV serialization for FlowForge batches."""
+"""CSV writer implementation for FlowForge.
 
-from pathlib import Path
+This module provides functionality for serializing FlowForge Batch objects
+as CSV data and writing the serialized data to a binary stream.
+"""
+
+from typing import BinaryIO
+
+import pyarrow.csv as pa_csv
 
 from flowforge.core.batch import Batch
 from flowforge.core.writer import WriterError
 
 
 class CsvWriter:
-    """Serialize FlowForge batches to CSV files.
+    """Serialize FlowForge Batch objects as CSV data."""
 
-    The destination CSV file is configured when the writer is created.
-    """
-
-    def __init__(self, path: Path):
-        """Initialize a CSV writer.
+    def write(self, batch: Batch, stream: BinaryIO) -> None:
+        """Serialize a batch as CSV data and write it to the supplied stream.
 
         Args:
-            path: The path where CSV files will be written.
-        """
-        self.path = path
-
-    def write(self, batch: Batch) -> None:
-        """Serialize and write a batch to the configured CSV file.
-
-        The batch data is serialized with the first row's keys used as
-        the CSV header. The parent directory is created if it does not
-        already exist.
-
-        Args:
-            batch: The batch containing the data to serialize.
+            batch: The Batch containing tabular data to serialize.
+            stream: A binary stream that receives the serialized CSV data.
 
         Raises:
-            WriterError: If the batch is empty.
+            WriterError: If the batch contains no rows.
+            OSError: If an error occurs while writing to the stream.
         """
-        if not batch.table:
-            raise WriterError("Batch is empty. Cannot serialize an empty batch.")
+        if batch.table.num_rows == 0:
+            raise WriterError(
+                "Batch is empty. Cannot serialize an empty batch."
+            )
 
-        # Ensure the parent directory exists
-        self.path.parent.mkdir(parents=True, exist_ok=True)
-
-        # Write the batch data to a CSV file
-        with open(self.path, "w", encoding="utf-8") as csv_file:
-            # Write header
-            headers = batch.table[0].keys()
-            csv_file.write(",".join(headers) + "\n")
-
-            # Write rows
-            for row in batch.table:
-                csv_file.write(",".join(str(row[h]) for h in headers) + "\n")
+        pa_csv.write_csv(batch.table, stream)
