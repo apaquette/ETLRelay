@@ -1,13 +1,13 @@
-"""File-based source implementation for FlowForge.
+"""File-based source implementation for ETLRelay.
 
 This module provides a source that reads data from a file using a
 filesystem abstraction and a reader implementation.
 """
 from collections.abc import Iterable
 
-from flowforge.core.batch import Batch
-from flowforge.core.reader import Reader
-from flowforge.storage.filesystem import FileSystem
+from etlrelay.core.batch import Batch
+from etlrelay.core.reader import Reader
+from etlrelay.storage.filesystem import FileSystem
 
 
 class FileSource:

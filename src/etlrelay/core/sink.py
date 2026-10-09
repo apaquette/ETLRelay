@@ -1,4 +1,4 @@
-"""Sink protocol for consuming FlowForge batches.
+"""Sink protocol for consuming ETLRelay batches.
 
 This module defines the interface that sink implementations use to receive
 batches produced by a pipeline. Concrete sinks determine how and where the
@@ -8,7 +8,7 @@ batches are written.
 from collections.abc import Iterable
 from typing import Protocol, runtime_checkable
 
-from flowforge.core.batch import Batch
+from etlrelay.core.batch import Batch
 
 
 @runtime_checkable

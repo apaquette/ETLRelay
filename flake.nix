@@ -1,5 +1,5 @@
 {
-  description = "Development environment for the FlowForge ETL project";
+  description = "Development environment for the ETLRelay ETL project";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-26.05";
@@ -42,7 +42,7 @@
               export VIRTUAL_ENV="$PWD/.venv"
               export PATH="$VIRTUAL_ENV/bin:$PATH"
 
-              echo "FlowForge development environment"
+              echo "ETLRelay development environment"
               echo "Python: $(python --version)"
               echo "uv:     $(uv --version)"
               echo "Ruff:   $(ruff --version)"

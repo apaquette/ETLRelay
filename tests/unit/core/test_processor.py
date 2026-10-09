@@ -1,5 +1,5 @@
-from flowforge.core.batch import Batch
-from flowforge.core.processor import Processor
+from etlrelay.core.batch import Batch
+from etlrelay.core.processor import Processor
 
 
 class IdentitfyProcessor:

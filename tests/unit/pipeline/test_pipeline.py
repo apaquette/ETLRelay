@@ -3,8 +3,8 @@ from collections.abc import Callable, Iterable
 import pyarrow as pa
 import pytest
 
-from flowforge.core.batch import Batch
-from flowforge.pipeline.pipeline import Pipeline
+from etlrelay.core.batch import Batch
+from etlrelay.pipeline.pipeline import Pipeline
 
 
 def make_batch(value: int) -> Batch:

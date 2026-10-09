@@ -1,12 +1,12 @@
 from pathlib import Path
 
-from flowforge.pipeline.pipeline import Pipeline
-from flowforge.readers.csv import CsvReader
-from flowforge.security.path import PathValidator
-from flowforge.sinks.file import FileSink
-from flowforge.sources.file import FileSource
-from flowforge.storage.local import LocalFileSystem
-from flowforge.writers.csv import CsvWriter
+from etlrelay.pipeline.pipeline import Pipeline
+from etlrelay.readers.csv import CsvReader
+from etlrelay.security.path import PathValidator
+from etlrelay.sinks.file import FileSink
+from etlrelay.sources.file import FileSource
+from etlrelay.storage.local import LocalFileSystem
+from etlrelay.writers.csv import CsvWriter
 
 
 def test_csv_pipeline_transfers_data_between_files(

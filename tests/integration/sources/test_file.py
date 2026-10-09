@@ -1,9 +1,9 @@
 from pathlib import Path
 
-from flowforge.readers.csv import CsvReader
-from flowforge.security.path import PathValidator
-from flowforge.sources.file import FileSource
-from flowforge.storage.local import LocalFileSystem
+from etlrelay.readers.csv import CsvReader
+from etlrelay.security.path import PathValidator
+from etlrelay.sources.file import FileSource
+from etlrelay.storage.local import LocalFileSystem
 
 
 class TestFileSource:

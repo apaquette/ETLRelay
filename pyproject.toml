@@ -3,7 +3,7 @@ requires = ["hatchling>=1.27,<2"]
 build-backend = "hatchling.build"
 
 [project]
-name = "flowforge"
+name = "etlrelay"
 version = "0.1.0"
 description = "A lightweight, composable framework for building declarative ETL pipelines in Python."
 readme = "README.md"
@@ -29,7 +29,7 @@ dev = [
 ]
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/flowforge"]
+packages = ["src/etlrelay"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

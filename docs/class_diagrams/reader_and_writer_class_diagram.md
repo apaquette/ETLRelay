@@ -1,16 +1,16 @@
-# Reader and Writer Class Diagram
+# Reader and Writer
 
 ## Purpose
 
-`Reader` and `Writer` define small interfaces for converting between FlowForge's in-memory `Batch` representation and serialized data.
+`Reader` and `Writer` define small protocols for converting between serialized data and ETLRelay's common `Batch` representation.
 
-`Reader` implementations read a specific data format, such as CSV, and produce a `Batch`.
+A `Reader` consumes a binary stream and produces an iterable of `Batch` objects.
 
-`Writer` implementations take a `Batch` and serialize it to a specific data format.
+A `Writer` consumes an iterable of `Batch` objects and serializes them to a binary stream.
 
-The protocols allow higher-level components such as `FileSource` and `FileSink` to depend on the required behavior rather than on a specific file format implementation.
+The protocols separate format-specific parsing and serialization from storage access. Higher-level components such as `FileSource` and `FileSink` compose these protocols with a `FileSystem` implementation.
 
-The initial concrete implementations are `CsvReader` and `CsvWriter`.
+The current concrete implementations are `CsvReader` and `CsvWriter`.
 
 ## Class Diagram
 
@@ -18,20 +18,20 @@ The initial concrete implementations are `CsvReader` and `CsvWriter`.
 classDiagram
     class Reader {
         <<protocol>>
-        +read(path: Path) Batch
+        +read(stream: BinaryIO) Iterable~Batch~
     }
 
     class Writer {
         <<protocol>>
-        +write(batch: Batch, path: Path) None
+        +write(batches: Iterable~Batch~, stream: BinaryIO) None
     }
 
     class CsvReader {
-        +read(path: Path) Batch
+        +read(stream: BinaryIO) Iterable~Batch~
     }
 
     class CsvWriter {
-        +write(batch: Batch, path: Path) None
+        +write(batches: Iterable~Batch~, stream: BinaryIO) None
     }
 
     class Batch
@@ -44,11 +44,20 @@ classDiagram
         -writer: Writer
     }
 
+    class FileSystem {
+        <<protocol>>
+        +open_read(path: str) BinaryIO
+        +open_write(path: str) BinaryIO
+    }
+
     Reader <|.. CsvReader : implements
     Writer <|.. CsvWriter : implements
 
     FileSource --> Reader : uses
     FileSink --> Writer : uses
+
+    FileSource --> FileSystem : uses
+    FileSink --> FileSystem : uses
 
     CsvReader --> Batch : produces
     CsvWriter --> Batch : consumes
@@ -58,31 +67,32 @@ classDiagram
 
 ### Reader
 
-`Reader` defines the contract for converting a serialized file into a FlowForge `Batch`.
+`Reader` defines the contract for converting serialized data from a binary stream into ETLRelay batches.
 
-`Reader` is responsible only for defining the reading operation.
+It is responsible only for defining the reading operation and its return contract.
 
 `Reader` is **not** responsible for:
 
-* Selecting which file to read.
-* Validating filesystem paths.
-* Performing filesystem access policy checks.
-* Writing files.
-* Executing pipeline transformations.
+* Opening filesystem resources.
+* Selecting storage backends or resource paths.
+* Validating local filesystem path containment.
+* Writing serialized data.
+* Transforming batches as part of pipeline processing.
 * Orchestrating pipelines.
 
 ### Writer
 
-`Writer` defines the contract for converting a FlowForge `Batch` into a serialized file.
+`Writer` defines the contract for serializing ETLRelay batches to a binary stream.
 
-`Writer` is responsible only for defining the writing operation.
+It is responsible only for defining the writing operation and its input contract.
 
 `Writer` is **not** responsible for:
 
-* Selecting which file to write.
-* Validating filesystem paths.
-* Executing pipeline transformations.
-* Reading files.
+* Opening filesystem resources.
+* Selecting storage backends or destination paths.
+* Validating local filesystem path containment.
+* Reading serialized data.
+* Applying pipeline transformations.
 * Orchestrating pipelines.
 
 ### CsvReader
@@ -91,15 +101,19 @@ classDiagram
 
 It is responsible for:
 
-* Reading CSV data from a validated path.
-* Converting the CSV data into a `Batch`.
+* Parsing CSV data from a supplied binary stream.
+* Converting parsed data into ETLRelay `Batch` objects.
+* Returning the resulting batches through an iterable.
 
 It is **not** responsible for:
 
-* Path validation.
-* Deciding where the file is located.
-* Pipeline orchestration.
-* Processing or transforming the resulting `Batch`.
+* Opening or locating files.
+* Validating filesystem paths.
+* Writing CSV data.
+* Applying pipeline transformations.
+* Managing pipeline execution.
+
+The underlying parsing implementation uses PyArrow.
 
 ### CsvWriter
 
@@ -107,15 +121,19 @@ It is **not** responsible for:
 
 It is responsible for:
 
-* Converting a `Batch` into CSV data.
-* Writing the CSV data to the supplied path.
+* Accepting an iterable of `Batch` objects.
+* Serializing the batches as CSV data.
+* Writing the serialized output to the supplied binary stream.
 
 It is **not** responsible for:
 
-* Path validation.
-* Deciding where the output file should be located.
-* Processing or transforming the `Batch`.
-* Pipeline orchestration.
+* Opening or locating the destination.
+* Validating filesystem paths.
+* Reading CSV data.
+* Applying pipeline transformations.
+* Managing pipeline execution.
+
+The underlying serialization implementation uses PyArrow.
 
 ## Dependency Relationship
 
@@ -123,61 +141,72 @@ It is **not** responsible for:
 FileSource ──> Reader
                   ▲
                   │
-             CsvReader
-             ExcelReader
-                 ...
+              CsvReader
 
 FileSink ───> Writer
                   ▲
                   │
-             CsvWriter
-             ExcelWriter
-                 ...
+              CsvWriter
 ```
 
 `FileSource` depends on the `Reader` protocol rather than directly on `CsvReader`.
 
 `FileSink` depends on the `Writer` protocol rather than directly on `CsvWriter`.
 
-This allows the concrete format implementation to be selected by the composition of the application.
+Storage access is a separate dependency:
+
+```text
+FileSource ──> FileSystem
+FileSink   ──> FileSystem
+```
+
+The `FileSystem` implementation opens the resource and provides a binary stream. The reader or writer then operates on that stream without needing to know where the data is stored.
+
+This separation allows different storage implementations and format implementations to be combined without modifying the source or sink orchestration.
 
 For example:
 
 ```python
-FileSource(reader=CsvReader(...))
+FileSource(
+    path="input.csv",
+    storage=LocalFileSystem(...),
+    reader=CsvReader(),
+)
 ```
 
-could later become:
-
-```python
-FileSource(reader=ExcelReader(...))
-```
-
-without changing the `FileSource` implementation.
+A future reader for another format could be supplied without changing `FileSource`, provided it satisfies the `Reader` protocol.
 
 ## Interfaces
 
 ### Reader
 
 ```python
-from pathlib import Path
-from typing import Protocol
+from collections.abc import Iterable
+from typing import BinaryIO, Protocol
+
+from etlrelay.core.batch import Batch
 
 
 class Reader(Protocol):
-    def read(self, path: Path) -> Batch:
+    def read(self, stream: BinaryIO) -> Iterable[Batch]:
         ...
 ```
 
 ### Writer
 
 ```python
-from pathlib import Path
-from typing import Protocol
+from collections.abc import Iterable
+from typing import BinaryIO, Protocol
+
+from etlrelay.core.batch import Batch
 
 
 class Writer(Protocol):
-    def write(self, batch: Batch, path: Path) -> None:
+    def write(
+        self,
+        batches: Iterable[Batch],
+        stream: BinaryIO,
+    ) -> None:
         ...
 ```
 
@@ -185,7 +214,7 @@ class Writer(Protocol):
 
 ```python
 class CsvReader:
-    def read(self, path: Path) -> Batch:
+    def read(self, stream: BinaryIO) -> Iterable[Batch]:
         ...
 ```
 
@@ -193,7 +222,11 @@ class CsvReader:
 
 ```python
 class CsvWriter:
-    def write(self, batch: Batch, path: Path) -> None:
+    def write(
+        self,
+        batches: Iterable[Batch],
+        stream: BinaryIO,
+    ) -> None:
         ...
 ```
 
@@ -201,22 +234,26 @@ class CsvWriter:
 
 ### Reader
 
-| Operation                | Expected behavior                           |
-| ------------------------ | ------------------------------------------- |
-| Read valid CSV file      | Returns a `Batch`                           |
-| Read empty/invalid CSV   | Raises an appropriate exception             |
-| Read from supplied path  | Reads only from the supplied path           |
-| Implement another format | Can provide another `Reader` implementation |
+| Operation                   | Expected behavior                                 |
+| --------------------------- | ------------------------------------------------- |
+| Read valid CSV data         | Returns an iterable of `Batch` objects            |
+| Read malformed CSV data     | Raises an appropriate parsing exception           |
+| Read from a supplied stream | Parses the supplied stream without opening a path |
+| Implement another format    | Can provide another implementation of `Reader`    |
 
 ### Writer
 
-| Operation                | Expected behavior                           |
-| ------------------------ | ------------------------------------------- |
-| Write a `Batch`          | Serializes the batch to the supplied path   |
-| Write to supplied path   | Writes only to the supplied path            |
-| Implement another format | Can provide another `Writer` implementation |
+| Operation                    | Expected behavior                                                 |
+| ---------------------------- | ----------------------------------------------------------------- |
+| Write an iterable of batches | Serializes the supplied batches to the stream                     |
+| Write multiple batches       | Preserves batch order and serializes their data                   |
+| Write an empty batch         | Handles it according to the writer's defined empty-batch behavior |
+| Write an empty iterable      | Handles the absence of batches according to the writer's contract |
+| Implement another format     | Can provide another implementation of `Writer`                    |
 
-Path validation is outside these contracts. The higher-level `FileSource` and `FileSink` components are responsible for validating paths before passing them to the reader or writer.
+Readers and writers do not validate filesystem paths. Storage access and local path containment are handled by the storage implementation and its security dependencies.
+
+The writer receives the stream from its caller and does not close it. Stream ownership remains with the component that opened it, typically `FileSink` using a context manager.
 
 ## SOLID Considerations
 
@@ -226,48 +263,40 @@ Each component has one primary reason to change:
 
 * `Reader` changes if the reading contract changes.
 * `Writer` changes if the writing contract changes.
-* `CsvReader` changes if CSV reading behavior changes.
-* `CsvWriter` changes if CSV writing behavior changes.
+* `CsvReader` changes if CSV parsing behavior changes.
+* `CsvWriter` changes if CSV serialization behavior changes.
 
-Format-specific parsing and serialization remain separate from source and sink orchestration.
+Format-specific parsing and serialization remain separate from storage access and source/sink orchestration.
 
 ### Open/Closed Principle
 
-New file formats can be added by implementing the existing protocols.
+New file formats can be introduced by implementing the existing protocols.
 
 For example:
 
 ```text
 Reader
 ├── CsvReader
-└── ExcelReader
+└── ParquetReader (future)
 ```
 
-Adding `ExcelReader` does not require modifying the `Reader` contract or `FileSource`.
+```text
+Writer
+├── CsvWriter
+└── ParquetWriter (future)
+```
 
-The same applies to writers.
+Adding another format does not require modifying the corresponding protocol or `FileSource`/`FileSink` implementation.
 
 No format registry or plugin mechanism is required at this stage.
 
 ### Liskov Substitution Principle
 
-Any implementation satisfying `Reader` can be supplied where a `Reader` is required.
+Any implementation satisfying `Reader` can be supplied wherever a `Reader` is required.
 
-Any implementation satisfying `Writer` can be supplied where a `Writer` is required.
+Any implementation satisfying `Writer` can be supplied wherever a `Writer` is required.
 
-For example:
-
-```python
-FileSource(reader=CsvReader())
-```
-
-and, when implemented:
-
-```python
-FileSource(reader=ExcelReader())
-```
-
-should both satisfy the same `FileSource` dependency.
+Implementations must preserve the respective contracts, including stream handling, batch ordering, and exception propagation.
 
 ### Interface Segregation Principle
 
@@ -283,7 +312,9 @@ Each protocol exposes only the operation its consumers require.
 
 `FileSink` depends on the `Writer` protocol rather than on `CsvWriter`.
 
-This keeps higher-level source and sink behavior independent of specific serialization formats.
+Both depend on the `FileSystem` protocol for resource access rather than requiring a specific storage implementation.
+
+This keeps file-format handling independent of both storage technology and higher-level orchestration.
 
 ## Design Constraints
 
@@ -291,32 +322,45 @@ The initial implementation should remain deliberately small.
 
 The protocols should:
 
-* Use `pathlib.Path` for filesystem paths.
-* Use `Batch` as the FlowForge data boundary.
-* Define only `read()` for readers.
-* Define only `write()` for writers.
+* Accept binary streams rather than filesystem paths.
+* Use `Batch` as the ETLRelay data boundary.
+* Support iterables of batches.
+* Define only `read()` for readers and `write()` for writers.
 * Avoid format-specific methods in the protocols.
 * Avoid generic type hierarchies unless a concrete requirement emerges.
-* Avoid reader/writer factories or registries.
-* Avoid putting path validation into readers or writers.
+* Avoid reader/writer factories and registries.
+* Avoid filesystem access and path validation within readers and writers.
+* Leave stream lifecycle management to the component that opens the stream.
 
-The intended dependency direction is:
+The intended dependency flow is:
 
 ```text
-PathValidator
-      │
-      ▼
-FileSource ──> Reader ──> CsvReader
-      │
-      └──> LocalFileSystem
-
-
-PathValidator
-      │
-      ▼
-FileSink ──> Writer ──> CsvWriter
-      │
-      └──> LocalFileSystem
+FileSource
+    │
+    ├── FileSystem.open_read(path)
+    │          │
+    │          ▼
+    │       BinaryIO
+    │          │
+    │          ▼
+    └── Reader.read(stream)
+               │
+               ▼
+         Iterable[Batch]
 ```
 
-The protocols provide the substitution boundary between the format-independent source/sink components and format-specific serialization implementations.
+```text
+FileSink
+    │
+    ├── FileSystem.open_write(path)
+    │          │
+    │          ▼
+    │       BinaryIO
+    │          ▲
+    │          │
+    └── Writer.write(batches, stream)
+```
+
+The protocols provide the substitution boundary between format-independent file sources/sinks and format-specific serialization implementations.
+
+**The central design principle is that storage handles resource access, readers and writers handle serialization, and file sources and sinks compose those responsibilities.**

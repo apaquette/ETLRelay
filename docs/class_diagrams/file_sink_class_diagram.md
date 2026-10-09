@@ -2,12 +2,12 @@
 
 ## Purpose
 
-`FileSink` is a sink component responsible for writing FlowForge `Batch` objects to a configured file resource.
+`FileSink` is a sink component responsible for writing ETLRelay batches to a configured file resource.
 
 It composes two independent components:
 
 * `FileSystem`, which provides a writable binary stream for the destination.
-* `Writer`, which serializes a `Batch` into the supplied stream.
+* `Writer`, which serializes an iterable of `Batch` objects into the supplied stream.
 
 `FileSink` does not depend on a particular storage implementation or file format. This allows it to work with `LocalFileSystem` and future storage implementations, as well as `CsvWriter` and future writers, without changing its implementation.
 
@@ -17,14 +17,14 @@ It composes two independent components:
 classDiagram
     class Sink {
         <<protocol>>
-        +write(batch: Batch) None
+        +write(batches: Iterable~Batch~) None
     }
 
     class FileSink {
         -path: str
         -storage: FileSystem
         -writer: Writer
-        +write(batch: Batch) None
+        +write(batches: Iterable~Batch~) None
     }
 
     class FileSystem {
@@ -34,7 +34,7 @@ classDiagram
 
     class Writer {
         <<protocol>>
-        +write(batch: Batch, stream: BinaryIO) None
+        +write(batches: Iterable~Batch~, stream: BinaryIO) None
     }
 
     class LocalFileSystem {
@@ -42,7 +42,7 @@ classDiagram
     }
 
     class CsvWriter {
-        +write(batch: Batch, stream: BinaryIO) None
+        +write(batches: Iterable~Batch~, stream: BinaryIO) None
     }
 
     class PathValidator {
@@ -59,7 +59,8 @@ classDiagram
     FileSink --> Writer : uses
 
     LocalFileSystem --> PathValidator : validates paths with
-    CsvWriter --> Batch : consumes
+
+    Writer --> Batch : consumes
 ```
 
 ## Responsibilities
@@ -70,9 +71,10 @@ classDiagram
 
 * Storing the configured destination path.
 * Opening the destination through the supplied `FileSystem`.
-* Passing the `Batch` and writable stream to the supplied `Writer`.
-* Ensuring the stream is closed after writing, including when writing fails.
-* Implementing the `Sink` interface.
+* Passing the iterable of batches and writable stream to the supplied `Writer`.
+* Opening the destination once per write operation rather than once per batch.
+* Ensuring the stream is closed after writing, including when serialization fails.
+* Implementing the `Sink` protocol.
 
 `FileSink` is **not** responsible for:
 
@@ -82,23 +84,26 @@ classDiagram
 * Transforming or constructing `Batch` objects.
 * Selecting a storage backend or writer implementation.
 * Orchestrating pipeline execution.
+* Defining format-specific behavior for empty batches.
 * Implementing application-level logging.
 
 ### FileSystem
 
 `FileSystem` defines the storage contract used to open the destination for writing.
 
-Its implementations handle storage-specific behavior, such as local path validation and opening local files.
+Its implementations handle storage-specific behavior, including resource access, opening writable streams, and any applicable path validation.
 
 `FileSink` depends on the protocol rather than directly on `LocalFileSystem`.
 
 ### Writer
 
-`Writer` defines the contract for serializing a `Batch` into a binary stream.
+`Writer` defines the contract for serializing an iterable of `Batch` objects into a binary stream.
 
-Its implementations handle format-specific serialization. For example, `CsvWriter` uses PyArrow to write CSV data to the supplied stream.
+Its implementations handle format-specific serialization. For example, `CsvWriter` serializes batches into CSV data using PyArrow.
 
-`FileSink` does not need to know how the writer serializes the batch.
+The writer is responsible for processing the iterable according to its contract, including handling empty batches and determining how multiple batches are represented in one output resource.
+
+`FileSink` does not need to know how the writer serializes the batches.
 
 ## Dependency Relationship
 
@@ -134,38 +139,42 @@ Additional combinations can be supported as new storage and writer implementatio
 The sink coordinates the following operations:
 
 ```text
-FileSink.write(batch)
-        │
-        ▼
+FileSink.write(batches)
+          │
+          ▼
 FileSystem.open_write(path)
-        │
-        ▼
-   BinaryIO stream
-        │
-        ▼
-Writer.write(batch, stream)
-        │
-        ▼
- Serialized file data
-        │
-        ▼
-    filesystem
+          │
+          ▼
+    BinaryIO stream
+          │
+          ▼
+Writer.write(batches, stream)
+          │
+          ▼
+   Serialized file data
+          │
+          ▼
+       filesystem
 ```
 
-The storage implementation provides the writable stream. The writer serializes the batch into that stream.
+The storage implementation provides the writable stream. The writer serializes the iterable of batches into that stream.
 
-The stream is managed using a context manager so that it is closed after writing, including if serialization raises an exception.
+The stream is managed using a context manager so that it is closed after writing, including when serialization raises an exception.
 
-In the initial implementation, each call to `FileSink.write()` writes one `Batch` to the configured destination.
+A single call to `FileSink.write()` represents one output operation for the configured destination. All batches supplied in that call are handled by the writer through the same stream.
+
+The sink does not buffer the entire iterable or independently iterate over it before passing it to the writer.
 
 ## Interface
 
 ### FileSink
 
 ```python
-from flowforge.core.batch import Batch
-from flowforge.core.writer import Writer
-from flowforge.storage.filesystem import FileSystem
+from collections.abc import Iterable
+
+from etlrelay.core.batch import Batch
+from etlrelay.core.writer import Writer
+from etlrelay.storage.filesystem import FileSystem
 
 
 class FileSink:
@@ -177,33 +186,36 @@ class FileSink:
     ) -> None:
         ...
 
-    def write(self, batch: Batch) -> None:
+    def write(self, batches: Iterable[Batch]) -> None:
         ...
 ```
 
 ## Contract
 
-| Operation                                | Expected behavior                                                      |
-| ---------------------------------------- | ---------------------------------------------------------------------- |
-| Construct with path, storage, and writer | Stores the supplied dependencies and destination path                  |
-| Write a valid batch                      | Serializes the batch and writes it to the destination                  |
-| Write to a new valid destination         | Creates the destination when supported by the storage implementation   |
-| Write to an invalid local path           | Propagates the path-validation error from local storage                |
-| Write when storage access fails          | Propagates the underlying storage error                                |
-| Write when serialization fails           | Propagates the writer's exception                                      |
-| Complete a write                         | Closes the opened stream                                               |
-| Supply another storage implementation    | Works without modifying `FileSink`, provided it satisfies `FileSystem` |
-| Supply another writer implementation     | Works without modifying `FileSink`, provided it satisfies `Writer`     |
+| Operation                                  | Expected behavior                                                                     |
+| ------------------------------------------ | ------------------------------------------------------------------------------------- |
+| Construct with path, storage, and writer   | Stores the supplied dependencies and destination path                                 |
+| Write an iterable of batches               | Delegates serialization to the supplied writer                                        |
+| Write multiple batches                     | Passes all batches through a single output stream                                     |
+| Write an empty iterable                    | Delegates empty-input handling to the writer                                          |
+| Write an iterable containing empty batches | Delegates empty-batch handling to the writer                                          |
+| Write to a new valid local destination     | Creates the destination file when the parent directory exists and access is permitted |
+| Write to an invalid local path             | Propagates the path-validation error from local storage                               |
+| Write when storage access fails            | Propagates the underlying storage error                                               |
+| Write when serialization fails             | Propagates the writer's exception                                                     |
+| Complete or fail a write                   | Closes the opened stream                                                              |
+| Supply another storage implementation      | Works without modifying `FileSink`, provided it satisfies `FileSystem`                |
+| Supply another writer implementation       | Works without modifying `FileSink`, provided it satisfies `Writer`                    |
 
 Exceptions are propagated rather than wrapped in a new `FileSink` exception hierarchy.
 
-The behavior for empty batches is determined by the supplied writer. For example, the current `CsvWriter` raises `WriterError` when the batch contains no rows.
+For the current local filesystem implementation, opening a destination for writing uses binary write mode. An existing destination is therefore truncated, while a new destination is created if its parent directory exists and filesystem access is permitted. Parent directories are not created automatically.
 
 ## SOLID Considerations
 
 ### Single Responsibility Principle
 
-`FileSink` has one primary responsibility: coordinating storage access and serialization to deliver a batch to a file resource.
+`FileSink` has one primary responsibility: coordinating storage access and serialization to deliver batches to a file resource.
 
 It does not implement filesystem operations or format-specific serialization.
 
@@ -219,7 +231,7 @@ No factory, registry, or plugin framework is required at this stage.
 
 Any implementation satisfying `FileSystem` can replace another storage implementation, and any implementation satisfying `Writer` can replace another writer.
 
-Substitutions must preserve their respective contracts, including stream behavior and exception propagation.
+Substitutions must preserve their respective contracts, including writable-stream behavior, iterable consumption, and exception propagation.
 
 ### Interface Segregation Principle
 
@@ -242,11 +254,12 @@ The initial implementation should remain small:
 
 * Accept a destination path, `FileSystem`, and `Writer`.
 * Use `FileSystem.open_write()` to obtain the output stream.
-* Pass the `Batch` and stream to `Writer.write()`.
+* Pass the iterable of batches and stream to `Writer.write()`.
+* Open the destination once per write operation.
 * Close the stream reliably.
 * Propagate underlying exceptions.
 * Avoid format detection, factories, registries, retries, and append-mode configuration until concrete requirements justify them.
 
 The central design principle is:
 
-**`FileSink` coordinates serialization and storage; the writer handles the format, and the storage implementation handles the destination.**
+**`FileSink` coordinates serialization and storage; the writer handles the format and iterable of batches, while the storage implementation handles the destination.**

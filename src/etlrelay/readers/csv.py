@@ -1,7 +1,7 @@
-"""CSV reader implementation for FlowForge.
+"""CSV reader implementation for ETLRelay.
 
 This module provides functionality for reading CSV data from a binary
-stream and yielding the parsed data as FlowForge Batch objects.
+stream and yielding the parsed data as ETLRelay Batch objects.
 """
 
 from collections.abc import Iterable
@@ -10,7 +10,7 @@ from typing import BinaryIO
 import pyarrow as pa
 import pyarrow.csv as pa_csv
 
-from flowforge.core.batch import Batch
+from etlrelay.core.batch import Batch
 
 
 class CsvReader:

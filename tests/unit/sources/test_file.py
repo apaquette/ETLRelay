@@ -5,9 +5,9 @@ from typing import BinaryIO
 import pyarrow as pa
 import pytest
 
-from flowforge.core.batch import Batch
-from flowforge.core.source import Source
-from flowforge.sources.file import FileSource
+from etlrelay.core.batch import Batch
+from etlrelay.core.source import Source
+from etlrelay.sources.file import FileSource
 
 
 class FakeFileSystem:

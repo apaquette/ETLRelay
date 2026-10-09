@@ -2,9 +2,9 @@ from pathlib import Path
 
 import pytest
 
-from flowforge.security.path import PathValidationError, PathValidator
-from flowforge.storage.filesystem import FileSystem, FileSystemError
-from flowforge.storage.local import LocalFileSystem
+from etlrelay.security.path import PathValidationError, PathValidator
+from etlrelay.storage.filesystem import FileSystem, FileSystemError
+from etlrelay.storage.local import LocalFileSystem
 
 
 class TestLocalFileSystem:
@@ -88,7 +88,7 @@ class TestLocalFileSystemOpenWrite:
     def test_open_write_creates_and_writes_new_file(self, tmp_path: Path):
         validator = PathValidator(base_path=tmp_path)
         storage = LocalFileSystem(path_validator=validator)
-        content = b"FlowForge test data"
+        content = b"ETLRelay test data"
 
         with storage.open_write("output.bin") as stream:
             stream.write(content)

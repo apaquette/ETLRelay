@@ -1,8 +1,8 @@
 
 from collections.abc import Iterable
 
-from flowforge.core.batch import Batch
-from flowforge.core.sink import Sink
+from etlrelay.core.batch import Batch
+from etlrelay.core.sink import Sink
 
 
 class TestSink:
