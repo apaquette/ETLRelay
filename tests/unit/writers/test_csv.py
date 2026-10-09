@@ -42,11 +42,7 @@ class TestCsvWriter:
 
         csv_content = stream.getvalue().decode("utf-8")
 
-        expected_csv_content = (
-            '"name","age"\n'
-            '"Alice",30\n'
-            '"Bob",25\n'
-        )
+        expected_csv_content = '"name","age"\n"Alice",30\n"Bob",25\n'
 
         assert csv_content == expected_csv_content
 
@@ -65,7 +61,7 @@ class TestCsvWriter:
         writer.write(iter([empty_batch]), stream)
 
         assert stream.getvalue().decode("utf-8") == '"name","age"\n'
-    
+
     def test_writer_handles_empty_iterable(self):
         stream = BytesIO()
 

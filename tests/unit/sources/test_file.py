@@ -128,9 +128,7 @@ class TestFileSource:
         self,
         batch: Batch,
     ) -> None:
-        storage = FakeFileSystem(
-            error=OSError("Unable to open file")
-        )
+        storage = FakeFileSystem(error=OSError("Unable to open file"))
         reader = FakeReader(batch)
 
         source = FileSource(

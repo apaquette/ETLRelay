@@ -1,4 +1,3 @@
-
 from collections.abc import Iterable
 
 from etlrelay.core.batch import Batch

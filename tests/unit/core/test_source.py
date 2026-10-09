@@ -1,4 +1,3 @@
-
 from collections.abc import Iterable
 
 from etlrelay.core.batch import Batch
@@ -9,12 +8,14 @@ class TestSource:
     def test_source_satisfies_protocol(self) -> None:
         class DummySource(Source):
             def read(self) -> Iterable[Batch]:
-                return [Batch(
-                            table=[
-                {"name": "Alice", "age": 30},
-                {"name": "Bob", "age": 25},
-            ]
-        )]
+                return [
+                    Batch(
+                        table=[
+                            {"name": "Alice", "age": 30},
+                            {"name": "Bob", "age": 25},
+                        ]
+                    )
+                ]
 
         source = DummySource()
         assert isinstance(source, Source)

@@ -7,6 +7,7 @@ class IdentitfyProcessor:
         # Simply return the batch as is
         return batch
 
+
 class TestProcessor:
     def test_processor_accepts_batch_and_returns_batch(self) -> None:
         # Create a sample batch
@@ -26,4 +27,4 @@ class TestProcessor:
         # Assert that the processed batch is the same as the input batch
         assert processed_batch.table == batch.table
         assert isinstance(processed_batch, Batch)
-        assert isinstance(processor, Processor) 
+        assert isinstance(processor, Processor)

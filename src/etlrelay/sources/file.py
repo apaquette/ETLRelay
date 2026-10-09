@@ -3,6 +3,7 @@
 This module provides a source that reads data from a file using a
 filesystem abstraction and a reader implementation.
 """
+
 from collections.abc import Iterable
 
 from etlrelay.core.batch import Batch
@@ -47,5 +48,3 @@ class FileSource:
         """
         with self.storage.open_read(self.path) as stream:
             yield from self.reader.read(stream)
-
-    
