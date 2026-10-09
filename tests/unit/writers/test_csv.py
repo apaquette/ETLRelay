@@ -1,10 +1,9 @@
 from io import BytesIO
 
 import pyarrow as pa
-import pytest
 
 from flowforge.core.batch import Batch
-from flowforge.core.writer import Writer, WriterError
+from flowforge.core.writer import Writer
 from flowforge.writers.csv import CsvWriter
 
 
@@ -14,20 +13,32 @@ class TestCsvWriter:
 
         assert isinstance(writer, Writer)
 
-    def test_writer_serializes_batch_to_csv(self):
-        batch = Batch(
-            table=pa.table(
-                {
-                    "name": ["Alice", "Bob"],
-                    "age": [30, 25],
-                }
-            )
+    def test_writer_serializes_multiple_batches_to_csv(self):
+        batches = iter(
+            [
+                Batch(
+                    table=pa.table(
+                        {
+                            "name": ["Alice"],
+                            "age": [30],
+                        }
+                    )
+                ),
+                Batch(
+                    table=pa.table(
+                        {
+                            "name": ["Bob"],
+                            "age": [25],
+                        }
+                    )
+                ),
+            ]
         )
         stream = BytesIO()
 
         writer = CsvWriter()
 
-        writer.write(batch, stream)
+        writer.write(batches, stream)
 
         csv_content = stream.getvalue().decode("utf-8")
 
@@ -39,7 +50,7 @@ class TestCsvWriter:
 
         assert csv_content == expected_csv_content
 
-    def test_writer_raises_error_for_empty_batch(self):
+    def test_writer_handles_empty_batch(self):
         empty_batch = Batch(
             table=pa.table(
                 {
@@ -51,10 +62,14 @@ class TestCsvWriter:
         stream = BytesIO()
 
         writer = CsvWriter()
+        writer.write(iter([empty_batch]), stream)
 
-        with pytest.raises(WriterError) as exc_info:
-            writer.write(empty_batch, stream)
+        assert stream.getvalue().decode("utf-8") == '"name","age"\n'
+    
+    def test_writer_handles_empty_iterable(self):
+        stream = BytesIO()
 
-        assert str(exc_info.value) == (
-            "Batch is empty. Cannot serialize an empty batch."
-        )
+        writer = CsvWriter()
+        writer.write(iter([]), stream)
+
+        assert stream.getvalue() == b""
