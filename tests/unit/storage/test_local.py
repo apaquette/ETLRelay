@@ -11,7 +11,8 @@ class TestLocalFileSystem:
     def test_local_filesystem_satisfies_protocol(self):
         file_system = LocalFileSystem(PathValidator())
         assert isinstance(file_system, FileSystem)
-    
+
+
 class TestLocalFileSystemOpenRead:
     def test_open_read_returns_binary_stream_for_existing_file(
         self,
@@ -22,9 +23,7 @@ class TestLocalFileSystemOpenRead:
         file_path = tmp_path / "input.csv"
         file_path.write_bytes(content)
 
-        filesystem = LocalFileSystem(
-            path_validator=PathValidator(base_path=tmp_path)
-        )
+        filesystem = LocalFileSystem(path_validator=PathValidator(base_path=tmp_path))
 
         # Act / Assert
         with filesystem.open_read("input.csv") as stream:
@@ -41,9 +40,7 @@ class TestLocalFileSystemOpenRead:
         file_path = nested_dir / "records.csv"
         file_path.write_bytes(b"id,value\n1,test\n")
 
-        filesystem = LocalFileSystem(
-            path_validator=PathValidator(base_path=tmp_path)
-        )
+        filesystem = LocalFileSystem(path_validator=PathValidator(base_path=tmp_path))
 
         # Act / Assert
         with filesystem.open_read("data/input/records.csv") as stream:
@@ -54,9 +51,7 @@ class TestLocalFileSystemOpenRead:
         tmp_path: Path,
     ):
         # Arrange
-        filesystem = LocalFileSystem(
-            path_validator=PathValidator(base_path=tmp_path)
-        )
+        filesystem = LocalFileSystem(path_validator=PathValidator(base_path=tmp_path))
 
         # Act / Assert
         with pytest.raises(FileSystemError):
@@ -76,13 +71,12 @@ class TestLocalFileSystemOpenRead:
         outside_file = outside_dir / "secret.csv"
         outside_file.write_bytes(b"restricted,data\n")
 
-        filesystem = LocalFileSystem(
-            path_validator=PathValidator(base_path=base_path)
-        )
+        filesystem = LocalFileSystem(path_validator=PathValidator(base_path=base_path))
 
         # Act / Assert
         with pytest.raises(PathValidationError):
             filesystem.open_read(str(outside_file))
+
 
 class TestLocalFileSystemOpenWrite:
     def test_open_write_creates_and_writes_new_file(self, tmp_path: Path):

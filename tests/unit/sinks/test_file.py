@@ -78,9 +78,7 @@ class TestFileSink:
         writer = Mock(spec=Writer)
         received_batches = []
 
-        writer.write.side_effect = (
-            lambda batches, output_stream: received_batches.extend(batches)
-        )
+        writer.write.side_effect = lambda batches, output_stream: received_batches.extend(batches)
 
         sink = FileSink(
             path="output.csv",
@@ -108,11 +106,7 @@ class TestFileSink:
             writer=writer,
         )
 
-        batches = [
-            Batch(
-                table=pa.table({"name": ["Alice"]})
-            )
-        ]
+        batches = [Batch(table=pa.table({"name": ["Alice"]}))]
 
         with pytest.raises(WriterError, match="Serialization failed"):
             sink.write(iter(batches))

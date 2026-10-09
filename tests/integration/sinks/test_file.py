@@ -50,8 +50,4 @@ class TestFileSink:
         sink.write(batches)
 
         assert output_path.is_file()
-        assert output_path.read_text(encoding="utf-8") == (
-            '"name","age"\n'
-            '"Alice",30\n'
-            '"Bob",25\n'
-        )
+        assert output_path.read_text(encoding="utf-8") == ('"name","age"\n"Alice",30\n"Bob",25\n')

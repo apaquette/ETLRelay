@@ -29,12 +29,9 @@ class CsvWriter:
             OSError: If an error occurs while writing to the stream.
         """
         for index, batch in enumerate(batches):
-            write_options = pa_csv.WriteOptions(
-                include_header=index == 0
-            )
+            write_options = pa_csv.WriteOptions(include_header=index == 0)
             pa_csv.write_csv(
                 batch.table,
                 stream,
                 write_options=write_options,
             )
-

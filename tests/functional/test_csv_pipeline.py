@@ -41,8 +41,4 @@ def test_csv_pipeline_transfers_data_between_files(
     pipeline.run()
 
     assert output_path.exists()
-    assert output_path.read_text(encoding="utf-8") == (
-        '"name","age"\n'
-        '"Alice",30\n'
-        '"Bob",25\n'
-    )
+    assert output_path.read_text(encoding="utf-8") == ('"name","age"\n"Alice",30\n"Bob",25\n')

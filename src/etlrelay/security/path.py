@@ -9,6 +9,7 @@ Validated paths must exist and resolve to a location within the configured
 base directory. When no base directory is provided, the current working
 directory is used.
 """
+
 from pathlib import Path
 
 
@@ -28,10 +29,9 @@ class PathValidator:
         PathValidationError: Raised by validate() when a candidate path is
             outside the base directory or does not exist.
     """
+
     def __init__(self, base_path: Path | None = None):
-        self.base_path = (
-            Path.cwd() if base_path is None else base_path
-        ).resolve()
+        self.base_path = (Path.cwd() if base_path is None else base_path).resolve()
 
     def validate(self, path: Path | str) -> Path:
         """Validate and resolve a filesystem path.
@@ -56,12 +56,9 @@ class PathValidator:
         resolved_path = (self.base_path / path).resolve()
 
         if not resolved_path.is_relative_to(self.base_path):
-            raise PathValidationError(
-                f"Path {path} is outside the base directory"
-            )
+            raise PathValidationError(f"Path {path} is outside the base directory")
 
         return resolved_path
-
 
 
 class PathValidationError(Exception):

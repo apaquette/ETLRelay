@@ -139,8 +139,7 @@ class TestPipeline:
 
         assert len(sink.batches) == len(batches)
         assert all(
-            actual is expected
-            for actual, expected in zip(sink.batches, batches, strict=True)
+            actual is expected for actual, expected in zip(sink.batches, batches, strict=True)
         )
 
     def test_pipeline_handles_empty_source(self):
