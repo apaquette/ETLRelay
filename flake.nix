@@ -40,7 +40,9 @@
               fi
 
               export VIRTUAL_ENV="$PWD/.venv"
-              export PATH="$VIRTUAL_ENV/bin:$PATH"
+
+              # Prefer Nix-managed tools while keeping the project's Python environment.
+              export PATH="${pkgs.pyright}/bin:${pkgs.ruff}/bin:$VIRTUAL_ENV/bin:$PATH"
 
               echo "ETLRelay development environment"
               echo "Python: $(python --version)"
@@ -52,7 +54,9 @@
               git config --global user.name "Alex Paquette"
               git config --global user.email "alexandre.d.paquette@gmail.com"
 
-              exec fish
+              if [[ $- == *i* ]] && command -v fish >/dev/null 2>&1; then
+                exec fish
+              fi
             '';
           };
         }

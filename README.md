@@ -20,6 +20,19 @@ This separation allows file sources and sinks to compose storage and format impl
 
 ETLRelay is being developed incrementally, with test-driven development, explicit component contracts, and a focus on keeping the architecture small.
 
+## Installation
+
+Install ETLRelay from PyPI:
+
+```bash
+pip install etlrelay
+```
+
+## Documentation
+
+See the [ETLRelay documentation](https://apaquette.github.io.ETLRelay/) for usage instructions, examples, and API details.
+
+
 ## Project Status
 
 **Current stage: Core pipeline and local CSV I/O**

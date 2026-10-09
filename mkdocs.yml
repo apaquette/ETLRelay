@@ -1,0 +1,62 @@
+site_name: ETLRelay
+site_description: A lightweight, composable Python framework for batch-oriented ETL pipelines.
+docs_dir: docs
+site_url: "https://apaquette.github.io/ETLRelay/"
+
+nav:
+  - Home: index.md
+  - Getting Started: getting-started.md
+  - Concepts: concepts.md
+  - Security: security.md
+  - API Reference: api-reference.md
+  - Development: development.md
+  - Roadmap: etl_relay_v1_roadmap.md
+  - Architecture:
+      - Pipeline: class_diagrams/pipeline_class_diagram.md
+      - File source: class_diagrams/file_source_class_diagram.md
+      - File sink: class_diagrams/file_sink_class_diagram.md
+      - Local filesystem: class_diagrams/local_filesystem_class_diagram.md
+      - Path validator: class_diagrams/path_validator_class_diagram.md
+      - Reader and writer: class_diagrams/reader_and_writer_class_diagram.md
+  - Development:
+      - Release automation: development/release-automation.md
+
+theme:
+  name: material
+  features:
+    - navigation.sections
+    - navigation.top
+    - content.code.copy
+
+plugins:
+  - search
+  - mike:
+      alias_type: redirect
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: [src]
+          options:
+            docstring_style: google
+            members_order: source
+            show_root_heading: true
+            show_source: false
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - def_list
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.highlight
+  - pymdownx.inlinehilite
+  - pymdownx.superfences
+
+watch:
+  - src/etlrelay
+
+extra:
+  version:
+    provider: mike
+    default: latest
