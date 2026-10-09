@@ -34,6 +34,10 @@
               UV_PYTHON_DOWNLOADS = "never";
             };
 
+            LD_LIBRARY_PATH = pkgs.lib.makeLibraryPath [
+              pkgs.stdenv.cc.cc.lib
+            ];
+
             shellHook = ''
               if [ ! -x "$PWD/.venv/bin/python" ]; then
                 python -m venv "$PWD/.venv" --copies
