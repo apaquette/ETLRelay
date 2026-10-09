@@ -30,7 +30,7 @@ pip install etlrelay
 
 ## Documentation
 
-See the [ETLRelay documentation](https://apaquette.github.io.ETLRelay/) for usage instructions, examples, and API details.
+See the [ETLRelay documentation](https://apaquette.github.io/ETLRelay) for usage instructions, examples, and API details.
 
 
 ## Project Status
