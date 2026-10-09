@@ -118,7 +118,7 @@ jobs:
 
       - name: Validate distribution metadata
         if: steps.pypi-check.outputs.already_published == 'false'
-        run: uvx --from 'twine>=6,<7' twine check dist/*
+        run: uvx --from 'twine>=7,<8' twine check dist/*
 
       - name: Upload built distributions
         if: steps.pypi-check.outputs.already_published == 'false'
