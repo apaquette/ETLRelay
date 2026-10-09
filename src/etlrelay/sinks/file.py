@@ -7,9 +7,8 @@ writer.
 
 from collections.abc import Iterable
 
-from etlrelay.core.batch import Batch
-from etlrelay.core.writer import Writer
-from etlrelay.storage.filesystem import FileSystem
+from etlrelay.core import Batch, Writer
+from etlrelay.storage import FileSystem
 
 
 class FileSink:

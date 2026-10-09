@@ -1,7 +1,6 @@
 from collections.abc import Iterable
 
-from etlrelay.core.batch import Batch
-from etlrelay.core.sink import Sink
+from etlrelay.core import Batch, Sink
 
 
 class TestSink:

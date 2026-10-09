@@ -1,4 +1,4 @@
-from etlrelay.core.batch import Batch
+from etlrelay.core import Batch
 
 
 class TestBatch:

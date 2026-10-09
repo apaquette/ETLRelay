@@ -2,9 +2,8 @@ from pathlib import Path
 
 import pytest
 
-from etlrelay.security.path import PathValidationError, PathValidator
-from etlrelay.storage.filesystem import FileSystem, FileSystemError
-from etlrelay.storage.local import LocalFileSystem
+from etlrelay.security import PathValidationError, PathValidator
+from etlrelay.storage import FileSystem, FileSystemError, LocalFileSystem
 
 
 class TestLocalFileSystem:

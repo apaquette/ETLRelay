@@ -236,7 +236,7 @@ class FileSystem(Protocol):
 ```python
 from typing import BinaryIO
 
-from etlrelay.security.path import PathValidator
+from etlrelay.security import PathValidator
 
 
 class LocalFileSystem:
