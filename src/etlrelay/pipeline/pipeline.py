@@ -7,10 +7,7 @@ and delivering the results to a sink.
 
 from collections.abc import Iterable, Sequence
 
-from etlrelay.core.batch import Batch
-from etlrelay.core.processor import Processor
-from etlrelay.core.sink import Sink
-from etlrelay.core.source import Source
+from etlrelay.core import Batch, Processor, Sink, Source
 
 
 class Pipeline:

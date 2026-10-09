@@ -162,9 +162,8 @@ The stream must remain open while the reader's iterable is consumed. This is par
 ```python
 from collections.abc import Iterable
 
-from etlrelay.core.batch import Batch
-from etlrelay.core.reader import Reader
-from etlrelay.storage.filesystem import FileSystem
+from etlrelay.core import Batch, Reader
+from etlrelay.storage import FileSystem
 
 
 class FileSource:

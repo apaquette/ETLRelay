@@ -1,7 +1,6 @@
 from collections.abc import Iterable
 
-from etlrelay.core.batch import Batch
-from etlrelay.core.source import Source
+from etlrelay.core import Batch, Source
 
 
 class TestSource:

@@ -9,7 +9,7 @@ from typing import BinaryIO
 
 import pyarrow.csv as pa_csv
 
-from etlrelay.core.batch import Batch
+from etlrelay.core import Batch
 
 
 class CsvWriter:

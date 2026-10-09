@@ -4,11 +4,9 @@ from unittest.mock import Mock
 import pyarrow as pa
 import pytest
 
-from etlrelay.core.batch import Batch
-from etlrelay.core.sink import Sink
-from etlrelay.core.writer import Writer, WriterError
-from etlrelay.sinks.file import FileSink
-from etlrelay.storage.filesystem import FileSystem
+from etlrelay.core import Batch, Sink, Writer, WriterError
+from etlrelay.sinks import FileSink
+from etlrelay.storage import FileSystem
 
 
 class TestFileSink:

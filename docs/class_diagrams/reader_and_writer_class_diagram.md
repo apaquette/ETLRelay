@@ -184,7 +184,7 @@ A future reader for another format could be supplied without changing `FileSourc
 from collections.abc import Iterable
 from typing import BinaryIO, Protocol
 
-from etlrelay.core.batch import Batch
+from etlrelay.core import Batch
 
 
 class Reader(Protocol):
@@ -198,7 +198,7 @@ class Reader(Protocol):
 from collections.abc import Iterable
 from typing import BinaryIO, Protocol
 
-from etlrelay.core.batch import Batch
+from etlrelay.core import Batch
 
 
 class Writer(Protocol):

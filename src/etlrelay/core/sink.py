@@ -8,7 +8,7 @@ batches are written.
 from collections.abc import Iterable
 from typing import Protocol, runtime_checkable
 
-from etlrelay.core.batch import Batch
+from etlrelay.core import Batch
 
 
 @runtime_checkable

@@ -3,7 +3,7 @@
 from collections.abc import Iterable
 from typing import BinaryIO, Protocol, runtime_checkable
 
-from etlrelay.core.batch import Batch
+from etlrelay.core import Batch
 
 
 class WriterError(Exception):

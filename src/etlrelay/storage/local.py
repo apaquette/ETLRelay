@@ -7,8 +7,8 @@ a permitted base directory before filesystem operations are performed.
 
 from typing import BinaryIO
 
-from etlrelay.security.path import PathValidator
-from etlrelay.storage.filesystem import FileSystemError
+from etlrelay.security import PathValidator
+from etlrelay.storage import FileSystemError
 
 
 class LocalFileSystem:

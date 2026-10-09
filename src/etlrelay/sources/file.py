@@ -6,9 +6,8 @@ filesystem abstraction and a reader implementation.
 
 from collections.abc import Iterable
 
-from etlrelay.core.batch import Batch
-from etlrelay.core.reader import Reader
-from etlrelay.storage.filesystem import FileSystem
+from etlrelay.core import Batch, Reader
+from etlrelay.storage import FileSystem
 
 
 class FileSource:
