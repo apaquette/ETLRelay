@@ -1,4 +1,4 @@
-"""Pipeline orchestration for FlowForge.
+"""Pipeline orchestration for ETLRelay.
 
 This module provides the Pipeline class, which coordinates batch processing
 by passing data from a source through an ordered sequence of processors
@@ -7,10 +7,10 @@ and delivering the results to a sink.
 
 from collections.abc import Iterable, Sequence
 
-from flowforge.core.batch import Batch
-from flowforge.core.processor import Processor
-from flowforge.core.sink import Sink
-from flowforge.core.source import Source
+from etlrelay.core.batch import Batch
+from etlrelay.core.processor import Processor
+from etlrelay.core.sink import Sink
+from etlrelay.core.source import Source
 
 
 class Pipeline:

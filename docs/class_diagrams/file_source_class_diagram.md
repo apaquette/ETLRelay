@@ -1,13 +1,13 @@
-# FileSource
+# FileSource Class Diagram
 
 ## Purpose
 
-`FileSource` is a source component responsible for reading data from a configured file resource and converting it into FlowForge `Batch` objects.
+`FileSource` is a source component responsible for reading data from a configured file resource and producing ETLRelay `Batch` objects.
 
 It composes two independent components:
 
 * `FileSystem`, which provides access to the resource through a binary stream.
-* `Reader`, which parses the resource into a `Batch`.
+* `Reader`, which parses the resource and produces an iterable of `Batch` objects.
 
 `FileSource` does not depend on a particular storage implementation or file format. This allows it to work with `LocalFileSystem` and future storage implementations, as well as `CsvReader` and future readers, without changing its implementation.
 
@@ -34,7 +34,7 @@ classDiagram
 
     class Reader {
         <<protocol>>
-        +read(stream: BinaryIO) Batch
+        +read(stream: BinaryIO) Iterable~Batch~
     }
 
     class LocalFileSystem {
@@ -42,7 +42,11 @@ classDiagram
     }
 
     class CsvReader {
-        +read(stream: BinaryIO) Batch
+        +read(stream: BinaryIO) Iterable~Batch~
+    }
+
+    class PathValidator {
+        +validate(path: Path | str) Path
     }
 
     class Batch
@@ -54,6 +58,7 @@ classDiagram
     FileSource --> FileSystem : uses
     FileSource --> Reader : uses
 
+    LocalFileSystem --> PathValidator : validates paths with
     CsvReader --> Batch : produces
 ```
 
@@ -66,8 +71,9 @@ classDiagram
 * Storing the configured resource path.
 * Opening the resource through the supplied `FileSystem`.
 * Passing the resulting binary stream to the supplied `Reader`.
-* Exposing the resulting `Batch` through the `Source` interface.
-* Ensuring the opened stream is closed after reading.
+* Exposing the reader's batches through the `Source` interface.
+* Ensuring the opened stream remains available while batches are being read.
+* Closing the stream when iteration finishes, fails, or is explicitly closed.
 
 `FileSource` is **not** responsible for:
 
@@ -83,17 +89,17 @@ classDiagram
 
 `FileSystem` defines the contract for accessing file resources.
 
-Its implementations are responsible for opening resources for reading and providing binary streams. Storage-specific behavior, such as local path validation, remains within the concrete storage implementation.
+Its implementations open resources for reading and provide binary streams. Storage-specific behavior, such as local path validation, remains within the concrete storage implementation.
 
 `FileSource` depends on the protocol rather than on `LocalFileSystem`.
 
 ### Reader
 
-`Reader` defines the contract for parsing a binary stream into a FlowForge `Batch`.
+`Reader` defines the contract for parsing a binary stream and producing an iterable of ETLRelay `Batch` objects.
 
 Its implementations handle format-specific parsing. For example, `CsvReader` uses PyArrow to parse CSV data.
 
-`FileSource` does not need to know how the supplied reader interprets the stream.
+A reader may produce one or more batches. `FileSource` does not need to know how the reader divides its output into batches or how it interprets the underlying format.
 
 ## Dependency Relationship
 
@@ -138,28 +144,27 @@ FileSystem.open_read(path)
   BinaryIO stream
        │
        ▼
-  Reader.read(stream)
+Reader.read(stream)
        │
        ▼
-      Batch
+Iterable[Batch]
        │
        ▼
- Iterable[Batch]
+Pipeline
 ```
 
-In the initial implementation, one file produces one `Batch`. The source exposes the result through an iterable to satisfy the existing `Source` protocol.
+The reader determines how many batches are produced. `FileSource` exposes those batches through the `Source` interface without performing additional format conversion or transformation.
 
-The stream is managed using a context manager so that it is closed after the reader finishes consuming it.
+The stream must remain open while the reader's iterable is consumed. This is particularly important when a reader produces batches lazily. The stream should be managed with a context manager so that it is closed reliably when iteration completes or terminates with an exception.
 
 ## Interface
 
 ```python
 from collections.abc import Iterable
-from typing import Protocol
 
-from flowforge.core.batch import Batch
-from flowforge.core.reader import Reader
-from flowforge.storage.filesystem import FileSystem
+from etlrelay.core.batch import Batch
+from etlrelay.core.reader import Reader
+from etlrelay.storage.filesystem import FileSystem
 
 
 class FileSource:
@@ -177,16 +182,17 @@ class FileSource:
 
 ## Contract
 
-| Operation                                        | Expected behavior                                                        |
-| ------------------------------------------------ | ------------------------------------------------------------------------ |
-| Construct with path, storage, and reader         | Stores the supplied dependencies and resource path                       |
-| Read a valid resource                            | Returns an iterable containing the parsed `Batch`                        |
-| Read a nonexistent local file                    | Propagates the storage error                                             |
-| Read an invalid CSV resource                     | Propagates the reader's parsing error                                    |
-| Read a resource outside the permitted local base | Propagates the path-validation error from local storage                  |
-| Complete a read                                  | Closes the opened stream                                                 |
-| Supply another storage implementation            | Works without modifying `FileSource`, provided it satisfies `FileSystem` |
-| Supply another reader implementation             | Works without modifying `FileSource`, provided it satisfies `Reader`     |
+| Operation                                        | Expected behavior                                                         |
+| ------------------------------------------------ | ------------------------------------------------------------------------- |
+| Construct with path, storage, and reader         | Stores the supplied dependencies and resource path                        |
+| Read a valid resource                            | Produces an iterable of parsed batches                                    |
+| Read a nonexistent local file                    | Propagates the storage error                                              |
+| Read an invalid CSV resource                     | Propagates the reader's parsing error                                     |
+| Read a resource outside the permitted local base | Propagates the path-validation error from local storage                   |
+| Consume batches                                  | Keeps the opened stream available while the reader's iterable is consumed |
+| Finish or terminate iteration                    | Closes the opened stream                                                  |
+| Supply another storage implementation            | Works without modifying `FileSource`, provided it satisfies `FileSystem`  |
+| Supply another reader implementation             | Works without modifying `FileSource`, provided it satisfies `Reader`      |
 
 Exceptions are propagated rather than wrapped in a new `FileSource` exception hierarchy.
 
@@ -194,7 +200,7 @@ Exceptions are propagated rather than wrapped in a new `FileSource` exception hi
 
 ### Single Responsibility Principle
 
-`FileSource` has one primary responsibility: coordinating storage access and format reading to provide batches to the pipeline.
+`FileSource` has one primary responsibility: coordinating storage access and format reading to produce batches for the pipeline.
 
 It does not implement filesystem operations or format-specific parsing.
 
@@ -210,14 +216,14 @@ No factory, registry, or plugin framework is required for this behavior.
 
 Any implementation satisfying `FileSystem` can replace another storage implementation, and any implementation satisfying `Reader` can replace another reader.
 
-Substitutions must preserve the documented contracts, including stream behavior and exception propagation.
+Substitutions must preserve their documented contracts, including binary-stream behavior, batch iteration, resource lifetime, and exception propagation.
 
 ### Interface Segregation Principle
 
 `FileSource` depends on two small protocols:
 
 * `FileSystem` provides resource access.
-* `Reader` provides format parsing.
+* `Reader` provides format parsing and batch production.
 
 Neither protocol needs unrelated operations such as writing, transformation, or pipeline execution.
 
@@ -234,11 +240,12 @@ The initial implementation should remain small:
 * Accept a resource path, `FileSystem`, and `Reader`.
 * Use `FileSystem.open_read()` to obtain the stream.
 * Pass the stream to `Reader.read()`.
-* Yield the resulting `Batch` through the `Source` interface.
-* Close the stream reliably.
+* Expose the resulting batches through the `Source` interface.
+* Keep the stream open for the duration of iteration.
+* Close the stream reliably, including when iteration fails.
 * Propagate underlying exceptions.
-* Avoid format detection, factories, registries, retries, and chunking until concrete requirements justify them.
+* Avoid format detection, factories, registries, retries, and additional chunking abstractions until concrete requirements justify them.
 
 The central design principle is:
 
-**`FileSource` coordinates resource access and parsing; the storage implementation handles the resource, and the reader handles the format.**
+**`FileSource` coordinates resource access and batch production; the storage implementation handles the resource, and the reader handles the format.**

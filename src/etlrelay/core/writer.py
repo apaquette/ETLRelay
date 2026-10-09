@@ -1,9 +1,9 @@
-"""Protocols and exceptions for serializing FlowForge batches."""
+"""Protocols and exceptions for serializing ETLRelay batches."""
 
 from collections.abc import Iterable
 from typing import BinaryIO, Protocol, runtime_checkable
 
-from flowforge.core.batch import Batch
+from etlrelay.core.batch import Batch
 
 
 class WriterError(Exception):

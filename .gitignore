@@ -49,5 +49,5 @@ result-*
 .env.*
 !.env.example
 
-# Local FlowForge test data
+# Local ETLRelay test data
 data/

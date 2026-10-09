@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from flowforge.security.path import PathValidationError, PathValidator
+from etlrelay.security.path import PathValidationError, PathValidator
 
 
 class TestPathValidator:

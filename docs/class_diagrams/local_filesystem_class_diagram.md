@@ -1,14 +1,14 @@
-# LocalFileSystem Class Diagram
+# FileSystem
 
 ## Purpose
 
-`LocalFileSystem` is a storage component responsible for low-level I/O against the local filesystem.
+`FileSystem` is a protocol defining the storage-access contract used by ETLRelay's file sources and sinks.
 
-It implements the `FileSystem` protocol, providing readable and writable binary streams to higher-level components such as `FileSource` and `FileSink`.
+`LocalFileSystem` implements this protocol by providing readable and writable binary streams for local filesystem paths.
 
-The storage layer is deliberately separated from file-format handling. `LocalFileSystem` does not know about CSV, Parquet, `Batch`, readers, writers, sources, sinks, or pipeline orchestration.
+Storage access is separated from file-format handling. `LocalFileSystem` does not know about CSV, Parquet, `Batch`, readers, writers, sources, sinks, or pipeline orchestration.
 
-For local filesystem security, `LocalFileSystem` uses `PathValidator` to ensure that paths remain within the configured permitted directory.
+For local filesystem security, `LocalFileSystem` uses `PathValidator` to ensure that paths resolve within the configured permitted directory.
 
 ## Class Diagram
 
@@ -21,7 +21,7 @@ classDiagram
     }
 
     class LocalFileSystem {
-        -path_validator: PathValidator
+        -_path_validator: PathValidator
         +open_read(path: str) BinaryIO
         +open_write(path: str) BinaryIO
     }
@@ -32,25 +32,37 @@ classDiagram
     }
 
     class FileSource {
+        -path: str
         -storage: FileSystem
         -reader: Reader
-        -path: Path
         +read() Iterable~Batch~
     }
 
     class FileSink {
+        -path: str
         -storage: FileSystem
         -writer: Writer
-        -path: Path
-        +write(batch: Batch) None
+        +write(batches: Iterable~Batch~) None
+    }
+
+    class Reader {
+        <<protocol>>
+        +read(stream: BinaryIO) Iterable~Batch~
+    }
+
+    class Writer {
+        <<protocol>>
+        +write(batches: Iterable~Batch~, stream: BinaryIO) None
     }
 
     FileSystem <|.. LocalFileSystem
-
     LocalFileSystem --> PathValidator : validates paths with
 
     FileSource --> FileSystem : uses
     FileSink --> FileSystem : uses
+
+    FileSource --> Reader : uses
+    FileSink --> Writer : uses
 ```
 
 ## Responsibilities
@@ -59,76 +71,98 @@ classDiagram
 
 `FileSystem` defines the minimal storage contract required by file sources and sinks.
 
-It is responsible for providing access to file-like resources through binary streams.
+It is responsible for exposing operations that open resources as binary streams:
+
+* `open_read()` opens a resource for reading.
+* `open_write()` opens a resource for writing.
 
 `FileSystem` is **not** responsible for:
 
 * Parsing or serializing file formats.
 * Creating or interpreting `Batch` objects.
-* Path-format-specific behavior.
-* Source or sink orchestration.
+* Implementing source or sink orchestration.
 * Pipeline execution.
 * Application-level logging.
 
-The protocol is intentionally small so that different storage implementations can provide the same operations.
+The protocol is intentionally small so that multiple storage implementations can satisfy the same contract.
 
 ### LocalFileSystem
 
 `LocalFileSystem` is responsible for:
 
-* Opening local files for reading.
-* Opening local files for writing.
+* Opening local files for binary reading.
+* Opening local files for binary writing.
+* Validating path containment through `PathValidator`.
+* Checking whether an input path exists before opening it.
 * Returning binary streams to callers.
-* Applying local filesystem path validation through `PathValidator`.
-* Propagating underlying filesystem errors.
+* Propagating filesystem access errors.
 
 `LocalFileSystem` is **not** responsible for:
 
 * Parsing CSV, Parquet, or other formats.
 * Serializing `Batch` objects.
 * Selecting readers or writers.
+* Creating missing parent directories.
 * Source or sink orchestration.
 * Pipeline execution.
 * Application-level logging.
 
-`LocalFileSystem` does not determine whether a path is valid from an application or authorization perspective. Its local path boundary is enforced through `PathValidator`.
+The storage implementation handles filesystem existence and I/O behavior. `PathValidator` handles path containment.
 
 ### PathValidator
 
-`PathValidator` is responsible for establishing whether a local path resolves within the configured filesystem boundary.
+`PathValidator` determines whether a candidate path resolves within its configured base directory.
+
+It accepts paths represented as `Path` objects or strings and returns the resolved path when the containment check succeeds.
 
 It does not check whether the path exists.
 
-This allows the same validation operation to support both:
+This separation supports both input and output paths:
 
 ```text
-FileSource → existing input path
-FileSink   → existing or new output path
+FileSource
+    │
+    └── Existing input path
+            │
+            ▼
+       LocalFileSystem
+            │
+            ▼
+         open_read()
 ```
 
-Filesystem existence and I/O behavior remain the responsibility of `LocalFileSystem`.
+```text
+FileSink
+    │
+    └── Existing or new output path
+            │
+            ▼
+       LocalFileSystem
+            │
+            ▼
+         open_write()
+```
 
 ## Dependency Relationship
+
+`FileSource` and `FileSink` depend on the `FileSystem` protocol rather than directly on `LocalFileSystem`.
 
 ```text
 FileSource ──┐
              ├──> FileSystem
 FileSink ────┘
+                  ▲
+                  │ implements
+                  │
+             LocalFileSystem
+                  │
+                  ▼
+             PathValidator
 ```
 
-The concrete local implementation is supplied through the protocol:
+The local implementation is responsible for local filesystem behavior. A future remote storage implementation would provide its own resource-access and security behavior while satisfying the same `FileSystem` contract.
 
-```text
-FileSystem
-    │
-    └── LocalFileSystem
-             │
-             └── PathValidator
-```
-
-`FileSource` and `FileSink` do not depend directly on `LocalFileSystem`.
-
-This allows the same file source or sink to work with other storage implementations without changing its implementation:
+Potential future implementations include:
 
 ```text
 FileSystem
@@ -137,6 +171,8 @@ FileSystem
 └── HdfsStorage
 ```
 
+These are extension possibilities, not implementations currently provided by this component.
+
 ## Data Flow
 
 ### FileSource
@@ -144,47 +180,47 @@ FileSystem
 ```text
 FileSource
     │
-    ├── FileSystem.open_read()
-    │         │
-    │         ▼
-    │      BinaryIO
-    │         │
-    │         ▼
-    └── Reader.read()
-              │
-              ▼
-            Batch
+    ├── FileSystem.open_read(path)
+    │          │
+    │          ▼
+    │       BinaryIO
+    │          │
+    │          ▼
+    └────── Reader.read(stream)
+                   │
+                   ▼
+             Iterable[Batch]
 ```
 
-The storage layer provides the resource. The reader interprets its contents.
+The storage component opens the resource, and the reader interprets its contents. The reader may produce multiple batches from one resource.
 
 ### FileSink
 
 ```text
-Batch
-   │
-   ▼
 FileSink
-   │
-   ├── Writer.write()
-   │         │
-   │         ▼
-   │      BinaryIO
-   │
-   └── FileSystem.open_write()
-              │
-              ▼
-          filesystem
+    │
+    ├── FileSystem.open_write(path)
+    │          │
+    │          ▼
+    │       BinaryIO
+    │          │
+    │          ▼
+    └────── Writer.write(batches, stream)
+                   │
+                   ▼
+              Serialized data
 ```
 
-The writer serializes the batch into the supplied stream. The storage layer determines where that stream is ultimately stored.
+The writer serializes the supplied batches into the output stream. The storage component determines where the stream is stored.
+
+The file source or sink is responsible for managing the stream's lifetime. Streams should be closed after use, including when reading or writing raises an exception.
 
 ## Interface
 
 ### FileSystem
 
 ```python
-from typing import BinaryIO
+from typing import BinaryIO, Protocol
 
 
 class FileSystem(Protocol):
@@ -200,10 +236,12 @@ class FileSystem(Protocol):
 ```python
 from typing import BinaryIO
 
+from etlrelay.security.path import PathValidator
+
 
 class LocalFileSystem:
     def __init__(self, path_validator: PathValidator) -> None:
-        ...
+        self._path_validator = path_validator
 
     def open_read(self, path: str) -> BinaryIO:
         ...
@@ -214,73 +252,44 @@ class LocalFileSystem:
 
 ## Contract
 
-| Operation                          | Expected behavior                                       |
-| ---------------------------------- | ------------------------------------------------------- |
-| `open_read(path)`                  | Validates the path and returns a readable binary stream |
-| `open_write(path)`                 | Validates the path and returns a writable binary stream |
-| Read nonexistent path              | Raises the underlying filesystem error                  |
-| Write to a valid new path          | Opens the destination for writing                       |
-| Access path outside permitted base | Raises `PathValidationError`                            |
-| Storage I/O failure                | Propagates the underlying filesystem error              |
+| Operation                                          | Expected behavior                                                                |
+| -------------------------------------------------- | -------------------------------------------------------------------------------- |
+| `open_read(path)`                                  | Validates path containment, checks existence, and opens a readable binary stream |
+| `open_write(path)`                                 | Validates path containment and opens a writable binary stream                    |
+| Read a nonexistent path                            | Raises `FileSystemError`                                                         |
+| Write to a new destination with an existing parent | Creates the destination file                                                     |
+| Write to an existing destination                   | Opens the file in binary write mode and truncates its existing contents          |
+| Write when the parent directory is missing         | Propagates the filesystem error                                                  |
+| Access a path outside the permitted base           | Raises `PathValidationError`                                                     |
+| Encounter another filesystem I/O failure           | Propagates the underlying filesystem error                                       |
 
-`LocalFileSystem` does not require a path to exist before validation. Whether a read or write operation succeeds is determined by the corresponding filesystem operation.
+`LocalFileSystem.open_write()` does not automatically create parent directories.
 
-Parent directories are not implicitly created by `LocalFileSystem` unless a future requirement explicitly introduces that behavior.
+The protocol does not prescribe how all storage implementations handle resource existence, permissions, or provider-specific failures. Those behaviors belong to the concrete storage implementation.
 
 ## SOLID Considerations
 
 ### Single Responsibility Principle
 
-`LocalFileSystem` has one reason to change: the behavior of local filesystem I/O.
+`LocalFileSystem` has one primary responsibility: providing local filesystem access.
 
-It does not combine filesystem access with path validation rules, serialization, or pipeline logic. Path containment remains encapsulated by `PathValidator`.
+Path containment is delegated to `PathValidator`, while parsing and serialization are delegated to readers and writers.
 
 ### Open/Closed Principle
 
-`FileSource` and `FileSink` are open to additional storage implementations through the `FileSystem` protocol without requiring modification.
+Additional storage implementations can satisfy `FileSystem` without requiring modifications to `FileSource` or `FileSink`.
 
-For example:
-
-```text
-FileSystem
-├── LocalFileSystem
-├── S3Storage
-└── HdfsStorage
-```
-
-Adding another storage implementation does not require changes to the file source or sink.
-
-No storage factory, registry, or plugin mechanism is required at this stage.
+The current implementation does not require a storage factory, registry, or plugin mechanism.
 
 ### Liskov Substitution Principle
 
-Any storage implementation satisfying the `FileSystem` contract can be supplied to a `FileSource` or `FileSink`.
+Any implementation satisfying `FileSystem` can be supplied to a file source or sink, provided it preserves the protocol's behavioral contract.
 
-For example:
-
-```python
-FileSource(
-    storage=LocalFileSystem(...),
-    reader=CsvReader(),
-    ...
-)
-```
-
-and a future:
-
-```python
-FileSource(
-    storage=S3Storage(...),
-    reader=CsvReader(),
-    ...
-)
-```
-
-should satisfy the same source dependency.
+Implementations must return usable binary streams and document their storage-specific behavior consistently.
 
 ### Interface Segregation Principle
 
-`FileSystem` exposes only the operations required by file sources and sinks:
+`FileSystem` exposes only two operations:
 
 * Opening a resource for reading.
 * Opening a resource for writing.
@@ -289,57 +298,44 @@ It does not expose unrelated filesystem administration operations such as direct
 
 ### Dependency Inversion Principle
 
-`FileSource` and `FileSink` depend on the `FileSystem` protocol rather than on `LocalFileSystem`.
+`FileSource` and `FileSink` depend on `FileSystem`, not on `LocalFileSystem`.
 
-`LocalFileSystem` depends on the lower-level `PathValidator` for local path containment.
+`LocalFileSystem` depends on `PathValidator` to enforce local path containment.
 
-This produces the following dependency direction:
-
-```text
-FileSource / FileSink
-        │
-        ▼
-   FileSystem
-        ▲
-        │
-LocalFileSystem
-        │
-        ▼
-PathValidator
-```
+This keeps the higher-level components independent of local filesystem details.
 
 ## Design Constraints
 
-The storage abstraction should operate on binary streams rather than `bytes`.
+The storage protocol operates on binary streams rather than requiring callers to read or write an entire resource as `bytes`.
 
 ```text
 LocalFileSystem
        │
        │ BinaryIO
        ▼
-   file resource
+  file resource
 ```
 
-This avoids requiring the complete file contents to be loaded into memory before a reader or writer can process them.
+This allows readers and writers to operate on streams without requiring the storage component to load the entire serialized resource into memory first.
 
-It also allows the same file-format implementation to work across storage backends:
+The same format implementation can therefore be composed with different storage backends:
 
 ```text
 LocalFileSystem ──┐
-S3Storage ────────┼──> BinaryIO ──> CsvReader
+S3Storage ────────┼──> BinaryIO ──> Reader
 HdfsStorage ──────┘
 ```
 
-and:
+And in the reverse direction:
 
 ```text
-CsvWriter ──> BinaryIO ──> LocalFileSystem
-                         └─> S3Storage
-                         └─> HdfsStorage
+Writer ──> BinaryIO ──> LocalFileSystem
+                      ├─> S3Storage
+                      └─> HdfsStorage
 ```
 
-`LocalFileSystem` should use Python's standard filesystem APIs and `pathlib.Path` internally.
+`LocalFileSystem` should continue using Python's standard filesystem APIs and `pathlib.Path` internally.
 
-`PathValidator` should remain responsible for local path containment. `LocalFileSystem` should not duplicate that security logic.
+`PathValidator` remains responsible for local path containment. `LocalFileSystem` remains responsible for existence checks and filesystem operations.
 
-No additional abstractions such as storage factories, storage registries, remote filesystem base classes, or generic resource managers are required for the initial implementation.
+No additional abstractions such as storage factories, registries, remote filesystem base classes, or generic resource managers are required at this stage.

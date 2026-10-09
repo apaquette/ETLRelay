@@ -2,9 +2,9 @@ from io import BytesIO
 
 import pyarrow as pa
 
-from flowforge.core.batch import Batch
-from flowforge.core.writer import Writer
-from flowforge.writers.csv import CsvWriter
+from etlrelay.core.batch import Batch
+from etlrelay.core.writer import Writer
+from etlrelay.writers.csv import CsvWriter
 
 
 class TestCsvWriter:

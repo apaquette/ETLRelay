@@ -2,11 +2,11 @@ from pathlib import Path
 
 import pyarrow as pa
 
-from flowforge.core.batch import Batch
-from flowforge.security.path import PathValidator
-from flowforge.sinks.file import FileSink
-from flowforge.storage.local import LocalFileSystem
-from flowforge.writers.csv import CsvWriter
+from etlrelay.core.batch import Batch
+from etlrelay.security.path import PathValidator
+from etlrelay.sinks.file import FileSink
+from etlrelay.storage.local import LocalFileSystem
+from etlrelay.writers.csv import CsvWriter
 
 
 class TestFileSink:

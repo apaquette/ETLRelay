@@ -1,8 +1,8 @@
 
 from collections.abc import Iterable
 
-from flowforge.core.batch import Batch
-from flowforge.core.source import Source
+from etlrelay.core.batch import Batch
+from etlrelay.core.source import Source
 
 
 class TestSource:

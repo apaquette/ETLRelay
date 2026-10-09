@@ -1,4 +1,4 @@
-"""Local filesystem implementation for FlowForge.
+"""Local filesystem implementation for ETLRelay.
 
 This module provides binary read and write access to local filesystem
 resources through the FileSystem interface. Paths are validated against
@@ -7,8 +7,8 @@ a permitted base directory before filesystem operations are performed.
 
 from typing import BinaryIO
 
-from flowforge.security.path import PathValidator
-from flowforge.storage.filesystem import FileSystemError
+from etlrelay.security.path import PathValidator
+from etlrelay.storage.filesystem import FileSystemError
 
 
 class LocalFileSystem:

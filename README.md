@@ -1,44 +1,182 @@
-# FlowForge
+# ETLRelay
 
-FlowForge is an open-source Python framework for building lightweight, composable ETL pipelines.
+ETLRelay is an open-source Python framework for building lightweight, composable ETL pipelines.
 
-The project is designed around a simple pipeline model:
+It uses a simple pipeline model:
 
 ```text
 Source → Processor(s) → Sink
 ```
 
-Sources and sinks define the pipeline boundary. For file-based data, storage location and file format are deliberately separated:
+A source produces batches of data, processors transform those batches, and a sink consumes the results.
+
+For file-based pipelines, ETLRelay separates storage access from format parsing and serialization:
 
 ```text
-Storage Backend → File Reader → Processor(s) → File Writer → Storage Backend
+FileSystem → Reader → Batch → Processor(s) → Writer → FileSystem
 ```
 
-This allows the same file-format implementation to work with different storage systems such as the local filesystem, S3, or HDFS without duplicating format-specific logic.
+This separation allows file sources and sinks to compose storage and format implementations independently. The same CSV reader can work with different storage implementations without needing to know where the data resides.
 
-Pipelines will eventually be definable both programmatically and through YAML, with the same underlying execution model used in both cases.
+ETLRelay is being developed incrementally, with test-driven development, explicit component contracts, and a focus on keeping the architecture small.
 
 ## Project Status
 
-**Phase 0 — Development Environment**
+**Current stage: Core pipeline and local CSV I/O**
 
-The project is currently in environment setup. No ETL functionality has been implemented yet.
+The foundational components are implemented, including the batch model, pipeline, local filesystem access, CSV reader and writer, file source and sink, and path validation.
 
-The initial implementation will focus on:
+Unit tests validate individual components. Integration and functional tests exercise their composition.
 
-* Composable pipeline components
-* Batch-oriented data processing
-* Apache Arrow as a common data representation
-* Separation of storage backends from file formats
-* Pluggable file readers and writers
-* Integration with Polars for data transformation
-* SQL and filesystem sources and sinks
-* Declarative YAML job definitions
-* Secure handling of configuration and secrets
-* A small command-line interface
-* Automated testing using TDD
+The current implementation establishes the foundation for further development. ETLRelay is not yet a complete ETL product, and its public API may evolve before the first stable release.
 
-The project will deliberately avoid unnecessary infrastructure and abstractions until they are justified by an actual requirement.
+### Implemented Components
+
+| Component         | Responsibility                                                  |
+| ----------------- | --------------------------------------------------------------- |
+| `Batch`           | Represents tabular data using Apache Arrow                      |
+| `Source`          | Defines the contract for producing batches                      |
+| `Processor`       | Defines the contract for transforming a batch                   |
+| `Sink`            | Defines the contract for consuming batches                      |
+| `Pipeline`        | Coordinates source, processor, and sink execution               |
+| `FileSystem`      | Defines the interface for opening binary streams                |
+| `LocalFileSystem` | Provides local filesystem access                                |
+| `PathValidator`   | Enforces local filesystem path containment                      |
+| `Reader`          | Defines the contract for reading data from a binary stream      |
+| `CsvReader`       | Parses CSV data into ETLRelay batches                          |
+| `Writer`          | Defines the contract for serializing batches to a binary stream |
+| `CsvWriter`       | Serializes ETLRelay batches as CSV                             |
+| `FileSource`      | Composes a filesystem and reader to produce batches             |
+| `FileSink`        | Composes a filesystem and writer to consume batches             |
+
+### Planned Capabilities
+
+The following are potential areas of development, not features currently guaranteed to be available:
+
+* Additional file formats, including Parquet and JSON
+* Additional storage backends, including Amazon S3 and HDFS
+* A standard library of data transformation processors
+* SQL sources and sinks using SQLAlchemy
+* Declarative YAML pipeline configuration
+* A command-line interface
+* Improved configuration, secrets, and operational error handling
+
+Features will be added when requirements justify them. The project will not introduce scheduling, distributed execution, or other orchestration infrastructure merely to anticipate future needs.
+
+## Architecture
+
+### Pipeline Execution
+
+The pipeline provides the central execution model:
+
+```text
+Source
+  │
+  ▼
+Iterable[Batch]
+  │
+  ▼
+Processor 1
+  │
+  ▼
+Processor 2
+  │
+  ▼
+    ...
+  │
+  ▼
+Sink
+```
+
+The pipeline applies processors in their configured order to each batch. With no processors, batches pass through unchanged.
+
+Execution is synchronous. Exceptions propagate to the caller rather than being silently discarded or handled by an elaborate recovery framework.
+
+### Separation of Storage and Serialization
+
+ETLRelay keeps resource access independent of file-format handling.
+
+The `FileSystem` protocol defines operations for opening readable and writable binary streams. `LocalFileSystem` implements that protocol for local files and uses `PathValidator` to enforce its permitted filesystem boundary.
+
+Readers and writers operate on streams rather than filesystem paths.
+
+For example, CSV reading follows:
+
+```text
+LocalFileSystem.open_read(path)
+          │
+          ▼
+      BinaryIO
+          │
+          ▼
+       CsvReader
+          │
+          ▼
+        Batch
+```
+
+CSV writing follows the reverse path:
+
+```text
+        Batch
+          │
+          ▼
+       CsvWriter
+          │
+          ▼
+      BinaryIO
+          │
+          ▼
+LocalFileSystem.open_write(path)
+```
+
+`FileSource` composes a filesystem and a reader. `FileSink` composes a filesystem and a writer.
+
+This prevents source and sink implementations from becoming coupled to individual storage technologies or serialization formats.
+
+The current implementation uses the local filesystem and CSV. Additional combinations can be introduced through new implementations of the existing contracts when they are needed.
+
+### Common Data Representation
+
+ETLRelay uses Apache Arrow tables as the underlying tabular representation within `Batch`.
+
+Readers convert external data into batches. Processors operate on batches, and writers serialize batches for output.
+
+This provides a common data boundary between file formats and pipeline components.
+
+Polars is a potential transformation tool for future processors; its use is not required by the current core pipeline implementation.
+
+### Component Contracts
+
+ETLRelay uses Python protocols to define component boundaries where substitutability is useful.
+
+The core contracts are deliberately small:
+
+```text
+Source
+    Produces batches
+
+Processor
+    Transforms a batch
+
+Sink
+    Consumes batches
+```
+
+For file-based operations:
+
+```text
+FileSystem
+    Opens binary streams
+
+Reader
+    Converts stream data into batches
+
+Writer
+    Serializes batches to a stream
+```
+
+Concrete implementations remain independent of higher-level orchestration. The design avoids unnecessary abstract base classes, factories, registries, and inheritance hierarchies.
 
 ## Development Environment
 
@@ -50,7 +188,7 @@ Enter the development shell:
 nix develop
 ```
 
-The shell provides:
+The environment provides:
 
 * Python 3.12
 * uv
@@ -60,13 +198,19 @@ The shell provides:
 
 Nix provides system-level development tools and executables, while uv manages the Python project environment and Python dependencies.
 
-The Python virtual environment is managed by uv at `.venv/`.
+The Python virtual environment is managed by uv in `.venv/`.
 
-The project intentionally uses Nix-native versions of command-line development tools such as Ruff and Pyright. This avoids relying on prebuilt generic Linux executables that are incompatible with NixOS's standard runtime environment.
+The project uses Nix-provided versions of command-line development tools such as Ruff and Pyright to avoid relying on generic Linux executables that may be incompatible with NixOS.
 
 ## Getting Started
 
-After entering the development shell:
+Enter the development shell:
+
+```bash
+nix develop
+```
+
+Install or synchronize Python dependencies:
 
 ```bash
 uv sync
@@ -96,11 +240,11 @@ Run static type checking:
 pyright
 ```
 
-These commands should all execute successfully before beginning implementation work.
+Run these checks before committing implementation changes.
 
 ## Development Principles
 
-### TDD
+### Test-Driven Development
 
 Development follows a small, explicit cycle:
 
@@ -116,281 +260,56 @@ Minimal Implementation
 Passing Test
     ↓
 Refactor
+    ↓
+Validation
 ```
 
-Tests are part of the design process rather than something added after implementation.
+Tests establish expected behavior before implementation. Unit tests validate components independently, while integration and functional tests verify that components work together.
 
 ### Keep Architecture Small
 
 Prefer simple, explicit abstractions over framework machinery.
 
-An abstraction should exist because a concrete requirement justifies it, not because a future requirement might eventually need it.
+An abstraction should exist because a concrete requirement justifies it, not because a hypothetical future requirement might eventually need it.
 
-The project should avoid speculative interfaces, excessive inheritance, and unnecessary configuration.
+Prefer composition and small protocols over unnecessary inheritance. Add configuration, extension mechanisms, and additional layers only when they solve an identified problem.
 
-### Separate Storage from Serialization
+### Separate Responsibilities
 
-Where file-based ETL is concerned, FlowForge separates:
+Each component should have one clearly defined responsibility:
 
-* **Storage** — where data is located
-* **Serialization** — how data is encoded
-* **Processing** — how data is transformed
+* `PathValidator` checks local path containment.
+* `LocalFileSystem` handles local filesystem access.
+* Readers parse external representations.
+* Writers serialize batches.
+* Sources and sinks compose the relevant components.
+* Processors transform batches.
+* `Pipeline` coordinates execution.
 
-For example:
-
-```text
-S3
- │
- ▼
-File Reader
- │
- ▼
-CSV Format
- │
- ▼
-Arrow Data
- │
- ▼
-Processors
- │
- ▼
-Arrow Data
- │
- ▼
-CSV Format
- │
- ▼
-File Writer
- │
- ▼
-S3
-```
-
-This prevents the creation of separate implementations such as `S3CsvSource`, `LocalCsvSource`, and `HdfsCsvSource`.
-
-A CSV implementation should not need to know where the file is stored.
+Security checks should be implemented at the layer where the relevant risk exists.
 
 ### Independent Implementation
 
-FlowForge is independently developed open-source software.
+ETLRelay is independently developed open-source software.
 
-Implementation, APIs, documentation, tests, and design decisions should be developed from FlowForge's own requirements rather than copied from another codebase.
-
-## Planned Architecture
-
-The broader architecture is:
-
-```text
-                          Pipeline
-                             │
-                 ┌───────────┴───────────┐
-                 │                       │
-               Source                   Sink
-                 │                       │
-        ┌────────┴────────┐     ┌───────┴────────┐
-        │                 │     │                │
-    FileSource        SQLSource FileSink      SQLSink
-        │                           │
-        ├── StorageBackend          ├── StorageBackend
-        │                           │
-        └── FileReader              └── FileWriter
-              │                           │
-         Format Registry              Format Registry
-              │                           │
-       ┌──────┼──────┐             ┌──────┼──────┐
-       CSV   JSON  Excel           CSV   JSON  Excel
-       ...                       ...
-```
-
-File-based processing therefore follows:
-
-```text
-Storage Backend
-      ↓
-File Reader
-      ↓
-Format Strategy
-      ↓
-Arrow / batch representation
-      ↓
-Processor(s)
-      ↓
-Arrow / batch representation
-      ↓
-Format Strategy
-      ↓
-File Writer
-      ↓
-Storage Backend
-```
-
-### Storage Backends
-
-Storage backends represent where file data resides.
-
-Potential implementations include:
-
-* Local filesystem
-* Amazon S3
-* Azure Blob Storage / ADLS
-* Google Cloud Storage
-* SFTP
-* HDFS
-* Other object or filesystem-compatible storage systems
-
-Storage backends should handle storage-specific concerns such as:
-
-* Resource location
-* Authentication
-* Opening resources
-* Reading and writing bytes
-* Storage-specific errors
-* Retries where appropriate
-
-A storage backend should not contain CSV, JSON, Excel, or other format-specific parsing logic.
-
-Additional storage backends will be introduced only when concrete requirements justify them. The initial implementation will validate the abstraction using the local filesystem before introducing remote storage systems.
-
-### File Readers and Writers
-
-`FileReader` and `FileWriter` provide the serialization boundary between storage and the common FlowForge data representation.
-
-Format support will be implemented independently, using a strategy/registry approach.
-
-Potential formats include:
-
-* CSV
-* JSON
-* Excel
-* YAML
-* Parquet
-* Other formats as justified by requirements
-
-The format should normally be inferred from the resource path when possible, while allowing explicit format configuration when inference is insufficient or ambiguous.
-
-For example:
-
-```yaml
-source:
-  type: file
-  path: ./data/customers.csv
-```
-
-could infer CSV automatically.
-
-Explicit configuration could override inference:
-
-```yaml
-source:
-  type: file
-  path: ./data/customers
-  format: csv
-```
-
-## Common Data Representation
-
-File formats should be converted into a common batch-oriented representation for processing.
-
-Apache Arrow is the planned common representation.
-
-Polars and other data-processing libraries may operate on that representation where appropriate.
-
-The architecture should avoid requiring processors to understand whether their input originated from CSV, JSON, S3, HDFS, or another storage/format combination.
-
-## Planned Components
-
-### Sources
-
-Potential source types include:
-
-* File source
-* SQL source
-* Future API or other data sources
-
-A file source combines a storage backend with a file reader.
-
-### Processors
-
-Potential processors include:
-
-* Map/transformation
-* Filter
-* Validation
-* Column selection
-
-Processors operate on the common data representation rather than storage-specific or serialization-specific objects.
-
-### Sinks
-
-Potential sink types include:
-
-* File sink
-* SQL sink
-* Future API or other data sinks
-
-A file sink combines a storage backend with a file writer.
-
-### Orchestrator
-
-The orchestrator will eventually be responsible for:
-
-* Loading pipeline definitions
-* Resolving configured components
-* Constructing pipelines
-* Executing pipelines
-* Handling failures
-* Supporting cancellation
-* Producing execution results
-* Logging and observability
-
-Scheduling and multi-job orchestration are intentionally deferred until the core pipeline model is established.
-
-## Configuration
-
-YAML is planned as a declarative configuration format.
-
-A future configuration may look conceptually like:
-
-```yaml
-name: customer-import
-
-source:
-  type: file
-  storage: local
-  path: ./data/customers.csv
-
-processors:
-  - type: validate
-  - type: transform
-
-sink:
-  type: file
-  storage: s3
-  path: s3://warehouse/customers.csv
-```
-
-The exact schema is subject to change during implementation.
-
-Configuration should describe **what a pipeline should do** rather than exposing unnecessary implementation details.
-
-Secrets should not be stored directly in pipeline definitions. Secret handling will be designed separately.
+Its implementation, interfaces, documentation, tests, and design decisions are developed from its own requirements and design process.
 
 ## Security
 
-Security is a first-class design concern.
+Security is a design concern from the beginning.
 
-Planned protections include:
+Current filesystem path validation resolves candidate paths and checks that they remain within the permitted base directory. It does not determine whether a path exists; filesystem operations handle existence and access errors.
 
-* SQL parameterization
-* SQL identifier validation
-* Path traversal prevention
+Further security work will be required as ETLRelay gains more capabilities. Areas for future development include:
+
+* Safe SQL parameterization and identifier validation
 * Configuration validation
-* Secret management
+* Secure credential and secret handling
 * Sensitive-data redaction
-* Safe handling of storage credentials
-* Appropriate validation of external resources
+* Storage-specific authentication and access control
+* Appropriate error handling for external resources
 
-Security mechanisms should be implemented at the layer where the relevant risk exists rather than centralized into an unrelated security abstraction.
+The current path-validation component is a filesystem containment control, not a complete filesystem sandbox or authorization system.
 
 ## Testing
 
@@ -398,115 +317,90 @@ Testing follows the TDD development model.
 
 ### Unit Tests
 
-Examples include:
+Unit tests validate components independently, including:
 
-* Pipeline composition
-* Storage backend behavior
-* File format readers and writers
-* Format detection
-* Data transformations
-* Configuration validation
-* Security validation
+* Batch representation
+* Pipeline execution and processor ordering
+* Path containment
+* Filesystem interactions
+* CSV parsing and serialization
+* File source and sink orchestration
+* Error propagation and resource cleanup
 
 ### Integration Tests
 
-Examples include:
+Integration tests verify interactions between real components, including local filesystem operations and CSV reading and writing.
 
-* Local filesystem operations
-* SQL connections
-* File format integration
-* Storage backend integration
+### Functional Tests
 
-External services such as S3 should use appropriate test doubles or controlled integration environments rather than requiring external infrastructure for ordinary unit tests.
+Functional tests exercise complete workflows through the source, processing, and sink boundaries.
 
-### End-to-End Tests
+The suite should use temporary directories and controlled test inputs rather than relying on repository-local data or external infrastructure unnecessarily.
 
-The project will eventually test complete flows such as:
+As additional storage backends and data sources are introduced, their integration tests will be added alongside the corresponding implementations.
 
-```text
-YAML
- ↓
-Configuration
- ↓
-Pipeline
- ↓
-Storage
- ↓
-Reader
- ↓
-Processor(s)
- ↓
-Writer
- ↓
-Storage
-```
+## Project Structure
 
-## Planned Project Structure
+The current package is organized around component responsibilities. The structure will evolve as additional features are implemented.
 
 ```text
-flowforge/
-├── src/
-│   └── flowforge/
-├── tests/
-├── examples/
-├── docs/
-├── .gitignore
-├── flake.nix
-├── flake.lock
-├── pyproject.toml
-├── README.md
-├── LICENSE
-└── NOTICE
+src/
+└── etlrelay/
+    ├── core/
+    │   ├── batch.py
+    │   ├── source.py
+    │   ├── processor.py
+    │   ├── sink.py
+    │   ├── reader.py
+    │   └── writer.py
+    ├── pipeline/
+    │   └── pipeline.py
+    ├── security/
+    │   └── path.py
+    ├── storage/
+    │   ├── filesystem.py
+    │   └── local.py
+    ├── readers/
+    │   └── csv.py
+    ├── writers/
+    │   └── csv.py
+    ├── sources/
+    │   └── file.py
+    └── sinks/
+        └── file.py
+
+tests/
+├── unit/
+├── integration/
+└── functional/
+
+docs/
+examples/
 ```
 
-Generated files and local development state such as `.venv/`, Nix development artifacts, Python caches, test output, and local ETL data are excluded through `.gitignore`.
+The tree is illustrative of the current component organization. It does not imply that every future feature or module has already been implemented.
 
-The internal Python package structure will be established incrementally as concrete requirements emerge.
-
-The project should avoid creating a large package hierarchy before the underlying responsibilities have been validated through implementation and tests.
+Generated files and local development state—including `.venv/`, Python caches, test output, and local ETL data—should be excluded through `.gitignore`.
 
 ## Development Workflow
 
-Each implementation unit follows:
+Each implementation unit follows these steps:
 
-1. Define the requirement
-2. Define acceptance criteria
-3. Identify the smallest useful design
-4. Write failing tests
-5. Implement the minimum required behavior
-6. Make the tests pass
-7. Refactor where justified
-8. Run the full test suite
-9. Update documentation
-10. Commit the completed change
+1. Define the requirement.
+2. Establish acceptance criteria.
+3. Choose the smallest suitable design.
+4. Write failing tests.
+5. Implement the minimum required behavior.
+6. Confirm the tests pass.
+7. Refactor where justified.
+8. Run the full test suite and quality checks.
+9. Update documentation.
+10. Commit the completed change.
 
-The project should remain in a working state at the end of each phase.
-
-## Current Phase
-
-**Phase 0 — Development Environment**
-
-Phase 0 is complete when:
-
-* Nix development shell works
-* Required Python version is available
-* uv is available
-* Git is available
-* Ruff is available
-* Pyright is available
-* `uv sync` works
-* Project installs locally
-* pytest executes
-* Ruff executes
-* Pyright executes
-* Initial documentation is present
-* `.gitignore` is present
-* License files are present
-
-The next phase will define the functional requirements and acceptance criteria for the core pipeline model.
+The project should remain in a working state throughout development.
 
 ## License
 
-FlowForge is licensed under the Apache License, Version 2.0.
+ETLRelay is licensed under the Apache License, Version 2.0.
 
 See `LICENSE` for the full license text.

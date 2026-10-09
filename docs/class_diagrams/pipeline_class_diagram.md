@@ -8,9 +8,11 @@ It coordinates three components:
 
 * `Source`, which produces an iterable of `Batch` objects.
 * `Processor`, which transforms individual batches.
-* `Sink`, which consumes the processed batches.
+* `Sink`, which consumes an iterable of processed batches.
 
 `Pipeline` controls the execution order but does not implement data extraction, transformation, or storage itself. It depends on the component protocols rather than concrete implementations.
+
+Execution is synchronous and batch-oriented. The pipeline applies each configured processor to every batch in source order, then passes the resulting iterable to the sink.
 
 ## Class Diagram
 
@@ -58,8 +60,10 @@ classDiagram
 * Obtaining batches from the configured source.
 * Applying processors to each batch in the configured order.
 * Passing the processed batches to the configured sink.
-* Handling pipelines with zero or more processors.
-* Allowing exceptions from source, processor, or sink operations to propagate.
+* Supporting zero or more processors.
+* Preserving source batch order.
+* Propagating exceptions from source, processor, and sink operations.
+* Coordinating execution without requiring all batches to be held in memory simultaneously.
 
 `Pipeline` is **not** responsible for:
 
@@ -81,6 +85,8 @@ read() -> Iterable[Batch]
 
 Concrete sources, such as `FileSource`, are responsible for obtaining and producing batches from their respective data sources.
 
+The pipeline consumes the iterable in the order supplied by the source.
+
 ### Processor
 
 `Processor` defines the transformation contract:
@@ -91,7 +97,23 @@ process(batch: Batch) -> Batch
 
 Each processor receives one batch and returns the batch to be passed to the next processor.
 
-The pipeline determines the order in which processors execute. The processors themselves do not need to know about the pipeline or other processors.
+The pipeline determines the order in which processors execute. Processors do not need to know about the pipeline or other processors.
+
+For each source batch, the processors execute sequentially:
+
+```text
+Batch
+  ↓
+Processor 1
+  ↓
+Processor 2
+  ↓
+Processor N
+  ↓
+Processed Batch
+```
+
+If there are no processors, the original batch passes through unchanged.
 
 ### Sink
 
@@ -101,9 +123,13 @@ The pipeline determines the order in which processors execute. The processors th
 write(batches: Iterable[Batch]) -> None
 ```
 
-Concrete sinks are responsible for delivering batches to their destinations.
+Concrete sinks are responsible for delivering the iterable to their destinations.
 
-For example, `FileSink` passes the iterable to a writer, which serializes the batches into a single output resource.
+For example, `FileSink` opens its configured destination and passes the iterable to a writer, which serializes the batches into a single output resource.
+
+The pipeline calls `Sink.write()` once per successful invocation of `Pipeline.run()`. The sink is responsible for consuming the iterable during that call.
+
+An empty source iterable is valid. In that case, the sink receives an empty iterable.
 
 ## Dependency Relationship
 
@@ -137,6 +163,21 @@ Source.read()
 Iterable[Batch]
       │
       ▼
+Apply processors to each batch
+      │
+      ▼
+Iterable[Processed Batch]
+      │
+      ▼
+Sink.write(batches)
+```
+
+For an individual batch, processing occurs in configured order:
+
+```text
+Source Batch
+      │
+      ▼
 Processor 1
       │
       ▼
@@ -146,26 +187,23 @@ Processor 2
      ...
       │
       ▼
-Iterable[Batch]
-      │
-      ▼
-Sink.write()
+Processed Batch
 ```
 
-Each batch passes through all configured processors in sequence before being delivered to the sink.
+The resulting batches preserve source order.
 
-With no processors, batches pass from the source to the sink unchanged.
+The pipeline should process batches incrementally rather than unnecessarily collecting the entire iterable into memory. A lazy iterable or generator can apply the processors as the sink consumes batches.
 
-The pipeline should process batches incrementally where possible rather than collecting the entire iterable into memory. The sink consumes the resulting iterable during the synchronous `run()` operation.
+Because execution is synchronous, processing and sink consumption take place during the `Pipeline.run()` call.
 
 ## Interface
 
 ```python
 from collections.abc import Sequence
 
-from flowforge.core.processor import Processor
-from flowforge.core.sink import Sink
-from flowforge.core.source import Source
+from etlrelay.core.processor import Processor
+from etlrelay.core.sink import Sink
+from etlrelay.core.source import Source
 
 
 class Pipeline:
@@ -183,19 +221,23 @@ class Pipeline:
 
 ## Contract
 
-| Operation or scenario         | Expected behavior                                            |
-| ----------------------------- | ------------------------------------------------------------ |
-| Run with one batch            | Processes and delivers the batch to the sink                 |
-| Run with multiple batches     | Processes batches in source order                            |
-| Multiple processors           | Applies processors in configured order to each batch         |
-| No processors                 | Passes source batches through unchanged                      |
-| Source raises an exception    | Propagates the exception                                     |
-| Processor raises an exception | Propagates the exception and stops normal pipeline execution |
-| Sink raises an exception      | Propagates the exception                                     |
-| Empty source iterable         | Completes without processing any batches                     |
-| Run completes                 | Returns `None`                                               |
+| Operation or scenario                | Expected behavior                                    |
+| ------------------------------------ | ---------------------------------------------------- |
+| Run with one batch                   | Processes and delivers the batch to the sink         |
+| Run with multiple batches            | Processes batches in source order                    |
+| Multiple processors                  | Applies processors in configured order to each batch |
+| No processors                        | Passes source batches through unchanged              |
+| Sink invocation                      | Calls `Sink.write()` once per run                    |
+| Empty source iterable                | Passes an empty iterable to the sink                 |
+| Source raises an exception           | Propagates the exception                             |
+| Source iteration raises an exception | Propagates the exception during execution            |
+| Processor raises an exception        | Propagates the exception and stops normal execution  |
+| Sink raises an exception             | Propagates the exception                             |
+| Run completes successfully           | Returns `None`                                       |
 
 The pipeline does not introduce a separate exception hierarchy or silently discard failed batches.
+
+Exceptions arising while the sink consumes the processed iterable propagate through `Pipeline.run()` when consumption occurs synchronously.
 
 ## SOLID Considerations
 
@@ -235,16 +277,17 @@ This keeps the orchestration logic independent of storage technologies, file for
 
 ## Design Constraints
 
-The initial implementation should remain synchronous and batch-oriented.
+The implementation should remain synchronous and batch-oriented.
 
 * Preserve the source's batch order.
 * Apply processors sequentially to each batch.
 * Support an empty processor sequence.
 * Pass processed batches to the sink as an iterable.
+* Invoke the sink once per run.
+* Allow incremental processing without unnecessarily buffering all batches.
 * Propagate exceptions.
-* Avoid buffering all batches unnecessarily.
 * Avoid retries, scheduling, parallelism, cancellation frameworks, and execution-result models unless concrete requirements justify them.
 
 The central design principle is:
 
-**`Pipeline` determines the execution order; sources obtain data, processors transform it, and sinks consume the results.**
+**`Pipeline` determines the execution order; sources obtain data, processors transform individual batches, and sinks consume the resulting iterable.**

@@ -1,4 +1,4 @@
-from flowforge.core.batch import Batch
+from etlrelay.core.batch import Batch
 
 
 class TestBatch:

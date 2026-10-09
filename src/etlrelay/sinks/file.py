@@ -1,15 +1,15 @@
-"""File sink implementation for FlowForge.
+"""File sink implementation for ETLRelay.
 
-This module provides functionality for writing FlowForge batches to a file
+This module provides functionality for writing ETLRelay batches to a file
 resource by combining a storage implementation with a format-specific
 writer.
 """
 
 from collections.abc import Iterable
 
-from flowforge.core.batch import Batch
-from flowforge.core.writer import Writer
-from flowforge.storage.filesystem import FileSystem
+from etlrelay.core.batch import Batch
+from etlrelay.core.writer import Writer
+from etlrelay.storage.filesystem import FileSystem
 
 
 class FileSink:

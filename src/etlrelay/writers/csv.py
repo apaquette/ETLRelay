@@ -1,6 +1,6 @@
-"""CSV writer implementation for FlowForge.
+"""CSV writer implementation for ETLRelay.
 
-This module provides functionality for serializing FlowForge Batch objects
+This module provides functionality for serializing ETLRelay Batch objects
 as CSV data and writing the serialized data to a binary stream.
 """
 
@@ -9,11 +9,11 @@ from typing import BinaryIO
 
 import pyarrow.csv as pa_csv
 
-from flowforge.core.batch import Batch
+from etlrelay.core.batch import Batch
 
 
 class CsvWriter:
-    """Serialize iterable FlowForge batches as CSV data."""
+    """Serialize iterable ETLRelay batches as CSV data."""
 
     def write(self, batches: Iterable[Batch], stream: BinaryIO) -> None:
         """Serialize batches to CSV in the supplied binary stream.
