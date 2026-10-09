@@ -3,44 +3,62 @@ name: CI
 on:
   push:
     branches:
+      - dev
       - main
   pull_request:
     branches:
+      - dev
       - main
 
 permissions:
   contents: read
 
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   quality:
-    name: Test, lint, type-check, and build
+    name: quality
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v7
-
-      - name: Set up Python
-        uses: actions/setup-python@v7
-        with:
-          python-version: "3.12"
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Set up uv
-        uses: astral-sh/setup-uv@v10.2.0
+        uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
         with:
           enable-cache: true
 
-      - name: Install dependencies
-        run: uv sync --locked --dev
+      - name: Install Python
+        run: uv python install 3.12
 
-      - name: Run tests
-        run: uv run pytest
+      - name: Install locked project and development dependencies
+        run: uv sync --locked --all-groups
 
-      - name: Run Ruff
-        run: uv run ruff check .
+      - name: Run tests with branch coverage
+        run: >-
+          uv run pytest
+          --cov=etlrelay
+          --cov-branch
+          --cov-report=term-missing
+          --cov-report=xml
+          --cov-fail-under=90.1
 
-      - name: Run Pyright
+      - name: Check lint
+        run: uv run ruff check src tests
+
+      - name: Check formatting
+        run: uv run ruff format --check src tests
+
+      - name: Check types
         run: uv run pyright
 
-      - name: Build package
+      - name: Build documentation
+        run: uv run mkdocs build --strict
+
+      - name: Build source distribution and wheel
         run: uv build
+
+      - name: Validate distribution metadata
+        run: uvx --from 'twine>=7,<8' twine check dist/*

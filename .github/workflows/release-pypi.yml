@@ -1,0 +1,242 @@
+name: Publish release to PyPI
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-build:
+    # Keep false while bootstrapping TestPyPI; set the repository variable to true
+    # only after the TestPyPI candidate has passed its smoke test.
+    if: github.ref == 'refs/heads/main' && vars.PYPI_RELEASE_ENABLED == 'true'
+    name: verify and build release
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.metadata.outputs.version }}
+      distribution: ${{ steps.metadata.outputs.distribution }}
+      already_published: ${{ steps.pypi-check.outputs.already_published }}
+    steps:
+      - name: Check out repository and tags
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
+        with:
+          enable-cache: true
+
+      - name: Install Python
+        run: uv python install 3.12
+
+      - name: Read package metadata
+        id: metadata
+        shell: bash
+        run: |
+          python - <<'PY' >> "$GITHUB_OUTPUT"
+          import re
+          import tomllib
+          from pathlib import Path
+
+          project = tomllib.loads(Path("pyproject.toml").read_text())["project"]
+          distribution = re.sub(r"[-_.]+", "-", project["name"]).lower()
+          if distribution != "etlrelay":
+              raise SystemExit(f"Expected distribution name 'etlrelay', got {project['name']!r}")
+          print(f"version={project['version']}")
+          print(f"distribution={distribution}")
+          PY
+
+      - name: Check whether this exact version is already published
+        id: pypi-check
+        env:
+          PACKAGE_VERSION: ${{ steps.metadata.outputs.version }}
+          DISTRIBUTION: ${{ steps.metadata.outputs.distribution }}
+        shell: bash
+        run: |
+          status=$(curl --silent --show-error --output /dev/null \
+            --write-out '%{http_code}' \
+            "https://pypi.org/pypi/${DISTRIBUTION}/${PACKAGE_VERSION}/json")
+
+          if [[ "$status" == "200" ]]; then
+            echo "already_published=true" >> "$GITHUB_OUTPUT"
+            echo "${DISTRIBUTION} ${PACKAGE_VERSION} already exists on PyPI; publication will be skipped."
+            exit 0
+          fi
+
+          if [[ "$status" != "404" ]]; then
+            echo "Unexpected PyPI response HTTP ${status}; refusing to publish." >&2
+            exit 1
+          fi
+
+          if git ls-remote --exit-code --tags origin "refs/tags/v${PACKAGE_VERSION}" >/dev/null 2>&1; then
+            echo "Release tag v${PACKAGE_VERSION} already exists, but that version was not found on PyPI." >&2
+            echo "Investigate this inconsistent release state before retrying." >&2
+            exit 1
+          fi
+
+          echo "already_published=false" >> "$GITHUB_OUTPUT"
+          echo "Version ${PACKAGE_VERSION} is not on PyPI; running release checks."
+
+      - name: Install locked project and development dependencies
+        if: steps.pypi-check.outputs.already_published == 'false'
+        run: uv sync --locked --all-groups
+
+      - name: Run tests with branch coverage
+        if: steps.pypi-check.outputs.already_published == 'false'
+        run: >-
+          uv run pytest
+          --cov=etlrelay
+          --cov-branch
+          --cov-report=term-missing
+          --cov-report=xml
+          --cov-fail-under=90.1
+
+      - name: Check lint
+        if: steps.pypi-check.outputs.already_published == 'false'
+        run: uv run ruff check .
+
+      - name: Check formatting
+        if: steps.pypi-check.outputs.already_published == 'false'
+        run: uv run ruff format --check .
+
+      - name: Check types
+        if: steps.pypi-check.outputs.already_published == 'false'
+        run: uv run pyright
+
+      - name: Build documentation
+        if: steps.pypi-check.outputs.already_published == 'false'
+        run: uv run mkdocs build --strict
+
+      - name: Build source distribution and wheel
+        if: steps.pypi-check.outputs.already_published == 'false'
+        run: uv build
+
+      - name: Validate distribution metadata
+        if: steps.pypi-check.outputs.already_published == 'false'
+        run: uvx --from 'twine>=6,<7' twine check dist/*
+
+      - name: Upload built distributions
+        if: steps.pypi-check.outputs.already_published == 'false'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: pypi-distributions
+          path: dist/*
+          if-no-files-found: error
+          retention-days: 7
+
+  publish:
+    name: publish to PyPI
+    needs: verify-build
+    if: needs.verify-build.outputs.already_published == 'false'
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/project/etlrelay/${{ needs.verify-build.outputs.version }}/
+    permissions:
+      id-token: write
+    steps:
+      - name: Download verified distributions
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: pypi-distributions
+          path: dist/
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+
+  publish-versioned-docs:
+    name: publish versioned documentation
+    needs: [verify-build, publish]
+    # Only make a docs snapshot after a new package version has actually reached PyPI.
+    if: ${{ needs.verify-build.outputs.already_published == 'false' && needs.publish.result == 'success' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Check out the released source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
+        with:
+          enable-cache: true
+
+      - name: Install Python
+        run: uv python install 3.12
+
+      - name: Install documentation and project dependencies
+        run: uv sync --locked --all-groups
+
+      - name: Configure Git identity for mike
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Publish the version and update the latest alias
+        env:
+          RELEASE_VERSION: ${{ needs.verify-build.outputs.version }}
+        run: |
+          uv run mike deploy --push --update-aliases "$RELEASE_VERSION" latest
+          uv run mike set-default --push latest
+
+  deploy-versioned-docs-to-github-pages:
+    name: deploy documentation to GitHub Pages
+    needs: publish-versioned-docs
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Check out the mike-generated site
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: gh-pages
+          path: gh-pages
+          persist-credentials: false
+
+      - name: Prepare Pages artifact without Git metadata
+        run: |
+          mkdir site-artifact
+          rsync -a --exclude='.git' gh-pages/ site-artifact/
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: site-artifact/
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+  create-github-release:
+    name: create GitHub release
+    needs: [verify-build, publish]
+    if: needs.verify-build.outputs.already_published == 'false' && needs.publish.result == 'success'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Create tag and GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PACKAGE_VERSION: ${{ needs.verify-build.outputs.version }}
+        run: |
+          gh release create "v${PACKAGE_VERSION}" \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" \
+            --title "ETLRelay ${PACKAGE_VERSION}" \
+            --generate-notes

@@ -51,3 +51,5 @@ result-*
 
 # Local ETLRelay test data
 data/
+
+site/
