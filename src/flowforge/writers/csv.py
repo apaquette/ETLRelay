@@ -4,31 +4,37 @@ This module provides functionality for serializing FlowForge Batch objects
 as CSV data and writing the serialized data to a binary stream.
 """
 
+from collections.abc import Iterable
 from typing import BinaryIO
 
 import pyarrow.csv as pa_csv
 
 from flowforge.core.batch import Batch
-from flowforge.core.writer import WriterError
 
 
 class CsvWriter:
-    """Serialize FlowForge Batch objects as CSV data."""
+    """Serialize iterable FlowForge batches as CSV data."""
 
-    def write(self, batch: Batch, stream: BinaryIO) -> None:
-        """Serialize a batch as CSV data and write it to the supplied stream.
+    def write(self, batches: Iterable[Batch], stream: BinaryIO) -> None:
+        """Serialize batches to CSV in the supplied binary stream.
+
+        Writes the CSV header only once, using the first batch's schema.
+        Subsequent batches contribute rows without additional headers.
 
         Args:
-            batch: The Batch containing tabular data to serialize.
-            stream: A binary stream that receives the serialized CSV data.
+            batches: Iterable of batches containing tabular data.
+            stream: Writable binary stream that receives the CSV data.
 
         Raises:
-            WriterError: If the batch contains no rows.
             OSError: If an error occurs while writing to the stream.
         """
-        if batch.table.num_rows == 0:
-            raise WriterError(
-                "Batch is empty. Cannot serialize an empty batch."
+        for index, batch in enumerate(batches):
+            write_options = pa_csv.WriteOptions(
+                include_header=index == 0
+            )
+            pa_csv.write_csv(
+                batch.table,
+                stream,
+                write_options=write_options,
             )
 
-        pa_csv.write_csv(batch.table, stream)
