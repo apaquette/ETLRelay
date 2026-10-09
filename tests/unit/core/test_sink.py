@@ -8,7 +8,7 @@ from flowforge.core.sink import Sink
 class TestSink:
     def test_sink_satisfies_protocol(self) -> None:
         class DummySink(Sink):
-            def write(self, batch: Iterable[Batch]) -> None:
+            def write(self, batches: Iterable[Batch]) -> None:
                 pass
 
         sink = DummySink()
