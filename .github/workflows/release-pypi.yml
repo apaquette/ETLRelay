@@ -98,11 +98,11 @@ jobs:
 
       - name: Check lint
         if: steps.pypi-check.outputs.already_published == 'false'
-        run: uv run ruff check .
+        run: uv run ruff check src tests
 
       - name: Check formatting
         if: steps.pypi-check.outputs.already_published == 'false'
-        run: uv run ruff format --check .
+        run: uv run ruff format --check src tests
 
       - name: Check types
         if: steps.pypi-check.outputs.already_published == 'false'
