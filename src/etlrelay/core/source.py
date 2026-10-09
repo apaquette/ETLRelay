@@ -25,11 +25,10 @@ class Source(Protocol):
     def read(self) -> Iterable[Batch]:
         """Return an iterable of batches obtained from the data source.
 
+        Concrete implementations may raise implementation-specific
+        exceptions when the underlying data cannot be accessed or read.
+
         Returns:
             An iterable of Batch objects produced by the source.
-
-        Raises:
-            Exceptions raised by the concrete implementation when data
-            cannot be accessed or read.
         """
         ...

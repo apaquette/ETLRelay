@@ -12,4 +12,4 @@ This validation is not an operating-system sandbox and does not eliminate time-o
 
 The initial release does not claim to provide a complete sandbox, credentials vault, SQL security layer, external API security model, or cloud-storage security model. Those areas must be designed and tested before the corresponding integrations are introduced.
 
-For reporting suspected vulnerabilities, follow the procedure in the repository's [Security Policy](../SECURITY.md).
+For reporting suspected vulnerabilities, follow the procedure in the repository's [Security policy](https://github.com/<OWNER>/ETLRelay/blob/main/SECURITY.md).
