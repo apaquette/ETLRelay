@@ -149,6 +149,79 @@ jobs:
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
 
+  publish-versioned-docs:
+    name: publish versioned documentation
+    needs: [verify-build, publish]
+    # Only make a docs snapshot after a new package version has actually reached PyPI.
+    if: ${{ needs.verify-build.outputs.already_published == 'false' && needs.publish.result == 'success' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Check out the released source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
+        with:
+          enable-cache: true
+
+      - name: Install Python
+        run: uv python install 3.12
+
+      - name: Install documentation and project dependencies
+        run: uv sync --locked --all-groups
+
+      - name: Configure Git identity for mike
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Publish the version and update the latest alias
+        env:
+          RELEASE_VERSION: ${{ needs.verify-build.outputs.version }}
+        run: |
+          uv run mike deploy --push --update-aliases "$RELEASE_VERSION" latest
+          uv run mike set-default --push latest
+
+  deploy-versioned-docs-to-github-pages:
+    name: deploy documentation to GitHub Pages
+    needs: publish-versioned-docs
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Check out the mike-generated site
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: gh-pages
+          path: gh-pages
+          persist-credentials: false
+
+      - name: Prepare Pages artifact without Git metadata
+        run: |
+          mkdir site-artifact
+          rsync -a --exclude='.git' gh-pages/ site-artifact/
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: site-artifact/
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
   create-github-release:
     name: create GitHub release
     needs: [verify-build, publish]

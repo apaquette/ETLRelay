@@ -1,6 +1,7 @@
 site_name: ETLRelay
 site_description: A lightweight, composable Python framework for batch-oriented ETL pipelines.
 docs_dir: docs
+site_url: "https://apaquette.github.io/ETLRelay/"
 
 nav:
   - Home: index.md
@@ -29,6 +30,8 @@ theme:
 
 plugins:
   - search
+  - mike:
+    alias_type: redirect
   - mkdocstrings:
       handlers:
         python:
@@ -52,3 +55,8 @@ markdown_extensions:
 
 watch:
   - src/etlrelay
+
+extra:
+  version:
+    provider: mike
+    default: latest
