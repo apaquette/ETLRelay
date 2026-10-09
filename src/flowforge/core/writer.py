@@ -1,3 +1,4 @@
+"""Protocols and exceptions for serializing FlowForge batches."""
 
 from collections.abc import Iterable
 from typing import BinaryIO, Protocol, runtime_checkable
@@ -6,15 +7,28 @@ from flowforge.core.batch import Batch
 
 
 class WriterError(Exception):
-    """Raised when a Writer fails to serialize or write data."""
+    """Raised when a writer cannot serialize the supplied batches."""
+
 
 @runtime_checkable
 class Writer(Protocol):
-    """Write a FlowForge Batch as serialized data."""
-    def write(self, batch: Iterable[Batch], stream: BinaryIO) -> None:
-        """Serialize and write a batch to the given path.
+    """Define the interface for serializing batches to a binary stream.
+
+    Implementations are responsible for format-specific serialization.
+    They do not manage filesystem access or the lifecycle of the supplied
+    stream.
+    """
+
+    def write(self, batches: Iterable[Batch], stream: BinaryIO) -> None:
+        """Serialize batches and write the resulting data to a stream.
+
+        Args:
+            batches: An iterable of batches to serialize into one output.
+            stream: A writable binary stream that receives the serialized
+                data. The caller is responsible for closing the stream.
 
         Raises:
-            WriterError: If the batch cannot be serialized or written.
+            WriterError: If the batches cannot be serialized.
+            OSError: If an I/O error occurs while writing to the stream.
         """
         ...
