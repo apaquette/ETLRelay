@@ -1,12 +1,12 @@
 from pathlib import Path
 
-from etlrelay.pipeline.pipeline import Pipeline
-from etlrelay.readers.csv import CsvReader
-from etlrelay.security.path import PathValidator
-from etlrelay.sinks.file import FileSink
-from etlrelay.sources.file import FileSource
-from etlrelay.storage.local import LocalFileSystem
-from etlrelay.writers.csv import CsvWriter
+from etlrelay.pipeline import Pipeline
+from etlrelay.readers import CsvReader
+from etlrelay.security import PathValidator
+from etlrelay.sinks import FileSink
+from etlrelay.sources import FileSource
+from etlrelay.storage import LocalFileSystem
+from etlrelay.writers import CsvWriter
 
 
 def test_csv_pipeline_transfers_data_between_files(

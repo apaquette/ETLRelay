@@ -5,9 +5,8 @@ from typing import BinaryIO
 import pyarrow as pa
 import pytest
 
-from etlrelay.core.batch import Batch
-from etlrelay.core.source import Source
-from etlrelay.sources.file import FileSource
+from etlrelay.core import Batch, Source
+from etlrelay.sources import FileSource
 
 
 class FakeFileSystem:

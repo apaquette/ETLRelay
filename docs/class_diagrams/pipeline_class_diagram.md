@@ -201,9 +201,7 @@ Because execution is synchronous, processing and sink consumption take place dur
 ```python
 from collections.abc import Sequence
 
-from etlrelay.core.processor import Processor
-from etlrelay.core.sink import Sink
-from etlrelay.core.source import Source
+from etlrelay.core import Processor, Sink, Source
 
 
 class Pipeline:

@@ -2,11 +2,11 @@ from pathlib import Path
 
 import pyarrow as pa
 
-from etlrelay.core.batch import Batch
-from etlrelay.security.path import PathValidator
-from etlrelay.sinks.file import FileSink
-from etlrelay.storage.local import LocalFileSystem
-from etlrelay.writers.csv import CsvWriter
+from etlrelay.core import Batch
+from etlrelay.security import PathValidator
+from etlrelay.sinks import FileSink
+from etlrelay.storage import LocalFileSystem
+from etlrelay.writers import CsvWriter
 
 
 class TestFileSink:

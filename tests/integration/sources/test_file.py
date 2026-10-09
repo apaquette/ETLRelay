@@ -1,9 +1,9 @@
 from pathlib import Path
 
-from etlrelay.readers.csv import CsvReader
-from etlrelay.security.path import PathValidator
-from etlrelay.sources.file import FileSource
-from etlrelay.storage.local import LocalFileSystem
+from etlrelay.readers import CsvReader
+from etlrelay.security import PathValidator
+from etlrelay.sources import FileSource
+from etlrelay.storage import LocalFileSystem
 
 
 class TestFileSource:

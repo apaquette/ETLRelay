@@ -172,9 +172,8 @@ The sink does not buffer the entire iterable or independently iterate over it be
 ```python
 from collections.abc import Iterable
 
-from etlrelay.core.batch import Batch
-from etlrelay.core.writer import Writer
-from etlrelay.storage.filesystem import FileSystem
+from etlrelay.core import Batch, Writer
+from etlrelay.storage import FileSystem
 
 
 class FileSink:

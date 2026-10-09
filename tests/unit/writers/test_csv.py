@@ -2,9 +2,8 @@ from io import BytesIO
 
 import pyarrow as pa
 
-from etlrelay.core.batch import Batch
-from etlrelay.core.writer import Writer
-from etlrelay.writers.csv import CsvWriter
+from etlrelay.core import Batch, Writer
+from etlrelay.writers import CsvWriter
 
 
 class TestCsvWriter:

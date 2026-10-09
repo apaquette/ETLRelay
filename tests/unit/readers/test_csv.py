@@ -3,8 +3,8 @@ from io import BytesIO
 import pyarrow as pa
 import pytest
 
-from etlrelay.core.reader import Reader
-from etlrelay.readers.csv import CsvReader
+from etlrelay.core import Reader
+from etlrelay.readers import CsvReader
 
 
 class TestCsvReader:

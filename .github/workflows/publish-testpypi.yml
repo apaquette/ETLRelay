@@ -173,4 +173,4 @@ jobs:
         run: |
           cd /tmp
           /tmp/etlrelay-smoke/bin/python -c \
-            "from etlrelay.core.batch import Batch; from etlrelay.pipeline.pipeline import Pipeline; print('ETLRelay installed-package imports succeeded')"
+            "from etlrelay.core import Batch; from etlrelay.pipeline import Pipeline; print('ETLRelay installed-package imports succeeded')"
