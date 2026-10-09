@@ -1,0 +1,1571 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="A lightweight, composable Python framework for batch-oriented ETL pipelines.">
+      
+      
+      
+        <link rel="canonical" href="https://apaquette.github.io/ETLRelay/0.1.4/etl_relay_v1_roadmap/">
+      
+      
+        <link rel="prev" href="../development/">
+      
+      
+        <link rel="next" href="../class_diagrams/pipeline_class_diagram/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Roadmap - ETLRelay</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.ec1eaa64.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/_mkdocstrings.css">
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    <body dir="ltr">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#etlrelay-roadmap-010-to-100" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+      </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="ETLRelay" class="md-header__button md-logo" aria-label="ETLRelay" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            ETLRelay
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Roadmap
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="ETLRelay" class="md-nav__button md-logo" aria-label="ETLRelay" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    ETLRelay
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting-started/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../concepts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Concepts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../security/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Security
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api-reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../development/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Development
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Roadmap
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Roadmap
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#purpose" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Purpose
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#versioning-policy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Versioning policy
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#current-state-and-first-release" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Current state and first release
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Current state and first release">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#010-experimental-local-csv-pipeline" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.1.0 — Experimental local CSV pipeline
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#01x-stabilize-the-first-release" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.1.x — Stabilize the first release
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#feature-roadmap" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Feature roadmap
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Feature roadmap">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#020-batch-contract-and-built-in-processors" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.2.0 — Batch contract and built-in processors
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#030-parquet-format-support" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.3.0 — Parquet format support
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#040-storage-compatibility-and-optional-s3-backend" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.4.0 — Storage compatibility and optional S3 backend
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#050-sql-source-and-sink" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.5.0 — SQL source and sink
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#060-declarative-yaml-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.6.0 — Declarative YAML configuration
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#070-command-line-interface" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.7.0 — Command-line interface
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#080-security-errors-and-operational-readiness" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.8.0 — Security, errors, and operational readiness
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#090-feature-complete-beta-and-api-review" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.9.0 — Feature-complete beta and API review
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#100rc1-release-candidate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.0.0rc1 — Release candidate
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#100-stable-initial-release" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.0.0 — Stable initial release
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#explicitly-post-10-unless-requirements-change" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Explicitly post-1.0 unless requirements change
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#release-hygiene" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Release hygiene
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#summary-roadmap" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Summary roadmap
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Architecture
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../class_diagrams/pipeline_class_diagram/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../class_diagrams/file_source_class_diagram/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    File source
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../class_diagrams/file_sink_class_diagram/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    File sink
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../class_diagrams/local_filesystem_class_diagram/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Local filesystem
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../class_diagrams/path_validator_class_diagram/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Path validator
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../class_diagrams/reader_and_writer_class_diagram/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reader and writer
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_9" >
+        
+          
+          <label class="md-nav__link" for="__nav_9" id="__nav_9_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Development
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_9_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_9">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Development
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../development/release-automation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Release automation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#purpose" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Purpose
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#versioning-policy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Versioning policy
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#current-state-and-first-release" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Current state and first release
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Current state and first release">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#010-experimental-local-csv-pipeline" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.1.0 — Experimental local CSV pipeline
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#01x-stabilize-the-first-release" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.1.x — Stabilize the first release
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#feature-roadmap" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Feature roadmap
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Feature roadmap">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#020-batch-contract-and-built-in-processors" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.2.0 — Batch contract and built-in processors
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#030-parquet-format-support" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.3.0 — Parquet format support
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#040-storage-compatibility-and-optional-s3-backend" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.4.0 — Storage compatibility and optional S3 backend
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#050-sql-source-and-sink" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.5.0 — SQL source and sink
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#060-declarative-yaml-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.6.0 — Declarative YAML configuration
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#070-command-line-interface" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.7.0 — Command-line interface
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#080-security-errors-and-operational-readiness" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.8.0 — Security, errors, and operational readiness
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#090-feature-complete-beta-and-api-review" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.9.0 — Feature-complete beta and API review
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#100rc1-release-candidate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.0.0rc1 — Release candidate
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#100-stable-initial-release" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.0.0 — Stable initial release
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#explicitly-post-10-unless-requirements-change" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Explicitly post-1.0 unless requirements change
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#release-hygiene" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Release hygiene
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#summary-roadmap" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Summary roadmap
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="etlrelay-roadmap-010-to-100">ETLRelay Roadmap: <code>0.1.0</code> to <code>1.0.0</code><a class="headerlink" href="#etlrelay-roadmap-010-to-100" title="Permanent link">&para;</a></h1>
+<h2 id="purpose">Purpose<a class="headerlink" href="#purpose" title="Permanent link">&para;</a></h2>
+<p>This roadmap defines incremental, testable milestones from the current local-file pipeline implementation to a stable ETLRelay <code>1.0.0</code> release.</p>
+<p>The target for <code>1.0.0</code> is a lightweight, synchronous, batch-oriented ETL framework that can read from local files or SQL, apply a small set of transformations, and write to local files or SQL. File storage and serialization remain separate concerns. YAML configuration and a small CLI make pipelines usable without writing Python for every job.</p>
+<p>The roadmap is feature-led, not date-led. A version should be released when its acceptance criteria are met; the version numbers are proposed milestones, not a promise to publish every milestone on a fixed schedule.</p>
+<h2 id="versioning-policy">Versioning policy<a class="headerlink" href="#versioning-policy" title="Permanent link">&para;</a></h2>
+<p>ETLRelay is in initial development, so <code>0.y.z</code> is appropriate while the public API is still evolving. Semantic Versioning explicitly says that a <code>0.y.z</code> public API should not yet be considered stable and recommends <code>0.1.0</code> as a reasonable starting point. See <a href="https://semver.org/">Semantic Versioning 2.0.0</a> and the <a href="https://packaging.python.org/en/latest/discussions/versioning/">Python Packaging User Guide's versioning discussion</a>.</p>
+<p>Until <code>1.0.0</code>:</p>
+<ul>
+<li>Use a <strong>patch release</strong> such as <code>0.1.1</code> for compatible fixes to a published release.</li>
+<li>Use a <strong>minor release</strong> such as <code>0.2.0</code> for a coherent feature milestone. Public APIs may still evolve before <code>1.0.0</code>, but document notable breaking changes.</li>
+<li>Never replace or modify an already-published release. Publish a new version instead.</li>
+<li>Use a release candidate such as <code>1.0.0rc1</code> only when the intended <code>1.0.0</code> feature set is complete and the remaining work is validation and defect correction.</li>
+</ul>
+<h2 id="current-state-and-first-release">Current state and first release<a class="headerlink" href="#current-state-and-first-release" title="Permanent link">&para;</a></h2>
+<h3 id="010-experimental-local-csv-pipeline"><code>0.1.0</code> — Experimental local CSV pipeline<a class="headerlink" href="#010-experimental-local-csv-pipeline" title="Permanent link">&para;</a></h3>
+<p><strong>Goal:</strong> Publish the first usable development release of the current implementation, once release checks are green.</p>
+<p>Expected scope:</p>
+<ul>
+<li><code>Batch</code> backed by an Apache Arrow table.</li>
+<li><code>Source</code>, <code>Processor</code>, and <code>Sink</code> protocols.</li>
+<li>Synchronous <code>Pipeline</code> orchestration.</li>
+<li><code>PathValidator</code> for local path containment.</li>
+<li><code>FileSystem</code> protocol and <code>LocalFileSystem</code> implementation.</li>
+<li>Stream-based <code>Reader</code> and <code>Writer</code> protocols.</li>
+<li><code>CsvReader</code> and <code>CsvWriter</code>.</li>
+<li><code>FileSource</code> and <code>FileSink</code> composed from storage and format components.</li>
+<li>Unit, integration, and functional tests for the local CSV path.</li>
+<li>Architecture and usage documentation that matches the actual implementation.</li>
+</ul>
+<p>This is an experimental release, not a promise of API stability. The <code>0.1.0</code> milestone is complete when a real local CSV input can pass through a pipeline and be written to a real CSV output, the edge cases covered by the tests are settled, and the package can be built and installed outside the development checkout.</p>
+<p><strong>Release gate:</strong></p>
+<ul>
+<li>[ ] Full test suite passes.</li>
+<li>[ ] Ruff lint and format checks pass.</li>
+<li>[ ] Pyright passes at the project's configured level.</li>
+<li>[ ] A source distribution and wheel build successfully.</li>
+<li>[ ] Install the built wheel in a clean environment and run a small import/usage smoke test.</li>
+<li>[ ] README contains accurate installation instructions and one working example.</li>
+<li>[ ] Project metadata, licence, package contents, and supported Python version are correct.</li>
+<li>[ ] Release notes explain that the API may change before <code>1.0.0</code>.</li>
+<li>[ ] Create a Git tag for the release and retain the built artifacts.</li>
+</ul>
+<p>Recommended build check: <code>uv build</code>. The Python Packaging User Guide describes building source and wheel distributions and supports using TestPyPI to rehearse a publication before the real release: <a href="https://packaging.python.org/en/latest/guides/section-build-and-publish/">Building and Publishing</a>.</p>
+<h3 id="01x-stabilize-the-first-release"><code>0.1.x</code> — Stabilize the first release<a class="headerlink" href="#01x-stabilize-the-first-release" title="Permanent link">&para;</a></h3>
+<p><strong>Goal:</strong> Correct defects found during initial use without expanding the feature set unnecessarily.</p>
+<p>Scope:</p>
+<ul>
+<li>Fix defects in the pipeline, batch, path validation, local storage, CSV reading, or CSV writing.</li>
+<li>Improve error messages where they currently obscure the failing operation.</li>
+<li>Correct packaging, installation, documentation, and typing issues.</li>
+</ul>
+<p>Do not use patch releases to sneak in unrelated, large features.</p>
+<h2 id="feature-roadmap">Feature roadmap<a class="headerlink" href="#feature-roadmap" title="Permanent link">&para;</a></h2>
+<h3 id="020-batch-contract-and-built-in-processors"><code>0.2.0</code> — Batch contract and built-in processors<a class="headerlink" href="#020-batch-contract-and-built-in-processors" title="Permanent link">&para;</a></h3>
+<p><strong>Goal:</strong> Make ETLRelay useful for more than an untransformed file copy.</p>
+<p>Scope:</p>
+<ul>
+<li>Document and test <code>Batch</code> semantics, including schemas, types, zero-row tables, and empty iterables.</li>
+<li>Define what happens when batches in one output stream have incompatible schemas.</li>
+<li>Add a small set of processors, prioritizing:</li>
+<li><code>SelectColumns</code>;</li>
+<li><code>RenameColumns</code>;</li>
+<li><code>FilterRows</code> with a deliberately limited and documented predicate model.</li>
+<li>Verify processor ordering and behavior across multiple batches.</li>
+<li>Keep the processor interface as <code>process(batch) -&gt; Batch</code>.</li>
+</ul>
+<p><strong>Done when:</strong> A tested local CSV pipeline can select, rename, and filter columns/rows while preserving documented schema and empty-batch behavior.</p>
+<p><strong>Not in scope:</strong> A general-purpose expression language, user-supplied code evaluation, or a large processor catalogue.</p>
+<h3 id="030-parquet-format-support"><code>0.3.0</code> — Parquet format support<a class="headerlink" href="#030-parquet-format-support" title="Permanent link">&para;</a></h3>
+<p><strong>Goal:</strong> Support a second high-value tabular format while retaining the format/storage boundary.</p>
+<p>Scope:</p>
+<ul>
+<li>Implement <code>ParquetReader</code> and <code>ParquetWriter</code> against the existing stream-based reader/writer protocols where the chosen Arrow APIs support that contract.</li>
+<li>Test schema and type preservation, empty data, malformed input, and round trips.</li>
+<li>Verify that the same reader/writer components work with <code>LocalFileSystem</code> without special cases in <code>FileSource</code> or <code>FileSink</code>.</li>
+<li>Document CSV and Parquet behavior, including limitations and format-specific differences.</li>
+</ul>
+<p><strong>Done when:</strong> Local CSV and Parquet sources/sinks work through the same file composition model.</p>
+<h3 id="040-storage-compatibility-and-optional-s3-backend"><code>0.4.0</code> — Storage compatibility and optional S3 backend<a class="headerlink" href="#040-storage-compatibility-and-optional-s3-backend" title="Permanent link">&para;</a></h3>
+<p><strong>Goal:</strong> Validate that <code>FileSystem</code> is a useful substitution boundary, not just an abstraction used by one implementation.</p>
+<p>First, stabilize and test the <code>FileSystem</code> contract around stream lifetime, read/write modes, error propagation, path handling, and output overwrite semantics.</p>
+<p><strong>Conditional feature:</strong> Add an <code>S3Storage</code> implementation if S3 is a real target for the first stable release. It should:</p>
+<ul>
+<li>implement the existing <code>FileSystem</code> contract without CSV/Parquet-specific logic;</li>
+<li>use standard credential-provider mechanisms or environment-based configuration rather than embedding secrets in pipeline definitions;</li>
+<li>have unit tests using suitable doubles and optional, separately marked integration tests;</li>
+<li>document object key, overwrite, stream, and error semantics.</li>
+</ul>
+<p>S3 is a useful v1.0 candidate, but it is not a hard v1.0 gate unless there is a concrete requirement for it. If there is no such requirement, defer S3 rather than inventing a use case solely to validate the abstraction. HDFS remains post-1.0 unless requirements change.</p>
+<h3 id="050-sql-source-and-sink"><code>0.5.0</code> — SQL source and sink<a class="headerlink" href="#050-sql-source-and-sink" title="Permanent link">&para;</a></h3>
+<p><strong>Goal:</strong> Add database input/output through SQLAlchemy without forcing SQL into the file storage or reader/writer abstractions.</p>
+<p>Scope:</p>
+<ul>
+<li>Implement <code>SqlSource</code> and <code>SqlSink</code> as independent <code>Source</code>/<code>Sink</code> implementations.</li>
+<li>Use SQLAlchemy connection/statement facilities.</li>
+<li>Define the initial database support and test at least SQLite for repeatable integration tests.</li>
+<li>Support parameterized query values.</li>
+<li>Validate or safely construct SQL identifiers that cannot be supplied as bind parameters.</li>
+<li>Support a small, documented write mode, initially <code>append</code> and optionally <code>replace</code> if semantics are clear.</li>
+<li>Convert query results and input batches to/from the agreed Arrow-backed <code>Batch</code> contract.</li>
+<li>Test transaction and error behavior.</li>
+</ul>
+<p><strong>Done when:</strong> A SQL query can supply batches to a pipeline, and processed batches can be written to a SQL table with safe parameter handling and documented transaction behavior.</p>
+<h3 id="060-declarative-yaml-configuration"><code>0.6.0</code> — Declarative YAML configuration<a class="headerlink" href="#060-declarative-yaml-configuration" title="Permanent link">&para;</a></h3>
+<p><strong>Goal:</strong> Let users define supported pipelines without writing Python assembly code.</p>
+<p>Scope:</p>
+<ul>
+<li>Define and document a versioned YAML schema for source, processor sequence, and sink.</li>
+<li>Validate required properties and types before execution.</li>
+<li>Resolve only explicitly supported component types through a small, explicit mapping.</li>
+<li>Support configured storage and file formats where implemented.</li>
+<li>Reference secrets through environment variables or another clearly documented mechanism; do not accept plaintext secrets as the recommended approach.</li>
+<li>Reject unknown component types, unknown properties where appropriate, invalid combinations, and malformed configuration with actionable errors.</li>
+<li>Do not use <code>eval</code>, arbitrary imports, or unrestricted Python execution to construct pipelines.</li>
+</ul>
+<p><strong>Done when:</strong> YAML configuration builds the same pipeline as direct Python composition and invalid configuration is rejected before the pipeline starts.</p>
+<h3 id="070-command-line-interface"><code>0.7.0</code> — Command-line interface<a class="headerlink" href="#070-command-line-interface" title="Permanent link">&para;</a></h3>
+<p><strong>Goal:</strong> Make the framework practical to run from a shell or automation script.</p>
+<p>Initial commands:</p>
+<ul>
+<li><code>etlrelay run pipeline.yaml</code></li>
+<li><code>etlrelay validate pipeline.yaml</code></li>
+<li><code>etlrelay version</code></li>
+</ul>
+<p>Scope:</p>
+<ul>
+<li>Define useful process exit codes.</li>
+<li>Print actionable validation and execution errors.</li>
+<li>Keep secrets and sensitive payloads out of terminal output.</li>
+<li>Keep the CLI thin; pipeline construction and execution logic belong in the underlying library.</li>
+<li>Test commands without requiring external databases or cloud resources for the unit suite.</li>
+</ul>
+<p><strong>Done when:</strong> A user can validate and run a supported YAML pipeline through the installed CLI.</p>
+<h3 id="080-security-errors-and-operational-readiness"><code>0.8.0</code> — Security, errors, and operational readiness<a class="headerlink" href="#080-security-errors-and-operational-readiness" title="Permanent link">&para;</a></h3>
+<p><strong>Goal:</strong> Close cross-cutting gaps before the API is frozen.</p>
+<p>Scope:</p>
+<ul>
+<li>Review path containment and local storage behavior, including symlinks and output destinations.</li>
+<li>Review SQL parameterization and identifier validation.</li>
+<li>Validate configuration before side effects occur.</li>
+<li>Establish a small, consistent exception/error-reporting policy without wrapping every error in a generic framework exception.</li>
+<li>Add useful standard-library logging at component boundaries where needed.</li>
+<li>Redact connection secrets, credentials, and sensitive values from errors/logging.</li>
+<li>Document resource/stream ownership, overwrite behavior, empty-batch behavior, and failure propagation.</li>
+<li>Add dependency and package checks to CI.</li>
+<li>Verify the package can be installed and used from its built artifacts, not only from the repository checkout.</li>
+</ul>
+<p><strong>Done when:</strong> Security-relevant behavior is tested at the layer responsible for the risk, and failures are diagnosable without leaking secrets.</p>
+<h3 id="090-feature-complete-beta-and-api-review"><code>0.9.0</code> — Feature-complete beta and API review<a class="headerlink" href="#090-feature-complete-beta-and-api-review" title="Permanent link">&para;</a></h3>
+<p><strong>Goal:</strong> Validate the intended v1.0 feature set and stop adding new features.</p>
+<p>Scope:</p>
+<ul>
+<li>Feature freeze.</li>
+<li>Review public names, constructors, protocol signatures, configuration schema, CLI behavior, and documented exceptions.</li>
+<li>Test full pipelines across supported combinations: local CSV, local Parquet, SQL input/output, and S3 only if it has been included in the supported feature set.</li>
+<li>Test empty inputs, empty batches, schema mismatches, malformed data, inaccessible resources, processor failures, sink failures, and stream cleanup.</li>
+<li>Test a clean install on each supported Python version/platform combination the project claims to support.</li>
+<li>Complete README, quick start, examples, API reference, configuration reference, security notes, contribution instructions, and release notes.</li>
+<li>Document unsupported features and known limitations.</li>
+</ul>
+<p><strong>Done when:</strong> No required v1.0 feature remains unimplemented, release-blocking defects are resolved, and the project can maintain a clear public API contract.</p>
+<h3 id="100rc1-release-candidate"><code>1.0.0rc1</code> — Release candidate<a class="headerlink" href="#100rc1-release-candidate" title="Permanent link">&para;</a></h3>
+<p>Cut a release candidate only after <code>0.9.0</code> has passed the feature-complete criteria. Use release candidates for final packaging validation, integration feedback, and defect correction—not new features. Publish another candidate if fixes materially affect the release, then proceed to <code>1.0.0</code> when the release criteria remain satisfied.</p>
+<h3 id="100-stable-initial-release"><code>1.0.0</code> — Stable initial release<a class="headerlink" href="#100-stable-initial-release" title="Permanent link">&para;</a></h3>
+<p>ETLRelay <code>1.0.0</code> is ready when a user can:</p>
+<ol>
+<li>Install the package using documented instructions.</li>
+<li>Define a supported pipeline in YAML.</li>
+<li>Read data from the local filesystem or a supported SQL source.</li>
+<li>Apply the documented set of built-in transformations.</li>
+<li>Write to a local file or supported SQL sink.</li>
+<li>Run the pipeline through the CLI.</li>
+<li>Diagnose failures using documented errors and logs.</li>
+</ol>
+<p>The stable API, supported Python versions, supported input/output formats, configuration schema, CLI contract, and compatibility policy must be documented. Breaking changes to the public API after <code>1.0.0</code> should follow the project's published versioning policy.</p>
+<h2 id="explicitly-post-10-unless-requirements-change">Explicitly post-1.0 unless requirements change<a class="headerlink" href="#explicitly-post-10-unless-requirements-change" title="Permanent link">&para;</a></h2>
+<ul>
+<li>HDFS support.</li>
+<li>Excel support.</li>
+<li>Generic API source/sink framework.</li>
+<li>Scheduling and recurring execution.</li>
+<li>Retries, distributed processing, concurrency, and orchestration services.</li>
+<li>Web UI, job queue, monitoring server, and data catalog/lineage system.</li>
+<li>Large plugin registries or dynamic extension frameworks.</li>
+<li>Large processor libraries or a general-purpose expression language.</li>
+</ul>
+<p>These are not necessary to establish the initial stable ETL product. Revisit them only when a concrete use case justifies the additional maintenance burden.</p>
+<h2 id="release-hygiene">Release hygiene<a class="headerlink" href="#release-hygiene" title="Permanent link">&para;</a></h2>
+<p>Before every public release:</p>
+<ul>
+<li>Run the full test, lint, format, and type-check suites.</li>
+<li>Build the wheel and source distribution.</li>
+<li>Install and smoke-test the built package in a clean environment.</li>
+<li>Review the changelog and release notes.</li>
+<li>Ensure the version in package metadata matches the Git tag.</li>
+<li>Test publication through TestPyPI when useful, then publish the actual release artifact.</li>
+</ul>
+<p>PyPI distribution names are distinct from import package names and need to be checked before first publication. The exact <code>etlrelay</code> project URL did not return a project page in the web check performed for this roadmap, but similarly named projects exist, including <a href="https://pypi.org/project/pyetlrelay/"><code>pyetlrelay</code></a>, <a href="https://pypi.org/project/etlrelay-sdk/"><code>etlrelay-sdk</code></a>, and <a href="https://pypi.org/project/etlrelay-io/"><code>etlrelay-io</code></a>. Confirm the distribution name is available and appropriate immediately before publishing; do not assume it is reserved for this project.</p>
+<h2 id="summary-roadmap">Summary roadmap<a class="headerlink" href="#summary-roadmap" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Version</th>
+<th>Milestone</th>
+<th>Release outcome</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>0.1.0</code></td>
+<td>Experimental local CSV pipeline</td>
+<td>Current pipeline can be built, installed, tested, and run end to end</td>
+</tr>
+<tr>
+<td><code>0.1.x</code></td>
+<td>Stabilization</td>
+<td>Compatible fixes and documentation improvements</td>
+</tr>
+<tr>
+<td><code>0.2.0</code></td>
+<td>Batch contract and processors</td>
+<td>Basic useful transformations</td>
+</tr>
+<tr>
+<td><code>0.3.0</code></td>
+<td>Parquet</td>
+<td>CSV and Parquet through shared reader/writer interfaces</td>
+</tr>
+<tr>
+<td><code>0.4.0</code></td>
+<td>Storage compatibility; optional S3</td>
+<td>Validate storage substitution and add S3 only if justified</td>
+</tr>
+<tr>
+<td><code>0.5.0</code></td>
+<td>SQL source/sink</td>
+<td>Tested database input/output</td>
+</tr>
+<tr>
+<td><code>0.6.0</code></td>
+<td>YAML</td>
+<td>Validated declarative pipelines</td>
+</tr>
+<tr>
+<td><code>0.7.0</code></td>
+<td>CLI</td>
+<td>Validate and run pipelines from a shell</td>
+</tr>
+<tr>
+<td><code>0.8.0</code></td>
+<td>Security and operational readiness</td>
+<td>Security review, errors/logging, installation and CI gates</td>
+</tr>
+<tr>
+<td><code>0.9.0</code></td>
+<td>Feature-complete beta</td>
+<td>Feature freeze and full API review</td>
+</tr>
+<tr>
+<td><code>1.0.0rc1</code></td>
+<td>Release candidate</td>
+<td>Final validation and feedback</td>
+</tr>
+<tr>
+<td><code>1.0.0</code></td>
+<td>Stable release</td>
+<td>Documented, usable, tested initial ETL product</td>
+</tr>
+</tbody>
+</table>
+<p>The version numbers and ordering can be adjusted if implementation reveals a dependency or real user requirement that changes priorities. Keep the principle constant: each release should deliver a coherent, tested increment, and the 1.0 milestone should mark API stability rather than feature abundance.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.sections", "navigation.top", "content.code.copy"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "latest", "provider": "mike"}}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>
