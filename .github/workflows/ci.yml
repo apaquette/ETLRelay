@@ -61,4 +61,4 @@ jobs:
         run: uv build
 
       - name: Validate distribution metadata
-        run: uvx --from 'twine>=6,<7' twine check dist/*
+        run: uvx --from 'twine>=7,<8' twine check dist/*
