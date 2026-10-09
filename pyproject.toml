@@ -32,6 +32,10 @@ docs = [
     "mkdocs-material>9,<10",
     "mkdocstrings[python]>=0.18,<1",
 ]
+ci = [
+    "ruff>=0.13,<1",
+    "pyright>=1.1,<2",
+]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/etlrelay"]
@@ -58,3 +62,13 @@ pythonVersion = "3.12"
 venvPath = "."
 venv = ".venv"
 extraPaths = ["src"]
+
+[tool.coverage.run]
+branch = true
+source = ["etlrelay"]
+
+[tool.coverage.report]
+fail_under = 90.1
+precision = 1
+show_missing = true
+skip_covered = true

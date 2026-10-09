@@ -303,6 +303,10 @@ dependencies = [
 ]
 
 [package.dev-dependencies]
+ci = [
+    { name = "pyright" },
+    { name = "ruff" },
+]
 dev = [
     { name = "pyright" },
     { name = "pytest" },
@@ -325,6 +329,10 @@ requires-dist = [
 ]
 
 [package.metadata.requires-dev]
+ci = [
+    { name = "pyright", specifier = ">=1.1,<2" },
+    { name = "ruff", specifier = ">=0.13,<1" },
+]
 dev = [
     { name = "pyright", specifier = ">=1.1,<2" },
     { name = "pytest", specifier = ">=8,<9" },
