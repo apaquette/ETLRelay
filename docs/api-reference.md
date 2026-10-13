@@ -20,6 +20,14 @@ This reference is generated from the code and its docstrings. Keep public classe
 
 ::: etlrelay.pipeline.pipeline.Pipeline
 
+## Processors
+
+::: etlrelay.processors.select_columns.SelectColumns
+
+::: etlrelay.processors.rename_columns.RenameColumns
+
+::: etlrelay.processors.filter_rows.FilterRows
+
 ## Filesystem and security
 
 ::: etlrelay.security.path.PathValidator
