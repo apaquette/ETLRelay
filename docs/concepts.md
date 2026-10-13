@@ -1,78 +1,93 @@
 # Core Concepts
 
-## Batch
-
-A `Batch` is the unit of tabular data passed through a pipeline. The initial implementation uses Apache Arrow to represent tabular data. Readers produce batches, processors transform batches, and writers consume them.
-
-## Source
-
-A source implements `read()` and produces an iterable of batches. A file source composes a storage implementation with a reader.
-
-## Processor
-
-A processor implements `process(batch)` and returns the batch to be passed to the next processor. The pipeline applies processors in their configured order. The initial release does not require a built-in transformation library; applications can provide processor implementations satisfying the protocol.
-
-## Sink
-
-A sink consumes an iterable of processed batches. A file sink composes a storage implementation with a writer and writes the batches to one configured destination.
-
-## Storage versus file format
-
-Storage provides a binary stream; the reader or writer handles the format:
+ETLRelay composes batch-oriented ETL pipelines from a source, an ordered sequence of processors, and a sink.
 
 ```text
-FileSource → FileSystem.open_read() → BinaryIO → Reader → Batch
-Batch iterable → Writer → BinaryIO → FileSystem.open_write() → destination
+Source → Processor(s) → Sink
 ```
 
-The initial concrete storage implementation is `LocalFileSystem`. The initial format implementation is CSV. Other storage backends and formats can be added independently when supported.
+A source produces batches, processors transform them, and a sink consumes the processed output. For file workflows, ETLRelay separates storage access from format-specific reading and writing.
 
-## Pipeline execution
+## Components
 
-`Pipeline` coordinates a source, a sequence of processors, and a sink. Execution is synchronous and exceptions propagate to the caller. The initial release does not provide scheduling, distributed execution, parallel processing, automatic retries, or a web interface.
+### Batch
 
-## Batch and Empty-Data Semantics
+A `Batch` wraps a `pyarrow.Table` and provides the common tabular data representation used throughout ETLRelay.
 
-### Batch Representation
-
-`Batch` is the common tabular data representation used throughout ETLRelay. It wraps a `pyarrow.Table` and exposes the underlying table through the `table` property.
-
-`Batch` does not convert or reconstruct the table. The table retains its values and Arrow schema, including field names, field order, data types, and nullability.
+The table retains its values and Arrow schema, including field names, field order, data types, and nullability. A processor may change the schema as part of a transformation; otherwise, the schema is preserved.
 
 A batch containing zero rows is still a valid batch. Its schema remains available even when it contains no data rows.
 
-### Empty Source Iterables
+### Source, Processor, and Sink
 
-An empty source iterable and a zero-row batch represent different conditions:
+A `Source` implements `read()` and produces an iterable of batches.
 
-- **Zero-row batch:** The source produces a `Batch` containing a zero-row Arrow table. The batch passes through the configured processors and is delivered to the sink.
-- **Empty source iterable:** The source produces no batches. The pipeline does not call any processors or invoke the sink.
+A `Processor` implements:
+
+```python
+process(batch: Batch) -> Batch
+```
+
+Processors operate on individual batches. The pipeline applies them in their configured order, passing each processor's output to the next processor. ETLRelay includes processors for selecting columns, renaming columns, and filtering rows. Applications can also provide implementations that satisfy the processor contract.
+
+A `Sink` consumes an iterable of processed batches. A file sink composes a storage implementation with a writer to write batches to a configured destination.
+
+### Storage and File Formats
+
+Storage provides binary streams; readers and writers handle the file format.
+
+```text
+FileSource → FileSystem → BinaryIO → Reader → Batch
+
+Batch iterable → Writer → BinaryIO → FileSystem → Destination
+```
+
+`FileSource` composes a filesystem with a reader. `FileSink` composes a filesystem with a writer. This separates resource access from format-specific parsing and serialization.
+
+The current implementation supports local filesystem access through `LocalFileSystem` and CSV through `CsvReader` and `CsvWriter`.
+
+## Pipeline Execution
+
+`Pipeline` coordinates the source, processors, and sink. Execution is synchronous, and batches are processed sequentially in source order.
+
+The pipeline does not buffer all source batches before writing. Processed batches are yielded incrementally to the sink.
+
+### Output Schema Compatibility
+
+The first processed output batch establishes the expected schema for a pipeline run. Every subsequent processed output batch must have a compatible schema.
+
+Compatibility requires matching:
+
+- Field names
+- Field order
+- Arrow field types
+- Field nullability
+
+Schema metadata differences are ignored when checking compatibility.
+
+Schema validation takes place after all configured processors have run. This allows processors to normalize inputs with different schemas into compatible output schemas.
+
+If a processed batch has an incompatible schema, the pipeline raises `ValueError` before yielding that batch to the sink. The pipeline does not automatically merge schemas, cast values, or reconcile incompatible outputs.
+
+Zero-row batches participate in schema validation just like non-empty batches.
+
+### Empty Sources and Zero-Row Batches
+
+An empty source iterable and a zero-row batch represent different conditions.
+
+- **Zero-row batch:** The source produces a `Batch` containing a zero-row Arrow table. The batch passes through the configured processors, participates in schema validation, and is delivered to the sink if processing succeeds.
+- **Empty source iterable:** The source produces no batches. No processors are called, and the sink is not invoked.
 
 The presence of a batch, rather than its row count, determines whether the pipeline has data to process.
 
-### Pipeline Execution
+### Exceptions and Partial Writes
 
-`Pipeline` processes batches sequentially and applies configured processors in their declared order. Each processor receives the preceding processor's output.
+Exceptions raised while reading from a source, iterating over its batches, processing a batch, validating its output schema, or writing to a sink propagate to the caller. ETLRelay does not wrap these errors in a separate pipeline exception hierarchy.
 
-Processed batches are passed to the sink through an iterable. The pipeline does not buffer all source batches before processing them.
+If a later batch fails, batches successfully written before the failure are not automatically rolled back. The pipeline does not provide transactional execution across multiple batches.
 
-The sink is invoked once when at least one successfully processed batch is available. It is not invoked when the source produces no batches.
+## Current Scope
 
-### Exception Propagation
+ETLRelay provides synchronous, batch-oriented pipeline execution with local CSV input and output and a small set of built-in processors.
 
-Exceptions raised while reading from a source, iterating over its batches, processing a batch, or writing to a sink propagate to the caller. The pipeline does not wrap these exceptions in a separate pipeline exception hierarchy.
-
-When an error occurs after processing has begun, batches already consumed or written are not automatically rolled back. The pipeline does not provide transactional execution across multiple batches.
-
-### Contract Summary
-
-| Condition | Expected behavior |
-|---|---|
-| Normal batch | Values and Arrow schema remain intact unless a processor changes them. |
-| Zero-row batch | Processes as a batch and reaches the sink. |
-| Empty source iterable | No processor calls and no sink invocation. |
-| Multiple batches | Processed sequentially and delivered in source order. |
-| Multiple processors | Applied in configured order to each batch. |
-| Source or processor exception | Propagates to the caller. |
-| Sink exception | Propagates to the caller. |
-| Error after earlier batches were written | Earlier writes are not automatically rolled back. |
+Scheduling, distributed execution, parallel processing, automatic retries, and automatic schema reconciliation are not provided by the current pipeline implementation. Additional formats, storage backends, and processing capabilities should be introduced when concrete requirements justify them.
