@@ -1,4 +1,4 @@
-"""Copy a local CSV file through an ETLRelay pipeline."""
+"""Copy a sample CSV file through an ETLRelay pipeline."""
 
 from pathlib import Path
 
@@ -12,7 +12,12 @@ from etlrelay.writers import CsvWriter
 
 
 def main() -> None:
-    data_dir = Path("data").resolve()
+    data_dir = Path(__file__).resolve().parent / "data"
+    input_path = data_dir / "input.csv"
+
+    if not input_path.is_file():
+        raise FileNotFoundError(f"Example input CSV not found: {input_path}")
+
     storage = LocalFileSystem(
         path_validator=PathValidator(base_path=data_dir),
     )
@@ -23,7 +28,7 @@ def main() -> None:
         reader=CsvReader(),
     )
     sink = FileSink(
-        path="output.csv",
+        path="copy_output.csv",
         storage=storage,
         writer=CsvWriter(),
     )

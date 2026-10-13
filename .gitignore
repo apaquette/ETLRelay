@@ -53,3 +53,12 @@ result-*
 data/
 
 site/
+
+
+# Keep the sample input used by the runnable examples.
+!/examples/data/
+!/examples/data/input.csv
+
+# Ignore generated example outputs.
+/examples/data/copy_output.csv
+/examples/data/transformed.csv
