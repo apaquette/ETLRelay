@@ -37,6 +37,15 @@ class CollectingSink:
         self.batches.extend(batches)
 
 
+class RecordingProcessor:
+    def __init__(self):
+        self.batches: list[Batch] = []
+
+    def process(self, batch: Batch) -> Batch:
+        self.batches.append(batch)
+        return batch
+
+
 class TransformProcessor:
     def __init__(
         self,
@@ -67,6 +76,31 @@ class TestPipeline:
         assert sink.write_calls == 1
         assert len(sink.batches) == 1
         assert sink.batches[0] is batch
+
+    def test_pipeline_passes_zero_row_batch_to_processor_and_sink(self):
+        schema = pa.schema([pa.field("id", pa.int64(), nullable=False)])
+        table = pa.Table.from_pylist([], schema=schema)
+        batch = Batch(table=table)
+
+        source = StubSource([batch])
+        processor = RecordingProcessor()
+        sink = CollectingSink()
+
+        pipeline = Pipeline(source, [processor], sink)
+
+        pipeline.run()
+
+        assert source.read_calls == 1
+
+        assert len(processor.batches) == 1
+        assert processor.batches[0] is batch
+
+        assert sink.write_calls == 1
+        assert len(sink.batches) == 1
+        assert sink.batches[0] is batch
+
+        assert sink.batches[0].table.num_rows == 0
+        assert sink.batches[0].table.schema.equals(schema)
 
     def test_pipeline_processes_multiple_batches_in_source_order(self):
         source = StubSource(
@@ -144,14 +178,16 @@ class TestPipeline:
 
     def test_pipeline_handles_empty_source(self):
         source = StubSource([])
+        processor = RecordingProcessor()
         sink = CollectingSink()
 
-        pipeline = Pipeline(source, [], sink)
+        pipeline = Pipeline(source, [processor], sink)
 
         pipeline.run()
 
         assert source.read_calls == 1
-        assert sink.write_calls == 1
+        assert processor.batches == []
+        assert sink.write_calls == 0
         assert sink.batches == []
 
     def test_pipeline_propagates_source_error(self):
@@ -180,6 +216,7 @@ class TestPipeline:
             pipeline.run()
 
         assert sink.write_calls == 1
+        assert [get_batch_value(batch) for batch in sink.batches] == [1]
 
     def test_pipeline_propagates_processor_error(self):
         class FailingProcessor:
@@ -192,6 +229,7 @@ class TestPipeline:
 
         with pytest.raises(RuntimeError, match="Processor failed"):
             pipeline.run()
+        assert sink.write_calls == 0
 
     def test_pipeline_propagates_sink_error(self):
         class FailingSink:
