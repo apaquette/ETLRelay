@@ -23,11 +23,21 @@ from etlrelay.core import Batch
 
 class RenameColumns:
     def __init__(self, mapping: Mapping[str, str]):
-        """Initialize the processor with a mapping of old names to new names.
+        """Rename columns using a mapping of existing names to new names.
 
-        Args:
-            mapping: Mapping from existing column names to their desired names.
+        Column order, values, Arrow data types, and nullability are preserved.
+        Multiple columns can be renamed simultaneously, including swapping
+        names, provided that the final column names are unique.
 
+        Validation occurs when processing a batch. Unknown source columns,
+        duplicate destination names, and conflicts with existing columns
+        that are not being renamed raise ValueError.
+
+        Example:
+            from etlrelay.processors import RenameColumns
+
+            processor = RenameColumns(mapping={"name": "customer_name"})
+            result = processor.process(batch)
         """
         self._mapping = mapping
 
@@ -60,10 +70,10 @@ class RenameColumns:
             table: The PyArrow table whose column names are being validated.
 
         Raises:
-            ValueError: If a source column is missing, multiple columns map to
-                the same new name, or a new name conflicts with an existing
-                column that is not being renamed.
-
+            ValueError: If a source column does not exist, multiple source
+                columns map to the same destination name, or a destination
+                name conflicts with an existing column that is not being
+                renamed.
         """
         existing_columns = set(table.column_names)
         mapping_keys = set(self._mapping)

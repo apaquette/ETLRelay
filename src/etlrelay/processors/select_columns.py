@@ -9,15 +9,19 @@ from etlrelay.core import Batch
 
 
 class SelectColumns:
-    """Select specific columns from a batch while preserving their requested order.
+    """Select specific columns from a batch in the requested order.
 
     The processor returns a new Batch containing only the selected columns.
     Column values, Arrow data types, and nullability are preserved.
 
-    Raises:
-        ValueError: If duplicate column names are provided during
-            initialization or a requested column does not exist in the
-            input batch.
+    Duplicate requested column names and unknown input columns raise
+    ValueError.
+
+    Example:
+        from etlrelay.processors import SelectColumns
+
+        processor = SelectColumns(columns=["name", "age"])
+        result = processor.process(batch)
     """
 
     def __init__(self, columns: list[str]):
