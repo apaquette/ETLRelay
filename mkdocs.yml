@@ -12,14 +12,18 @@ nav:
   - Development:
       - Overview: development.md
       - Release automation: development/release-automation.md
-  - Roadmap: etl_relay_v1_roadmap.md
+  - Roadmap: roadmap.md
   - Architecture:
-      - Pipeline: class_diagrams/pipeline_class_diagram.md
-      - File source: class_diagrams/file_source_class_diagram.md
-      - File sink: class_diagrams/file_sink_class_diagram.md
-      - Local filesystem: class_diagrams/local_filesystem_class_diagram.md
-      - Path validator: class_diagrams/path_validator_class_diagram.md
-      - Reader and writer: class_diagrams/reader_and_writer_class_diagram.md
+      - Overview: architecture/overview.md
+      - Pipeline: architecture/pipeline.md
+      - Processors:
+          - Column selection and renaming: architecture/select_columns_and_rename_columns.md
+          - Row filtering: architecture/filter_rows_processor.md
+      - File source: architecture/file_source.md
+      - File sink: architecture/file_sink.md
+      - Local filesystem: architecture/local_filesystem.md
+      - Path validator: architecture/path_validator.md
+      - Reader and writer: architecture/reader_and_writer.md
 
 theme:
   name: material
