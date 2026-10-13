@@ -6,6 +6,7 @@ and delivering the results to a sink.
 """
 
 from collections.abc import Iterable, Sequence
+from itertools import chain
 
 from etlrelay.core import Batch, Processor, Sink, Source
 
@@ -54,8 +55,12 @@ class Pipeline:
             Exception: Exceptions raised during source iteration, processing,
                 or sink execution propagate to the caller.
         """
-        batches = self._process_batches(self.source.read())
-        self.sink.write(batches)
+        batches = iter(self._process_batches(self.source.read()))
+        try:
+            first_batch = next(batches)
+        except StopIteration:
+            return
+        self.sink.write(chain((first_batch,), batches))
 
     def _process_batches(self, batches: Iterable[Batch]) -> Iterable[Batch]:
         """Process batches sequentially and yield the resulting batches.
