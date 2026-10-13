@@ -15,17 +15,20 @@ from etlrelay.core import Batch
 class FilterRows:
     """Filter a batch using a single column comparison predicate.
 
-    Supported operators are ==, !=, <, <=, >, and >=. Comparisons are
-    performed using Apache Arrow compute operations without custom casting.
+    Supported operators are ==, !=, <, <=, >, and >=. Comparisons use
+    Apache Arrow compute operations without custom casting.
 
-    Rows whose comparison evaluates to null are excluded. The original
-    table schema is preserved, including when no rows match.
+    Rows whose comparison evaluates to false or null are excluded.
+    The input schema is preserved, including when no rows match.
 
-    The processor is stateless with respect to input batches and can be
-    reused to process multiple batches independently.
+    The processor can be reused across batches without retaining
+    batch-specific state.
 
     Example:
-        FilterRows(column="age", operator=">=", value=18)
+        from etlrelay.processors import FilterRows
+
+        processor = FilterRows(column="age", operator=">=", value=18)
+        result = processor.process(batch)
 
     Raises:
         ValueError: If the comparison operator is unsupported.

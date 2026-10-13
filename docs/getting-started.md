@@ -1,39 +1,43 @@
 # Getting Started
 
-This guide demonstrates copying a local CSV file through ETLRelay's source, pipeline, and sink components. It uses the initial programmatic API; YAML configuration and a CLI are not included in the planned `0.1.0` release.
+This guide demonstrates a local CSV transformation pipeline using ETLRelay's source, reader, processors, pipeline, writer, and sink.
+
+The example selects columns, renames a column, and filters rows before writing the results to a new CSV file.
 
 ## Requirements
 
 - Python 3.12 or newer.
-- A CSV input file.
-- ETLRelay installed in the environment.
+- ETLRelay installed in your environment.
+- A local CSV input file.
 
-Once the package is published, install it with:
+Install ETLRelay from the package repository:
 
 ```bash
 python -m pip install etlrelay
 ```
 
-Before publication, run from a repository checkout using the project's documented development setup.
+## Prepare the input file
 
-## Prepare an input file
-
-Create a working directory and place a CSV file at `data/input.csv`. For example:
+Create a `data` directory and save the following as `data/input.csv`:
 
 ```csv
-name,age
-Alice,30
-Bob,25
+name,age,department
+Alice,17,Engineering
+Bob,25,Data
+Charlie,18,QA
+Diana,16,Data
+Evan,42,Engineering
 ```
 
-The output will be written to `data/output.csv`.
+The pipeline will write its output to `data/output.csv`.
 
-## Run a pipeline
+## Build and run a pipeline
 
 ```python
 from pathlib import Path
 
 from etlrelay.pipeline import Pipeline
+from etlrelay.processors import FilterRows, RenameColumns, SelectColumns
 from etlrelay.readers import CsvReader
 from etlrelay.security import PathValidator
 from etlrelay.sinks import FileSink
@@ -43,6 +47,7 @@ from etlrelay.writers import CsvWriter
 
 
 data_dir = Path("data").resolve()
+
 storage = LocalFileSystem(
     path_validator=PathValidator(base_path=data_dir),
 )
@@ -52,6 +57,7 @@ source = FileSource(
     storage=storage,
     reader=CsvReader(),
 )
+
 sink = FileSink(
     path="output.csv",
     storage=storage,
@@ -60,14 +66,40 @@ sink = FileSink(
 
 pipeline = Pipeline(
     source=source,
-    processors=[],
+    processors=[
+        SelectColumns(columns=["name", "age"]),
+        RenameColumns(mapping={"name": "customer_name"}),
+        FilterRows(column="age", operator=">=", value=18),
+    ],
     sink=sink,
 )
+
 pipeline.run()
 ```
 
-The example uses an empty processor sequence, so the pipeline passes the input batches through unchanged. A processor can be added when a transformation is required.
+Run the script from the directory containing `data/`. The directory and input file must already exist.
 
-The storage implementation opens the file streams, the reader parses CSV data into a `Batch`, and the writer serializes batches to CSV. The pipeline coordinates the flow without knowing the storage or format details.
+## Understand the transformations
 
-> Before treating this example as the release's supported quick start, run it against the actual installed `0.1.0` wheel and ensure its imports and constructor signatures match the implementation.
+The processors execute in their configured order:
+
+1. `SelectColumns` retains `name` and `age`, dropping `department`.
+2. `RenameColumns` changes `name` to `customer_name`.
+3. `FilterRows` retains rows where `age >= 18`.
+
+Each processor receives the previous processor's output. The pipeline then passes the processed batches to the CSV writer and sink.
+
+## Expected output
+
+After running the pipeline, `data/output.csv` contains:
+
+```csv
+"customer_name","age"
+"Bob",25
+"Charlie",18
+"Evan",42
+```
+
+The output preserves the order of the matching input rows and contains only the selected and renamed columns.
+
+For more details on batch behavior, empty inputs, and output schema compatibility, see [Core Concepts](concepts.md). For constructor parameters and validation behavior, see the [API Reference](api-reference.md).
