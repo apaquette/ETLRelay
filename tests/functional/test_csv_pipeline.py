@@ -1,19 +1,18 @@
+from collections.abc import Iterable
 from pathlib import Path
 
+import pyarrow as pa
+
+from etlrelay.core import Batch
 from etlrelay.pipeline import Pipeline
+from etlrelay.processors import FilterRows, RenameColumns, SelectColumns
 from etlrelay.readers import CsvReader
 from etlrelay.security import PathValidator
 from etlrelay.sinks import FileSink
 from etlrelay.sources import FileSource
 from etlrelay.storage import LocalFileSystem
 from etlrelay.writers import CsvWriter
-from etlrelay.processors import FilterRows, RenameColumns, SelectColumns
 
-from collections.abc import Iterable
-
-import pyarrow as pa
-
-from etlrelay.core import Batch
 
 class FixedBatchSource:
     def __init__(self, batches: list[Batch]):
@@ -57,6 +56,7 @@ def test_csv_pipeline_transfers_data_between_files(
     assert output_path.exists()
     assert output_path.read_text(encoding="utf-8") == ('"name","age"\n"Alice",30\n"Bob",25\n')
 
+
 def test_csv_pipeline_applies_column_transformations(
     tmp_path: Path,
 ):
@@ -99,11 +99,9 @@ def test_csv_pipeline_applies_column_transformations(
 
     assert output_path.is_file()
     assert output_path.read_text(encoding="utf-8") == (
-        '"customer_name","age"\n'
-        '"Bob",25\n'
-        '"Charlie",18\n'
-        '"Evan",42\n'
+        '"customer_name","age"\n"Bob",25\n"Charlie",18\n"Evan",42\n'
     )
+
 
 def test_csv_pipeline_writes_header_for_zero_row_batch(
     tmp_path: Path,
@@ -116,9 +114,7 @@ def test_csv_pipeline_writes_header_for_zero_row_batch(
             pa.field("age", pa.int64(), nullable=False),
         ]
     )
-    empty_batch = Batch(
-        table=pa.Table.from_pylist([], schema=schema)
-    )
+    empty_batch = Batch(table=pa.Table.from_pylist([], schema=schema))
 
     storage = LocalFileSystem(
         path_validator=PathValidator(base_path=tmp_path),
@@ -137,6 +133,4 @@ def test_csv_pipeline_writes_header_for_zero_row_batch(
     pipeline.run()
 
     assert output_path.is_file()
-    assert output_path.read_text(encoding="utf-8") == (
-        '"name","age"\n'
-    )
+    assert output_path.read_text(encoding="utf-8") == ('"name","age"\n')
