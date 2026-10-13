@@ -2,10 +2,13 @@
 
 This module provides the Pipeline class, which coordinates batch processing
 by passing data from a source through an ordered sequence of processors
-and delivering the results to a sink.
+and delivering compatible output batches to a sink.
 """
 
 from collections.abc import Iterable, Sequence
+from itertools import chain
+
+import pyarrow as pa
 
 from etlrelay.core import Batch, Processor, Sink, Source
 
@@ -14,11 +17,21 @@ class Pipeline:
     """Coordinate batch processing between a source, processors, and a sink.
 
     The pipeline obtains batches from a source, applies each configured
-    processor in sequence, and passes the resulting batches to the sink.
+    processor in sequence, validates the resulting output schemas, and passes
+    compatible batches to the sink.
 
-    An empty processor sequence allows batches to pass through unchanged.
-    Processing is synchronous, and exceptions from the source, processors,
-    or sink propagate to the caller.
+    The first processed output batch establishes the expected schema for the
+    run. Subsequent output batches must have matching field names, field order,
+    Arrow types, and nullability. Schema metadata differences are ignored.
+    Zero-row batches participate in schema validation.
+
+    Processing is lazy and does not buffer all batches before writing. If a
+    later batch has an incompatible schema, a ValueError is raised before that
+    batch is yielded to the sink. Batches successfully written before a later
+    failure are not rolled back.
+
+    Exceptions from the source, processors, or sink otherwise propagate to
+    the caller.
     """
 
     source: Source
@@ -46,37 +59,64 @@ class Pipeline:
     def run(self) -> None:
         """Execute the pipeline and deliver processed batches to the sink.
 
-        Batches are obtained from the source, processed in sequence, and
-        passed to the sink as an iterable. Processing is lazy, avoiding
-        buffering all batches in memory before writing.
+        Batches are obtained from the source, processed in sequence, and passed
+        to the sink as an iterable. Processing is lazy, avoiding buffering all
+        batches in memory before writing. If the source produces no batches, the
+        sink is not called.
 
         Raises:
-            Exception: Exceptions raised during source iteration, processing,
-                or sink execution propagate to the caller.
+            ValueError: If a processed batch has a schema incompatible with the
+                first processed output batch.
+            Exception: Exceptions raised during source iteration, processing, or
+                sink execution propagate to the caller.
+
+        Previously written batches are not rolled back if a later batch fails.
         """
-        batches = self._process_batches(self.source.read())
-        self.sink.write(batches)
+        batches = iter(self._process_batches(self.source.read()))
+        try:
+            first_batch = next(batches)
+        except StopIteration:
+            return
+        self.sink.write(chain((first_batch,), batches))
 
     def _process_batches(self, batches: Iterable[Batch]) -> Iterable[Batch]:
-        """Process batches sequentially and yield the resulting batches.
+        """Process batches sequentially, validate their output schemas, and yield them.
 
-        Each batch passes through every configured processor in order.
-        The final result for each batch is yielded without collecting all
-        results in memory.
+        Each batch passes through every configured processor in order. The first
+        processed output batch establishes the expected schema. Each subsequent
+        processed output schema is checked for compatible field names, order,
+        Arrow types, and nullability. Schema metadata differences are ignored.
+
+        Validation occurs before a batch is yielded, and batches are yielded
+        incrementally without collecting all results in memory. Zero-row batches
+        are processed and validated like any other batch.
 
         Args:
             batches: Iterable of batches to process.
 
         Yields:
-            Each batch after all configured processors have been applied.
-            If no processors are configured, each original batch is yielded
-            unchanged.
+            Each batch after all configured processors have been applied and its
+            output schema has been validated. If no processors are configured,
+            the original batches are yielded when their schemas are compatible.
 
         Raises:
+            ValueError: If a processed output schema differs from the expected
+                schema for the run.
             Exception: Exceptions raised by a processor or the input iterable
                 propagate to the caller.
         """
+        expected_schema: pa.Schema | None = None
         for batch in batches:
             for processor in self.processors:
                 batch = processor.process(batch)
+
+            actual_schema = batch.table.schema
+
+            if expected_schema is None:
+                expected_schema = actual_schema
+            elif not expected_schema.equals(actual_schema, check_metadata=False):
+                raise ValueError(
+                    f"Incompatible output schema: expected {expected_schema}, got {actual_schema}"
+                )
+
             yield batch
