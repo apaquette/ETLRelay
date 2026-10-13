@@ -1,4 +1,5 @@
 from collections.abc import Callable, Iterable
+from typing import Any
 
 import pyarrow as pa
 import pytest
@@ -10,6 +11,14 @@ from etlrelay.pipeline import Pipeline
 def make_batch(value: int) -> Batch:
     """Create a batch containing one integer value."""
     return Batch(table=pa.table({"value": [value]}))
+
+
+def make_schema_batch(
+    schema: pa.Schema,
+    rows: list[dict[str, Any]],
+) -> Batch:
+    """Create a batch with an explicit Arrow schema."""
+    return Batch(table=pa.Table.from_pylist(rows, schema=schema))
 
 
 def get_batch_value(batch: Batch) -> int:
@@ -241,3 +250,167 @@ class TestPipeline:
 
         with pytest.raises(RuntimeError, match="Sink failed"):
             pipeline.run()
+
+    @pytest.mark.parametrize(
+        "difference",
+        ["field_names", "field_order", "field_types", "nullability"],
+    )
+    def test_rejects_incompatible_output_schema_before_sink_write(
+        self,
+        difference: str,
+    ):
+        id_field = pa.field("id", pa.int64(), nullable=False)
+        name_field = pa.field("name", pa.string(), nullable=False)
+
+        first_schema = pa.schema([id_field, name_field])
+        first_batch = make_schema_batch(
+            first_schema,
+            [{"id": 1, "name": "Ada"}],
+        )
+
+        if difference == "field_names":
+            second_schema = pa.schema(
+                [
+                    pa.field("identifier", pa.int64(), nullable=False),
+                    name_field,
+                ]
+            )
+            second_rows = [{"identifier": 2, "name": "Sam"}]
+
+        elif difference == "field_order":
+            second_schema = pa.schema([name_field, id_field])
+            second_rows = [{"id": 2, "name": "Sam"}]
+
+        elif difference == "field_types":
+            second_schema = pa.schema(
+                [
+                    pa.field("id", pa.string(), nullable=False),
+                    name_field,
+                ]
+            )
+            second_rows = [{"id": "2", "name": "Sam"}]
+
+        else:
+            second_schema = pa.schema(
+                [
+                    pa.field("id", pa.int64(), nullable=True),
+                    name_field,
+                ]
+            )
+            second_rows = [{"id": 2, "name": "Sam"}]
+
+        second_batch = make_schema_batch(second_schema, second_rows)
+        sink = CollectingSink()
+
+        pipeline = Pipeline(
+            StubSource([first_batch, second_batch]),
+            [],
+            sink,
+        )
+
+        with pytest.raises(ValueError, match="(?i)schema"):
+            pipeline.run()
+
+        # The first batch was written; the incompatible batch was not.
+        assert sink.write_calls == 1
+        assert len(sink.batches) == 1
+        assert sink.batches[0].table.to_pylist() == [{"id": 1, "name": "Ada"}]
+
+    def test_ignores_schema_and_field_metadata_differences(self):
+        first_schema = pa.schema(
+            [
+                pa.field(
+                    "id",
+                    pa.int64(),
+                    nullable=False,
+                    metadata={b"origin": b"source-a"},
+                )
+            ],
+            metadata={b"version": b"1"},
+        )
+        second_schema = pa.schema(
+            [
+                pa.field(
+                    "id",
+                    pa.int64(),
+                    nullable=False,
+                    metadata={b"origin": b"source-b"},
+                )
+            ],
+            metadata={b"version": b"2"},
+        )
+
+        batches = [
+            make_schema_batch(first_schema, [{"id": 1}]),
+            make_schema_batch(second_schema, [{"id": 2}]),
+        ]
+        sink = CollectingSink()
+
+        pipeline = Pipeline(StubSource(batches), [], sink)
+        pipeline.run()
+
+        assert len(sink.batches) == 2
+        assert [batch.table.column("id").to_pylist() for batch in sink.batches] == [[1], [2]]
+
+    def test_rejects_incompatible_schema_on_zero_row_batch(self):
+        first_schema = pa.schema([pa.field("id", pa.int64(), nullable=False)])
+        second_schema = pa.schema([pa.field("id", pa.string(), nullable=False)])
+
+        batches = [
+            make_schema_batch(first_schema, [{"id": 1}]),
+            make_schema_batch(second_schema, []),
+        ]
+        sink = CollectingSink()
+
+        pipeline = Pipeline(StubSource(batches), [], sink)
+
+        with pytest.raises(ValueError, match="(?i)schema"):
+            pipeline.run()
+
+        assert len(sink.batches) == 1
+        assert sink.batches[0].table.column("id").to_pylist() == [1]
+
+    def test_accepts_different_input_schemas_when_outputs_are_compatible(self):
+        from etlrelay.processors import SelectColumns
+
+        id_field = pa.field("id", pa.int64(), nullable=False)
+
+        first_schema = pa.schema(
+            [
+                id_field,
+                pa.field("name", pa.string(), nullable=False),
+            ]
+        )
+        second_schema = pa.schema(
+            [
+                id_field,
+                pa.field("active", pa.bool_(), nullable=False),
+            ]
+        )
+
+        batches = [
+            make_schema_batch(
+                first_schema,
+                [{"id": 1, "name": "Ada"}],
+            ),
+            make_schema_batch(
+                second_schema,
+                [{"id": 2, "active": True}],
+            ),
+        ]
+        sink = CollectingSink()
+
+        pipeline = Pipeline(
+            StubSource(batches),
+            [SelectColumns(columns=["id"])],
+            sink,
+        )
+        pipeline.run()
+
+        assert [batch.table.to_pylist() for batch in sink.batches] == [
+            [{"id": 1}],
+            [{"id": 2}],
+        ]
+
+        expected_schema = pa.schema([id_field])
+        assert all(batch.table.schema.equals(expected_schema) for batch in sink.batches)
