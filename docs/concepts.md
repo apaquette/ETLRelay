@@ -30,3 +30,49 @@ The initial concrete storage implementation is `LocalFileSystem`. The initial fo
 ## Pipeline execution
 
 `Pipeline` coordinates a source, a sequence of processors, and a sink. Execution is synchronous and exceptions propagate to the caller. The initial release does not provide scheduling, distributed execution, parallel processing, automatic retries, or a web interface.
+
+## Batch and Empty-Data Semantics
+
+### Batch Representation
+
+`Batch` is the common tabular data representation used throughout ETLRelay. It wraps a `pyarrow.Table` and exposes the underlying table through the `table` property.
+
+`Batch` does not convert or reconstruct the table. The table retains its values and Arrow schema, including field names, field order, data types, and nullability.
+
+A batch containing zero rows is still a valid batch. Its schema remains available even when it contains no data rows.
+
+### Empty Source Iterables
+
+An empty source iterable and a zero-row batch represent different conditions:
+
+- **Zero-row batch:** The source produces a `Batch` containing a zero-row Arrow table. The batch passes through the configured processors and is delivered to the sink.
+- **Empty source iterable:** The source produces no batches. The pipeline does not call any processors or invoke the sink.
+
+The presence of a batch, rather than its row count, determines whether the pipeline has data to process.
+
+### Pipeline Execution
+
+`Pipeline` processes batches sequentially and applies configured processors in their declared order. Each processor receives the preceding processor's output.
+
+Processed batches are passed to the sink through an iterable. The pipeline does not buffer all source batches before processing them.
+
+The sink is invoked once when at least one successfully processed batch is available. It is not invoked when the source produces no batches.
+
+### Exception Propagation
+
+Exceptions raised while reading from a source, iterating over its batches, processing a batch, or writing to a sink propagate to the caller. The pipeline does not wrap these exceptions in a separate pipeline exception hierarchy.
+
+When an error occurs after processing has begun, batches already consumed or written are not automatically rolled back. The pipeline does not provide transactional execution across multiple batches.
+
+### Contract Summary
+
+| Condition | Expected behavior |
+|---|---|
+| Normal batch | Values and Arrow schema remain intact unless a processor changes them. |
+| Zero-row batch | Processes as a batch and reaches the sink. |
+| Empty source iterable | No processor calls and no sink invocation. |
+| Multiple batches | Processed sequentially and delivered in source order. |
+| Multiple processors | Applied in configured order to each batch. |
+| Source or processor exception | Propagates to the caller. |
+| Sink exception | Propagates to the caller. |
+| Error after earlier batches were written | Earlier writes are not automatically rolled back. |
