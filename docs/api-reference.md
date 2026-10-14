@@ -47,3 +47,9 @@ This reference is generated from the code and its docstrings. Keep public classe
 ::: etlrelay.readers.csv.CsvReader
 
 ::: etlrelay.writers.csv.CsvWriter
+
+## Parquet reader and writer
+
+::: etlrelay.readers.parquet.ParquetReader
+
+::: etlrelay.writers.parquet.ParquetWriter

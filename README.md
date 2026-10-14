@@ -16,7 +16,7 @@ For file-based pipelines, ETLRelay separates storage access from format parsing 
 FileSystem → Reader → Batch → Processor(s) → Writer → FileSystem
 ```
 
-This separation allows file sources and sinks to compose storage and format implementations independently. The same CSV reader can work with different storage implementations without needing to know where the data resides.
+This separation allows file sources and sinks to compose storage and format implementations independently. CSV and Parquet readers/writers use the same file source/sink abstractions without format-specific branches in those components.
 
 ETLRelay is being developed incrementally, with test-driven development, explicit component contracts, and a focus on keeping the architecture small.
 
@@ -30,14 +30,14 @@ pip install etlrelay
 
 ## Documentation
 
-See the [ETLRelay documentation](https://apaquette.github.io/ETLRelay/0.2.0) for usage instructions, examples, and API details.
+See the [ETLRelay documentation](https://apaquette.github.io/ETLRelay/0.3.0) for usage instructions, examples, and API details.
 
 
 ## Project Status
 
-**Current stage: Core pipeline and local CSV I/O**
+**Current stage: Core pipeline and local CSV/Parquet I/O**
 
-The foundational components are implemented, including the batch model, pipeline, local filesystem access, CSV reader and writer, file source and sink, and path validation.
+The foundational components are implemented, including the batch model, pipeline, local filesystem access, CSV and Parquet readers/writers, file source and sink, and path validation.
 
 Unit tests validate individual components. Integration and functional tests exercise their composition.
 
@@ -57,8 +57,10 @@ The current implementation establishes the foundation for further development. E
 | `PathValidator`   | Enforces local filesystem path containment                      |
 | `Reader`          | Defines the contract for reading data from a binary stream      |
 | `CsvReader`       | Parses CSV data into ETLRelay batches                          |
+| `ParquetReader`   | Parses Parquet data into ETLRelay batches                      |
 | `Writer`          | Defines the contract for serializing batches to a binary stream |
 | `CsvWriter`       | Serializes ETLRelay batches as CSV                             |
+| `ParquetWriter`   | Serializes ETLRelay batches as Parquet                         |
 | `FileSource`      | Composes a filesystem and reader to produce batches             |
 | `FileSink`        | Composes a filesystem and writer to consume batches             |
 
@@ -66,9 +68,9 @@ The current implementation establishes the foundation for further development. E
 
 The following are potential areas of development, not features currently guaranteed to be available:
 
-* Additional file formats, including Parquet and JSON
+* Additional file formats, including JSON
 * Additional storage backends, including Amazon S3 and HDFS
-* A standard library of data transformation processors
+* Additional built-in data transformation processors
 * SQL sources and sinks using SQLAlchemy
 * Declarative YAML pipeline configuration
 * A command-line interface
@@ -147,7 +149,7 @@ LocalFileSystem.open_write(path)
 
 This prevents source and sink implementations from becoming coupled to individual storage technologies or serialization formats.
 
-The current implementation uses the local filesystem and CSV. Additional combinations can be introduced through new implementations of the existing contracts when they are needed.
+The current implementation supports the local filesystem with CSV and Parquet. Additional combinations can be introduced through new implementations of the existing contracts when they are needed.
 
 ### Common Data Representation
 
@@ -336,13 +338,13 @@ Unit tests validate components independently, including:
 * Pipeline execution and processor ordering
 * Path containment
 * Filesystem interactions
-* CSV parsing and serialization
+* CSV and Parquet parsing and serialization
 * File source and sink orchestration
 * Error propagation and resource cleanup
 
 ### Integration Tests
 
-Integration tests verify interactions between real components, including local filesystem operations and CSV reading and writing.
+Integration tests verify interactions between real components, including local filesystem operations and CSV/Parquet reading and writing.
 
 ### Functional Tests
 
@@ -374,9 +376,11 @@ src/
     │   ├── filesystem.py
     │   └── local.py
     ├── readers/
-    │   └── csv.py
+    │   ├── csv.py
+    │   └── parquet.py
     ├── writers/
-    │   └── csv.py
+    │   ├── csv.py
+    │   └── parquet.py
     ├── sources/
     │   └── file.py
     └── sinks/
