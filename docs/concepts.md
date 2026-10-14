@@ -44,7 +44,25 @@ Batch iterable → Writer → BinaryIO → FileSystem → Destination
 
 `FileSource` composes a filesystem with a reader. `FileSink` composes a filesystem with a writer. This separates resource access from format-specific parsing and serialization.
 
-The current implementation supports local filesystem access through `LocalFileSystem` and CSV through `CsvReader` and `CsvWriter`.
+The current implementation supports local filesystem access through `LocalFileSystem`, with CSV through `CsvReader`/`CsvWriter` and Parquet through `ParquetReader`/`ParquetWriter`. Select the reader and writer explicitly when constructing `FileSource` and `FileSink`; the file extension does not select a format automatically.
+
+## CSV and Parquet Behavior
+
+The file format is selected when composing the source or sink. `FileSource` and `FileSink` do not inspect the filename extension or choose a reader/writer automatically.
+
+| Behavior | CSV | Parquet |
+| --- | --- | --- |
+| Representation | Text; no embedded Arrow schema | Columnar binary format with schema and type information |
+| Reading types | PyArrow infers types from text; exact schema round trips are not guaranteed | Preserves schema and supported Arrow types represented in the Parquet file |
+| Multiple batches | Serializes batches in order; a CSV stream has one header written by the first batch | Serializes batches in order into one Parquet file |
+| Zero-row batch with schema | Can write a header-only CSV | Writes a valid schema-bearing zero-row Parquet file; the reader yields one empty batch with the schema |
+| Empty batch iterable | Writes no bytes | Raises `WriterError` because no schema is available to initialize the file |
+| Stream requirements | Binary stream | Reader: seekable binary stream; writer: writable binary stream supported by PyArrow |
+
+A zero-row batch and an empty batch iterable are different: the former still carries an Arrow schema; the latter carries no batch from which a schema can be obtained. `ParquetWriter` uses the first batch's schema and requires following batches to have the same schema. ETLRelay does not merge incompatible schemas or automatically cast batches.
+
+Parquet preserves supported Arrow schema/type information and values for the types handled by the installed PyArrow version; this should not be read as a guarantee that every Arrow-specific type, extension type, or metadata field is losslessly represented by Parquet. The stream protocols use `BinaryIO`, which does not express seekability in its type signature. `ParquetReader` therefore has a stronger runtime requirement than the generic `Reader` protocol suggests. The caller/component that opens a stream retains responsibility for its lifecycle; readers and writers must not close caller-owned streams.
+
 
 ## Pipeline Execution
 
@@ -88,6 +106,6 @@ If a later batch fails, batches successfully written before the failure are not 
 
 ## Current Scope
 
-ETLRelay provides synchronous, batch-oriented pipeline execution with local CSV input and output and a small set of built-in processors.
+ETLRelay provides synchronous, batch-oriented pipeline execution with local CSV and Parquet input/output and a small set of built-in processors.
 
 Scheduling, distributed execution, parallel processing, automatic retries, and automatic schema reconciliation are not provided by the current pipeline implementation. Additional formats, storage backends, and processing capabilities should be introduced when concrete requirements justify them.

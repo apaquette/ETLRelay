@@ -4,6 +4,25 @@ Notable changes to ETLRelay are documented here.
 
 This project follows the principles of [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and [Semantic Versioning](https://semver.org/).
 
+## [0.3.0] - 2026-10-14
+
+### Added
+
+- Add `ParquetReader` and `ParquetWriter` as implementations of the existing reader and writer protocols.
+- Support local Parquet input and output through `FileSource`, `FileSink`, and `LocalFileSystem`, without format-specific branches in source/sink orchestration.
+- Add Parquet unit, integration, round-trip, and functional pipeline coverage, including schema/type preservation, nulls, and zero-row files.
+- Add a runnable local Parquet pipeline example.
+
+### Changed
+
+- Update user-facing documentation to describe CSV and Parquet support through the shared file composition model.
+
+### Compatibility notes
+
+- CSV is text-based and does not carry Arrow type metadata. CSV reads infer types, so an exact Arrow schema round trip is not guaranteed.
+- `ParquetWriter` derives the output schema from the first batch. An empty iterable raises `WriterError`; a zero-row batch with a schema is valid.
+- `ParquetReader` requires a seekable binary stream for the PyArrow Parquet API. Stream lifecycle remains the caller's responsibility.
+
 ## [0.2.0] - 2026-10-13
 
 ### Added

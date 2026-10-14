@@ -10,7 +10,7 @@ A `Writer` consumes an iterable of `Batch` objects and serializes them to a bina
 
 The protocols separate format-specific parsing and serialization from storage access. Higher-level components such as `FileSource` and `FileSink` compose these protocols with a `FileSystem` implementation.
 
-The current concrete implementations are `CsvReader` and `CsvWriter`.
+The concrete implementations are `CsvReader`, `CsvWriter`, `ParquetReader`, and `ParquetWriter`.
 
 ## Class Diagram
 
@@ -34,6 +34,14 @@ classDiagram
         +write(batches: Iterable~Batch~, stream: BinaryIO) None
     }
 
+    class ParquetReader {
+        +read(stream: BinaryIO) Iterable~Batch~
+    }
+
+    class ParquetWriter {
+        +write(batches: Iterable~Batch~, stream: BinaryIO) None
+    }
+
     class Batch
 
     class FileSource {
@@ -52,6 +60,8 @@ classDiagram
 
     Reader <|.. CsvReader : implements
     Writer <|.. CsvWriter : implements
+    Reader <|.. ParquetReader : implements
+    Writer <|.. ParquetWriter : implements
 
     FileSource --> Reader : uses
     FileSink --> Writer : uses
@@ -61,6 +71,8 @@ classDiagram
 
     CsvReader --> Batch : produces
     CsvWriter --> Batch : consumes
+    ParquetReader --> Batch : produces
+    ParquetWriter --> Batch : consumes
 ```
 
 ## Responsibilities
@@ -135,6 +147,18 @@ It is **not** responsible for:
 
 The underlying serialization implementation uses PyArrow.
 
+### ParquetReader
+
+`ParquetReader` implements `Reader` for Parquet files. It uses PyArrow's Parquet file API to read a binary stream and yield ETLRelay `Batch` objects. It preserves the schema and supported Arrow types represented in the file, including null values for the supported types exercised by the tests. A zero-row Parquet file produces one zero-row batch with its schema, so an empty dataset remains distinguishable from a source that yields no batches.
+
+The input stream must be seekable because PyArrow's Parquet API needs to access file metadata and column data through a seekable file-like object. The generic `BinaryIO` protocol does not express this requirement. The caller retains responsibility for opening and closing the stream. Malformed Parquet content raises `pyarrow.ArrowInvalid`; I/O errors may propagate as `OSError`.
+
+### ParquetWriter
+
+`ParquetWriter` implements `Writer` for Parquet data. It serializes all supplied batches into one Parquet file through PyArrow. The first batch establishes the output schema, and later batches must have a matching schema; ETLRelay does not merge schemas or cast incompatible batches automatically. A zero-row batch is valid because it still supplies a schema and creates a valid zero-row Parquet file.
+
+An empty batch iterable raises `WriterError`: without a batch, the writer has no schema with which to initialize the Parquet file. This differs from an iterable containing one zero-row batch. The writer finalizes the Parquet container but does not take ownership of the caller's underlying stream.
+
 ## Dependency Relationship
 
 ```text
@@ -174,7 +198,7 @@ FileSource(
 )
 ```
 
-A future reader for another format could be supplied without changing `FileSource`, provided it satisfies the `Reader` protocol.
+For Parquet, supply `ParquetReader()` instead. The corresponding sink accepts `ParquetWriter()`. Format selection is explicit at composition time; `FileSource` and `FileSink` do not inspect extensions or select a format automatically.
 
 ## Interfaces
 
@@ -230,6 +254,26 @@ class CsvWriter:
         ...
 ```
 
+### ParquetReader
+
+```python
+class ParquetReader:
+    def read(self, stream: BinaryIO) -> Iterable[Batch]:
+        ...
+```
+
+### ParquetWriter
+
+```python
+class ParquetWriter:
+    def write(
+        self,
+        batches: Iterable[Batch],
+        stream: BinaryIO,
+    ) -> None:
+        ...
+```
+
 ## Contract
 
 ### Reader
@@ -253,7 +297,24 @@ class CsvWriter:
 
 Readers and writers do not validate filesystem paths. Storage access and local path containment are handled by the storage implementation and its security dependencies.
 
-The writer receives the stream from its caller and does not close it. Stream ownership remains with the component that opened it, typically `FileSink` using a context manager.
+The reader/writer receive the stream from their caller and do not close it. Stream ownership remains with the component that opened it, typically `FileSource` or `FileSink` using a context manager.
+
+## CSV and Parquet Behavior
+
+The file format is selected when composing the source or sink. `FileSource` and `FileSink` do not inspect the filename extension or choose a reader/writer automatically.
+
+| Behavior | CSV | Parquet |
+| --- | --- | --- |
+| Representation | Text; no embedded Arrow schema | Columnar binary format with schema and type information |
+| Reading types | PyArrow infers types from text; exact schema round trips are not guaranteed | Preserves schema and supported Arrow types represented in the Parquet file |
+| Multiple batches | Serializes batches in order; a CSV stream has one header written by the first batch | Serializes batches in order into one Parquet file |
+| Zero-row batch with schema | Can write a header-only CSV | Writes a valid schema-bearing zero-row Parquet file; the reader yields one empty batch with the schema |
+| Empty batch iterable | Writes no bytes | Raises `WriterError` because no schema is available to initialize the file |
+| Stream requirements | Binary stream | Reader: seekable binary stream; writer: writable binary stream supported by PyArrow |
+
+A zero-row batch and an empty batch iterable are different: the former still carries an Arrow schema; the latter carries no batch from which a schema can be obtained. `ParquetWriter` uses the first batch's schema and requires following batches to have the same schema. ETLRelay does not merge incompatible schemas or automatically cast batches.
+
+Parquet preserves supported Arrow schema/type information and values for the types handled by the installed PyArrow version; this should not be read as a guarantee that every Arrow-specific type, extension type, or metadata field is losslessly represented by Parquet. The stream protocols use `BinaryIO`, which does not express seekability in its type signature. `ParquetReader` therefore has a stronger runtime requirement than the generic `Reader` protocol suggests. The caller/component that opens a stream retains responsibility for its lifecycle; readers and writers must not close caller-owned streams.
 
 ## SOLID Considerations
 
@@ -277,13 +338,13 @@ For example:
 ```text
 Reader
 ├── CsvReader
-└── ParquetReader (future)
+└── ParquetReader
 ```
 
 ```text
 Writer
 ├── CsvWriter
-└── ParquetWriter (future)
+└── ParquetWriter
 ```
 
 Adding another format does not require modifying the corresponding protocol or `FileSource`/`FileSink` implementation.

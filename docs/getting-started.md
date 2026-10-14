@@ -1,6 +1,6 @@
 # Getting Started
 
-This guide demonstrates a local CSV transformation pipeline using ETLRelay's source, reader, processors, pipeline, writer, and sink.
+This guide demonstrates a local CSV transformation pipeline and shows how to switch the same composition model to Parquet. Both formats use the same file source/sink, storage, and processor abstractions.
 
 The example selects columns, renames a column, and filters rows before writing the results to a new CSV file.
 
@@ -103,3 +103,30 @@ After running the pipeline, `data/output.csv` contains:
 The output preserves the order of the matching input rows and contains only the selected and renamed columns.
 
 For more details on batch behavior, empty inputs, and output schema compatibility, see [Core Concepts](concepts.md). For constructor parameters and validation behavior, see the [API Reference](api-reference.md).
+
+
+## Using Parquet
+
+The same composition model supports Parquet. Select the format explicitly by supplying `ParquetReader()` to `FileSource` and `ParquetWriter()` to `FileSink`; ETLRelay does not infer the format from a filename extension. The executable example at [`examples/parquet_pipeline.py`](https://github.com/apaquette/ETLRelay/blob/v0.3.0/examples/parquet_pipeline.py) creates a small input file, applies the same select/rename/filter processors as the CSV example, and writes `data/output.parquet`.
+
+The central composition looks like this:
+
+```python
+from etlrelay.readers import ParquetReader
+from etlrelay.sources import FileSource
+from etlrelay.sinks import FileSink
+from etlrelay.writers import ParquetWriter
+
+source = FileSource(
+    path="input.parquet",
+    storage=storage,
+    reader=ParquetReader(),
+)
+sink = FileSink(
+    path="output.parquet",
+    storage=storage,
+    writer=ParquetWriter(),
+)
+```
+
+Parquet retains its supported schema and data types, while CSV is text-based and infers types when read. A `ParquetWriter` requires at least one batch to establish its schema: an empty iterable raises `WriterError`. A zero-row `Batch` with a schema is valid and creates a schema-bearing Parquet file. `ParquetReader` requires a seekable binary stream; the reader/writer contracts are stream-based and leave stream lifecycle management to the component that opened the stream. See [Reader and Writer](architecture/reader_and_writer.md) and [Core Concepts](concepts.md) for format-specific behavior and limitations.
