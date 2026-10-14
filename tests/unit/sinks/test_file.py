@@ -1,12 +1,16 @@
+from collections.abc import Iterable
 from io import BytesIO
+from pathlib import Path
+from typing import BinaryIO
 from unittest.mock import Mock
 
 import pyarrow as pa
 import pytest
 
 from etlrelay.core import Batch, Sink, Writer, WriterError
+from etlrelay.security import PathValidator
 from etlrelay.sinks import FileSink
-from etlrelay.storage import FileSystem
+from etlrelay.storage import FileSystem, LocalFileSystem
 
 
 class TestFileSink:
@@ -146,3 +150,41 @@ class TestFileSink:
             sink.write(iter([]))
 
         assert stream.closed
+
+    def test_file_sink_closes_stream_and_leaves_partial_output_when_writer_fails(
+        self,
+        tmp_path: Path,
+    ):
+        output_path = tmp_path / "output.bin"
+        output_path.write_bytes(b"original content")
+
+        storage = LocalFileSystem(path_validator=PathValidator(base_path=tmp_path))
+
+        writer = Mock(spec=Writer)
+        opened_streams: list[BinaryIO] = []
+
+        def write_partial_then_fail(
+            _batches: Iterable[Batch],
+            output_stream: BinaryIO,
+        ) -> None:
+            opened_streams.append(output_stream)
+            output_stream.write(b"partial")
+            raise WriterError("Serialization failed")
+
+        writer.write.side_effect = write_partial_then_fail
+
+        sink = FileSink(
+            path="output.bin",
+            storage=storage,
+            writer=writer,
+        )
+
+        with pytest.raises(WriterError, match="Serialization failed"):
+            sink.write(iter([]))
+
+        assert len(opened_streams) == 1
+        assert opened_streams[0].closed
+
+        # Opening with "wb" truncates the old file before writing starts.
+        # A failed write does not restore the original contents.
+        assert output_path.read_bytes() == b"partial"

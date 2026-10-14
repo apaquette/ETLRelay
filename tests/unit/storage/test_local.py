@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Any, BinaryIO
 
 import pytest
 
@@ -26,6 +27,7 @@ class TestLocalFileSystemOpenRead:
 
         # Act / Assert
         with filesystem.open_read("input.csv") as stream:
+            assert stream.mode == "rb"
             assert stream.read() == content
 
     def test_open_read_supports_nested_file_path(
@@ -84,6 +86,7 @@ class TestLocalFileSystemOpenWrite:
         content = b"ETLRelay test data"
 
         with storage.open_write("output.bin") as stream:
+            assert stream.mode == "wb"
             stream.write(content)
 
         output_path = tmp_path / "output.bin"
@@ -125,3 +128,56 @@ class TestLocalFileSystemOpenWrite:
 
         with pytest.raises(FileNotFoundError):
             storage.open_write("missing/output.bin")
+
+    def test_open_read_raises_filesystem_error_if_file_disappears_before_open(
+        self,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ):
+        file_path = tmp_path / "input.bin"
+        file_path.write_bytes(b"content")
+
+        filesystem = LocalFileSystem(path_validator=PathValidator(base_path=tmp_path))
+
+        def file_disappeared(
+            _path: Path,
+            *_args: Any,
+            **_kwargs: Any,
+        ) -> BinaryIO:
+            raise FileNotFoundError("File disappeared before opening")
+
+        monkeypatch.setattr(Path, "open", file_disappeared)
+
+        with pytest.raises(FileSystemError):
+            filesystem.open_read("input.bin")
+
+
+class TestLocalFileSystemErrorPropagation:
+    @pytest.mark.parametrize("operation", ["read", "write"])
+    def test_open_propagates_permission_errors(
+        self,
+        operation: str,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ):
+        file_path = tmp_path / "protected.bin"
+        file_path.write_bytes(b"content")
+
+        filesystem = LocalFileSystem(path_validator=PathValidator(base_path=tmp_path))
+
+        def permission_denied(
+            _path: Path,
+            *_args: Any,
+            **_kwargs: Any,
+        ) -> BinaryIO:
+            raise PermissionError("Permission denied")
+
+        monkeypatch.setattr(Path, "open", permission_denied)
+
+        if operation == "read":
+            open_resource = filesystem.open_read
+        else:
+            open_resource = filesystem.open_write
+
+        with pytest.raises(PermissionError, match="Permission denied"):
+            open_resource("protected.bin")
