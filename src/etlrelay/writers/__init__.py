@@ -1,3 +1,4 @@
 from .csv import CsvWriter
+from .parquet import ParquetWriter
 
-__all__ = ["CsvWriter"]
+__all__ = ["CsvWriter", "ParquetWriter"]
