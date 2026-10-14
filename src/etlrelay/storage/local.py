@@ -48,9 +48,10 @@ class LocalFileSystem:
             OSError: If the file cannot be opened or read.
         """
         validated_path = self._path_validator.validate(path)
-        if not validated_path.exists():
-            raise FileSystemError("Path does not exist")
-        return validated_path.open("rb")
+        try:
+            return validated_path.open("rb")
+        except FileNotFoundError as exc:
+            raise FileSystemError("Path does not exist") from exc
 
     def open_write(self, path: str) -> BinaryIO:
         """Open a validated local file for binary writing.
