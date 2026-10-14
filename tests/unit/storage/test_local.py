@@ -181,3 +181,31 @@ class TestLocalFileSystemErrorPropagation:
 
         with pytest.raises(PermissionError, match="Permission denied"):
             open_resource("protected.bin")
+
+    @pytest.mark.parametrize("operation", ["read", "write"])
+    @pytest.mark.parametrize("error_type", [PermissionError, OSError])
+    def test_open_propagates_filesystem_errors(
+        self,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+        operation: str,
+        error_type: type[OSError],
+    ) -> None:
+        file_path = tmp_path / "protected.bin"
+        file_path.write_bytes(b"content")
+
+        filesystem = LocalFileSystem(path_validator=PathValidator(base_path=tmp_path))
+
+        def fail_open(
+            _path: Path,
+            *_args: Any,
+            **_kwargs: Any,
+        ) -> BinaryIO:
+            raise error_type("Filesystem operation failed")
+
+        monkeypatch.setattr(Path, "open", fail_open)
+
+        open_resource = filesystem.open_read if operation == "read" else filesystem.open_write
+
+        with pytest.raises(error_type, match="Filesystem operation failed"):
+            open_resource("protected.bin")
