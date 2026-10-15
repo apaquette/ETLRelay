@@ -32,6 +32,8 @@ This reference is generated from the code and its docstrings. Keep public classe
 
 ::: etlrelay.security.path.PathValidator
 
+::: etlrelay.storage.filesystem.FileSystemError
+
 ::: etlrelay.storage.filesystem.FileSystem
 
 ::: etlrelay.storage.local.LocalFileSystem

@@ -30,18 +30,25 @@ pip install etlrelay
 
 ## Documentation
 
-See the [ETLRelay documentation](https://apaquette.github.io/ETLRelay/0.3.0) for usage instructions, examples, and API details.
+See the [ETLRelay documentation](https://apaquette.github.io/ETLRelay/0.4.0) for usage instructions, examples, and API details.
 
 
 ## Project Status
 
-**Current stage: Core pipeline and local CSV/Parquet I/O**
+**Current milestone: `0.4.0` — Storage contract stabilization**
 
 The foundational components are implemented, including the batch model, pipeline, local filesystem access, CSV and Parquet readers/writers, file source and sink, and path validation.
 
 Unit tests validate individual components. Integration and functional tests exercise their composition.
 
-The current implementation establishes the foundation for further development. ETLRelay is not yet a complete ETL product, and its public API may evolve before the first stable release.
+The current implementation establishes the foundation for further
+development. ETLRelay is not yet a complete ETL product, and its public
+API may evolve before `1.0.0`.
+
+The v0.4.0 milestone stabilizes and documents the local storage contract,
+including stream ownership, path containment, error propagation, output
+creation, overwrite behavior, and resource cleanup. It does not introduce
+a new storage backend.
 
 ### Implemented Components
 
@@ -64,19 +71,28 @@ The current implementation establishes the foundation for further development. E
 | `FileSource`      | Composes a filesystem and reader to produce batches             |
 | `FileSink`        | Composes a filesystem and writer to consume batches             |
 
+
 ### Planned Capabilities
 
-The following are potential areas of development, not features currently guaranteed to be available:
+The following are potential areas of development, not features currently
+guaranteed to be available:
 
-* Additional file formats, including JSON
-* Additional storage backends, including Amazon S3 and HDFS
-* Additional built-in data transformation processors
-* SQL sources and sinks using SQLAlchemy
-* Declarative YAML pipeline configuration
-* A command-line interface
-* Improved configuration, secrets, and operational error handling
+- Additional file formats, including JSON.
+- Additional built-in data transformation processors.
+- SQL sources and sinks using SQLAlchemy.
+- Declarative YAML pipeline configuration.
+- A command-line interface.
+- Improved configuration, secrets, and operational error handling.
 
-Features will be added when requirements justify them. The project will not introduce scheduling, distributed execution, or other orchestration infrastructure merely to anticipate future needs.
+S3, HDFS, and other remote-storage backends are outside the v0.4.0
+milestone and the planned v1.0.0 scope. Additional storage and platform
+integrations may be reviewed after v1.0.0 if concrete requirements justify
+them. No particular backend, implementation, or release date is promised.
+
+Features will be added when requirements justify them. The project will
+not introduce scheduling, distributed execution, or other orchestration
+infrastructure merely to anticipate future needs.
+
 
 ## Architecture
 
@@ -352,7 +368,9 @@ Functional tests exercise complete workflows through the source, processing, and
 
 The suite should use temporary directories and controlled test inputs rather than relying on repository-local data or external infrastructure unnecessarily.
 
-As additional storage backends and data sources are introduced, their integration tests will be added alongside the corresponding implementations.
+If additional storage backends or data sources are considered after v1.0.0,
+their integration tests should be introduced alongside the corresponding
+implementation. No such backend is included in the current release scope.
 
 ## Project Structure
 

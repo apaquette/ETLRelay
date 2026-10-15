@@ -159,23 +159,24 @@ The input stream must be seekable because PyArrow's Parquet API needs to access 
 
 An empty batch iterable raises `WriterError`: without a batch, the writer has no schema with which to initialize the Parquet file. This differs from an iterable containing one zero-row batch. The writer finalizes the Parquet container but does not take ownership of the caller's underlying stream.
 
+
 ## Dependency Relationship
 
 ```text
 FileSource ──> Reader
                   ▲
-                  │
-              CsvReader
+                  ├── CsvReader
+                  └── ParquetReader
 
 FileSink ───> Writer
                   ▲
-                  │
-              CsvWriter
+                  ├── CsvWriter
+                  └── ParquetWriter
 ```
 
-`FileSource` depends on the `Reader` protocol rather than directly on `CsvReader`.
-
-`FileSink` depends on the `Writer` protocol rather than directly on `CsvWriter`.
+`FileSource` depends on the `Reader` protocol rather than on a particular
+format implementation. `FileSink` similarly depends on the `Writer`
+protocol.
 
 Storage access is a separate dependency:
 
@@ -184,21 +185,20 @@ FileSource ──> FileSystem
 FileSink   ──> FileSystem
 ```
 
-The `FileSystem` implementation opens the resource and provides a binary stream. The reader or writer then operates on that stream without needing to know where the data is stored.
+The filesystem opens the resource and supplies a binary stream. The
+configured reader or writer operates on that stream without selecting the
+storage location or inspecting a filename extension.
 
-This separation allows different storage implementations and format implementations to be combined without modifying the source or sink orchestration.
+CSV and Parquet are supported through the existing local-file composition
+model. The only storage implementation included in v0.4.0 is
+`LocalFileSystem`. S3, HDFS, and other remote-storage backends are outside
+both v0.4.0 and the planned v1.0.0 scope.
 
-For example:
-
-```python
-FileSource(
-    path="input.csv",
-    storage=LocalFileSystem(...),
-    reader=CsvReader(),
-)
+Additional storage or platform integrations may be reviewed after v1.0.0
+based on concrete requirements, without a commitment to specific backends
+or release dates.
 ```
 
-For Parquet, supply `ParquetReader()` instead. The corresponding sink accepts `ParquetWriter()`. Format selection is explicit at composition time; `FileSource` and `FileSink` do not inspect extensions or select a format automatically.
 
 ## Interfaces
 
@@ -276,28 +276,38 @@ class ParquetWriter:
 
 ## Contract
 
+
 ### Reader
 
-| Operation                   | Expected behavior                                 |
-| --------------------------- | ------------------------------------------------- |
-| Read valid CSV data         | Returns an iterable of `Batch` objects            |
-| Read malformed CSV data     | Raises an appropriate parsing exception           |
-| Read from a supplied stream | Parses the supplied stream without opening a path |
-| Implement another format    | Can provide another implementation of `Reader`    |
+| Operation | Expected behavior |
+| --- | --- |
+| Read valid data in a supported format | Returns an iterable of `Batch` objects. |
+| Read malformed data | Propagates the parsing exception raised by the selected reader implementation. |
+| Read from a supplied stream | Reads the supplied stream without opening a filesystem path. |
+| Manage stream lifetime | Does not close the caller-owned stream. |
+| Implement another format | Provides another implementation of the `Reader` protocol. |
+
+The `Reader` protocol does not require all implementations to normalize
+parsing failures into `ReaderError`. Exception types depend on the selected
+reader implementation and underlying parsing library.
 
 ### Writer
 
-| Operation                    | Expected behavior                                                 |
-| ---------------------------- | ----------------------------------------------------------------- |
-| Write an iterable of batches | Serializes the supplied batches to the stream                     |
-| Write multiple batches       | Preserves batch order and serializes their data                   |
-| Write an empty batch         | Handles it according to the writer's defined empty-batch behavior |
-| Write an empty iterable      | Handles the absence of batches according to the writer's contract |
-| Implement another format     | Can provide another implementation of `Writer`                    |
+| Operation | Expected behavior |
+| --- | --- |
+| Write an iterable of batches | Serializes the supplied batches to the provided stream. |
+| Write multiple batches | Preserves batch order, subject to the writer's documented schema requirements. |
+| Write a zero-row batch | Follows the selected format's documented behavior. |
+| Write an empty batch iterable | Follows the selected writer's contract; CSV and Parquet behavior differs. |
+| Manage stream lifetime | Does not close the caller-owned stream. |
+| Encounter a serialization error | Propagates the exception raised by the writer implementation. |
+| Implement another format | Provides another implementation of the `Writer` protocol. |
 
-Readers and writers do not validate filesystem paths. Storage access and local path containment are handled by the storage implementation and its security dependencies.
+Readers and writers do not validate filesystem paths. Path containment
+belongs to the local storage layer. `FileSource` and `FileSink` are
+responsible for closing streams they open, including when reading or
+writing fails.
 
-The reader/writer receive the stream from their caller and do not close it. Stream ownership remains with the component that opened it, typically `FileSource` or `FileSink` using a context manager.
 
 ## CSV and Parquet Behavior
 

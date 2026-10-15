@@ -1,6 +1,6 @@
-from collections.abc import Iterable
+from collections.abc import Generator, Iterable
 from io import BytesIO
-from typing import BinaryIO
+from typing import BinaryIO, cast
 
 import pyarrow as pa
 import pytest
@@ -178,3 +178,38 @@ class TestFileSource:
         list(source.read())
 
         assert storage.opened_path == "data/customers.csv"
+
+    def test_file_source_closes_stream_when_iterator_is_closed_early(
+        self,
+        batch: Batch,
+    ) -> None:
+        stream = BytesIO(b"test data")
+        storage = FakeFileSystem(stream=stream)
+
+        class MultiBatchReader:
+            def read(self, stream: BinaryIO) -> Iterable[Batch]:
+                assert stream is stream
+                yield batch
+                yield batch
+
+        source = FileSource(
+            path="input.csv",
+            storage=storage,
+            reader=MultiBatchReader(),
+        )
+
+        iterator = cast(
+            Generator[Batch, None, None],
+            source.read(),
+        )
+
+        # FileSource.read() is lazy.
+        assert not stream.closed
+
+        assert next(iterator) is batch
+        assert not stream.closed
+
+        # Explicitly closing a partially consumed iterator must close the stream.
+        iterator.close()
+
+        assert stream.closed
