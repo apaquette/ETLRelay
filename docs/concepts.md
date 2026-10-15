@@ -104,8 +104,22 @@ Exceptions raised while reading from a source, iterating over its batches, proce
 
 If a later batch fails, batches successfully written before the failure are not automatically rolled back. The pipeline does not provide transactional execution across multiple batches.
 
+
 ## Current Scope
 
-ETLRelay provides synchronous, batch-oriented pipeline execution with local CSV and Parquet input/output and a small set of built-in processors.
+ETLRelay provides synchronous, batch-oriented pipeline execution with local
+CSV and Parquet input/output and a small set of built-in processors.
 
-Scheduling, distributed execution, parallel processing, automatic retries, and automatic schema reconciliation are not provided by the current pipeline implementation. Additional formats, storage backends, and processing capabilities should be introduced when concrete requirements justify them.
+The local storage contract, including binary stream modes, path containment,
+error propagation, output creation, overwrite behavior, and stream cleanup,
+is documented in the [local filesystem architecture](architecture/local_filesystem.md).
+
+S3, HDFS, and other remote-storage backends are outside the v0.4.0 milestone
+and planned v1.0.0 scope. Additional storage and platform integrations may
+be reviewed after v1.0.0 if concrete requirements justify them. No
+particular backend or delivery date is promised.
+
+Scheduling, distributed execution, parallel processing, automatic retries,
+and automatic schema reconciliation are not provided by the current
+pipeline implementation. Additional capabilities should be introduced
+when concrete requirements justify them and their scope is established.

@@ -23,6 +23,11 @@ class Sink(Protocol):
     def write(self, batches: Iterable[Batch]) -> None:
         """Write an iterable of batches to the configured destination.
 
+        The storage implementation may create or truncate the destination before
+        serialization begins. If writing fails, the stream is closed but the output
+        is not rolled back; a partial or empty file may remain. The original writer
+        exception propagates to the caller.
+
         Args:
             batches: An iterable of batches to consume and write.
 

@@ -131,7 +131,18 @@ Scope:
 - Confirm existing CSV and Parquet file pipelines remain functional.
 - Document the finalized contract and the scope of storage support.
 
-**Remote-storage decision:** S3, HDFS, and other remote storage backends are not required for v1.0 and will not be implemented as part of this milestone. Do not add speculative backend abstractions, dependencies, or cloud-specific configuration solely to test the protocol. Potential storage and platform integrations may be reviewed after v1.0; this roadmap does not commit to implementing any particular integration.
+
+**Remote-storage decision:** S3, HDFS, and all other remote-storage
+backends are explicitly outside both v0.4.0 and the planned v1.0.0 scope.
+No remote-storage implementation will be added as part of this milestone.
+Do not add speculative backend abstractions, dependencies, or
+cloud-specific configuration solely to anticipate future storage needs.
+
+Additional storage and platform integrations may be reviewed after v1.0.0
+if concrete requirements justify them. This is a future review opportunity,
+not a commitment to implement any particular integration or release it on
+a particular date.
+
 
 **Done when:** The contract is explicit and tested, `LocalFileSystem` satisfies it, existing file pipelines remain functional, and remote storage is explicitly documented as outside the v1.0 scope.
 

@@ -28,24 +28,26 @@ class LocalFileSystem:
         self._path_validator = path_validator
 
     def open_read(self, path: str) -> BinaryIO:
-        """Open a validated local file for binary reading.
+        """Open a validated local file in binary read mode.
 
-        The path is validated and must refer to an existing filesystem
-        resource that can be opened for reading.
+        The path is validated before opening. A missing input is reported as
+        FileSystemError, including when the file disappears between path validation
+        and the open operation. Path-validation errors and other filesystem errors
+        are not converted into FileSystemError.
 
         Args:
-            path: Path to the file, relative to the validator's base
-                directory or an absolute path permitted by the validator.
+            path: Path relative to the validator's base directory, or an absolute
+                path permitted by the validator.
 
         Returns:
-            A readable binary stream. The caller is responsible for closing
-            the stream, preferably by using a context manager.
+            A readable binary stream. The caller is responsible for closing it.
 
         Raises:
-            PathValidationError: If the path resolves outside the permitted
+            PathValidationError: If the resolved path is outside the permitted
                 base directory.
-            FileSystemError: If the path does not exist.
-            OSError: If the file cannot be opened or read.
+            FileSystemError: If the input file does not exist.
+            OSError: For permission and other filesystem errors not representing
+                a missing input.
         """
         validated_path = self._path_validator.validate(path)
         try:

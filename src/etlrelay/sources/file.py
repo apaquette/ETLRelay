@@ -36,14 +36,22 @@ class FileSource:
         self.reader = reader
 
     def read(self) -> Iterable[Batch]:
-        """Read the file and return its data as an iterable of batches.
+        """Yield batches parsed from the configured input file.
 
-        Opens the file through the configured filesystem, parses its
-        contents using the configured reader, and returns the resulting
-        batch in an iterable.
+        File access and reading occur when the returned generator is consumed.
+        The source opens the stream through the configured filesystem and passes
+        it to the configured reader. The source manages the stream lifetime and
+        closes it when iteration completes, reading raises an exception, or the
+        generator is explicitly closed.
+
+        Consumers that stop iteration early should explicitly close the generator
+        when deterministic cleanup is required.
+
+        Exceptions raised by the filesystem or reader propagate to the caller
+        without being converted into format-independent errors.
 
         Returns:
-            An iterable containing the batch parsed from the file.
+            An iterable of batches parsed by the configured reader.
         """
         with self.storage.open_read(self.path) as stream:
             yield from self.reader.read(stream)

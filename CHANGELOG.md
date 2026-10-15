@@ -4,6 +4,25 @@ Notable changes to ETLRelay are documented here.
 
 This project follows the principles of [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and [Semantic Versioning](https://semver.org/).
 
+## [0.4.0] - 2026-10-14
+
+### Changed
+
+- Stabilize and document the `FileSystem` contract for binary stream
+  ownership, error propagation, path handling, output creation, overwrite
+  semantics, and cleanup.
+- Normalize missing local input files to `FileSystemError`, including the
+  case where a file disappears between path validation and opening.
+- Document the shared storage/source/sink composition used by local CSV
+  and Parquet pipelines.
+
+### Documentation
+
+- Clarify the local filesystem contract, public API, and current v1.0
+  storage scope.
+- Explicitly exclude S3, HDFS, and other remote-storage implementations
+  from v0.4.0 and the planned v1.0 scope.
+
 ## [0.3.0] - 2026-10-14
 
 ### Added
