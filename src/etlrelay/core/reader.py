@@ -7,7 +7,7 @@ from etlrelay.core import Batch
 
 
 class ReaderError(Exception):
-    """Raised when a reader fails to read or parse input data."""
+    """Represent a read or parsing error normalized by a reader implementation."""
 
 
 @runtime_checkable
@@ -27,10 +27,10 @@ class Reader(Protocol):
         Returns:
             An iterable of batches containing the parsed data.
 
-        Raises:
-            ReaderError: If the input data cannot be read or parsed.
-
         Note:
-            The caller is responsible for managing the stream's lifecycle.
+            The caller retains ownership of the stream and is responsible for
+            managing its lifecycle. Implementations may propagate format-specific
+            parsing and I/O exceptions; the protocol does not normalize them into
+            ReaderError.
         """
         ...

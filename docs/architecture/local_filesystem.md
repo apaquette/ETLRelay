@@ -93,7 +93,7 @@ The protocol is intentionally small so that multiple storage implementations can
 * Opening local files for binary reading.
 * Opening local files for binary writing.
 * Validating path containment through `PathValidator`.
-* Checking whether an input path exists before opening it.
+* Translating a `FileNotFoundError` raised while opening an input file into `FileSystemError`, including when the file disappears after path validation.
 * Returning binary streams to callers.
 * Propagating filesystem access errors.
 
@@ -160,18 +160,17 @@ FileSink ────┘
              PathValidator
 ```
 
-The local implementation is responsible for local filesystem behavior. A future remote storage implementation would provide its own resource-access and security behavior while satisfying the same `FileSystem` contract.
 
-Potential future implementations include:
+The current storage implementation is `LocalFileSystem`. S3, HDFS, and
+other remote-storage backends are not included in v0.4.0 or the planned
+v1.0.0 scope.
 
-```text
-FileSystem
-├── LocalFileSystem
-├── S3Storage
-└── HdfsStorage
-```
+The `FileSystem` protocol establishes a small storage-access boundary, but
+it does not mean that remote backends are implemented or committed for a
+future release. Additional storage and platform integrations may be
+reviewed after v1.0.0 if concrete requirements justify them. No particular
+backend or release date is promised.
 
-These are extension possibilities, not implementations currently provided by this component.
 
 ## Data Flow
 
@@ -213,7 +212,24 @@ FileSink
 
 The writer serializes the supplied batches into the output stream. The storage component determines where the stream is stored.
 
-The file source or sink is responsible for managing the stream's lifetime. Streams should be closed after use, including when reading or writing raises an exception.
+
+`FileSource` and `FileSink` manage the streams they open.
+
+`FileSource.read()` performs file access lazily, as its returned generator is
+consumed. The input stream is closed when iteration completes, reading
+raises an exception, or the generator is explicitly closed. Consumers that
+stop iterating early should explicitly close the generator when deterministic
+cleanup is required.
+
+`FileSink` closes the output stream after writing succeeds or fails.
+Exceptions raised by the reader or writer propagate to the caller without
+being converted into generic source or sink exceptions.
+
+Opening an output uses truncating write mode. If a writer fails, a partial
+or empty output file may remain; an existing destination may already have
+been truncated. The storage contract does not guarantee rollback or atomic
+replacement.
+
 
 ## Interface
 
@@ -252,20 +268,28 @@ class LocalFileSystem:
 
 ## Contract
 
-| Operation                                          | Expected behavior                                                                |
-| -------------------------------------------------- | -------------------------------------------------------------------------------- |
-| `open_read(path)`                                  | Validates path containment, checks existence, and opens a readable binary stream |
-| `open_write(path)`                                 | Validates path containment and opens a writable binary stream                    |
-| Read a nonexistent path                            | Raises `FileSystemError`                                                         |
-| Write to a new destination with an existing parent | Creates the destination file                                                     |
-| Write to an existing destination                   | Opens the file in binary write mode and truncates its existing contents          |
-| Write when the parent directory is missing         | Propagates the filesystem error                                                  |
-| Access a path outside the permitted base           | Raises `PathValidationError`                                                     |
-| Encounter another filesystem I/O failure           | Propagates the underlying filesystem error                                       |
+| Operation | Expected behavior |
+| --- | --- |
+| `open_read(path)` | Validates path containment and opens the file in binary read mode (`rb`). It does not perform a separate existence check before opening. |
+| `open_write(path)` | Validates path containment and opens the file in binary write mode (`wb`). |
+| Open a nonexistent input file | Translates `FileNotFoundError` from the open operation into `FileSystemError`. |
+| Open a new output with an existing parent directory | Creates the destination file. |
+| Open an existing output | Truncates its existing contents when the file is opened. |
+| Open an output whose parent directory is missing | Propagates `FileNotFoundError`; parent directories are not created automatically. |
+| Access a path outside the permitted base | Raises `PathValidationError`. |
+| Encounter another filesystem failure | Propagates the original filesystem exception. |
 
-`LocalFileSystem.open_write()` does not automatically create parent directories.
+The behavior above describes `LocalFileSystem`. The `FileSystem` protocol
+defines the stream-opening interface; implementations must document and
+satisfy the behavioral contract expected by their consumers.
 
-The protocol does not prescribe how all storage implementations handle resource existence, permissions, or provider-specific failures. Those behaviors belong to the concrete storage implementation.
+Both operations return binary streams owned by the caller. Direct callers
+must close returned streams. When the streams are used through `FileSource`
+or `FileSink`, those components manage their respective stream lifetimes.
+
+`PathValidator` is responsible for path containment, not existence or
+access-permission checks. Filesystem operations determine whether a
+resource can be opened.
 
 ## SOLID Considerations
 
@@ -308,31 +332,13 @@ This keeps the higher-level components independent of local filesystem details.
 
 The storage protocol operates on binary streams rather than requiring callers to read or write an entire resource as `bytes`.
 
-```text
-LocalFileSystem
-       │
-       │ BinaryIO
-       ▼
-  file resource
-```
-
 This allows readers and writers to operate on streams without requiring the storage component to load the entire serialized resource into memory first.
 
-The same format implementation can therefore be composed with different storage backends:
-
-```text
-LocalFileSystem ──┐
-S3Storage ────────┼──> BinaryIO ──> Reader
-HdfsStorage ──────┘
-```
-
-And in the reverse direction:
-
-```text
-Writer ──> BinaryIO ──> LocalFileSystem
-                      ├─> S3Storage
-                      └─> HdfsStorage
-```
+Readers and writers operate on binary streams, so they do not need to know
+where the data is stored. The current implementation provides local
+filesystem access through `LocalFileSystem`. Additional implementations
+would require their own implementation and contract tests; none is included
+in the v0.4.0 milestone or planned v1.0.0 scope.
 
 `LocalFileSystem` should continue using Python's standard filesystem APIs and `pathlib.Path` internally.
 

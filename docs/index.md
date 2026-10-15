@@ -10,19 +10,38 @@ Source → Processor(s) → Sink
 
 For file workflows, storage access and file-format handling are separate concerns. A file source composes a storage implementation with a reader; a file sink composes storage with a writer. This keeps the core pipeline independent of filesystem and serialization details.
 
+
 ## Current release scope
 
-The `0.3.0` release adds Parquet as a second local file format alongside CSV. Current capabilities include:
+The `0.4.0` release stabilizes the storage contract used by ETLRelay's
+existing local-file pipelines. The milestone documents and verifies the
+behavior of local storage without introducing a new storage backend.
+
+Current capabilities include:
 
 - An Arrow-backed `Batch` model.
 - Source, processor, and sink contracts with synchronous pipeline execution.
-- Local filesystem streams behind a `FileSystem` protocol.
-- CSV and Parquet readers/writers composed explicitly through `FileSource` and `FileSink`.
+- Local filesystem streams through the `FileSystem` protocol and
+  `LocalFileSystem`.
+- CSV and Parquet readers and writers composed explicitly through
+  `FileSource` and `FileSink`.
 - Built-in column selection, column renaming, and row filtering processors.
-- Path containment validation for local filesystem resources.
-- Unit, integration, and functional tests for component behavior and composed local pipelines.
+- Local path containment validation.
+- Unit, integration, and functional tests for component behavior and
+  composed local pipelines.
 
-SQL support, YAML pipeline configuration, a CLI, remote storage backends, and generic API integrations remain outside this release's scope. ETLRelay remains pre-1.0 software; public APIs may evolve between minor releases.
+The supported storage implementation is the local filesystem. S3, HDFS,
+and other remote-storage backends are outside v0.4.0 and the planned
+v1.0.0 scope. Additional storage and platform integrations may be reviewed
+after v1.0.0 based on concrete requirements, without a commitment to
+specific backends or release dates.
+
+SQL support, YAML pipeline configuration, and a CLI belong to later
+milestones. They are not part of the v0.4.0 storage-contract release.
+
+ETLRelay remains pre-1.0 software. Its public APIs may evolve between
+minor releases.
+
 
 ## Documentation
 
@@ -32,5 +51,8 @@ SQL support, YAML pipeline configuration, a CLI, remote storage backends, and ge
 - [API Reference](api-reference.md) — public classes and methods, generated from the Python source documentation.
 - [Reader and Writer](architecture/reader_and_writer.md) — file-format behavior, stream requirements, and reader/writer contracts.
 - [Development](development.md) — test and build ETLRelay and its documentation.
+- [Local filesystem](architecture/local_filesystem.md) — storage contract, local filesystem behavior, error handling, and stream ownership.
+- [Path validation](architecture/path_validator.md) — path containment, resolution, and security limitations.
+- [Roadmap](roadmap.md) — release milestones and the planned v1.0 scope.
 
 > **Release status:** ETLRelay is pre-1.0 software. Its public API is not yet guaranteed to remain stable across minor releases.

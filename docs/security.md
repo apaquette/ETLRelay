@@ -10,6 +10,21 @@ This validation is not an operating-system sandbox and does not eliminate time-o
 
 ## Current limitations
 
-The initial release does not claim to provide a complete sandbox, credentials vault, SQL security layer, external API security model, or cloud-storage security model. Those areas must be designed and tested before the corresponding integrations are introduced.
+
+## Current limitations
+
+ETLRelay does not provide a complete filesystem sandbox, credentials vault,
+SQL security layer, external API security model, or remote-storage security
+model. These capabilities must be designed and tested before any
+corresponding integrations are introduced.
+
+The v0.4.0 milestone and planned v1.0.0 scope support local filesystem
+storage only. S3, HDFS, and other remote-storage backends are explicitly
+outside both scopes.
+
+Additional storage or platform integrations may be reviewed after v1.0.0
+if concrete requirements justify them. No particular integration or
+release date is promised.
+
 
 For reporting suspected vulnerabilities, follow the procedure in the repository's [Security policy](https://github.com/apaquette/ETLRelay/blob/main/SECURITY.md).
