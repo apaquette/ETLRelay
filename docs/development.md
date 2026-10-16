@@ -14,8 +14,8 @@ uv sync --group docs
 
 ```bash
 uv run pytest
-ruff check .
-ruff format --check .
+ruff check tests src
+ruff format --check tests src
 pyright
 ```
 

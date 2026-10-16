@@ -16,10 +16,11 @@ The roadmap is feature-led, not date-led. A version should be released when its 
 | Released | `0.1.x` | Stabilization and compatible fixes |
 | Released | `0.2.0` | Batch contract and built-in processors |
 | Released | `0.3.0` | Parquet format support |
-| In development | `0.4.0` | Storage contract stabilization |
-| Planned | `0.5.0` onward | SQL, YAML configuration, CLI, and v1.0 readiness milestones |
+| Released | `0.4.0` | Storage contract stabilization |
+| Released | `0.5.0` | SQL source and sink |
+| Planned | `0.6.0` onward | YAML configuration, CLI, and v1.0 readiness milestones |
 
-The latest released milestone is `0.3.0`. Current development is focused on `0.4.0`, which stabilizes the existing filesystem contract without adding a remote-storage backend. Later milestones describe intended scope and may be revised as implementation and testing clarify dependencies.
+The latest released milestone is `0.5.0`. Releases `0.4.0` and `0.5.0` stabilized local filesystem behavior and added SQL source/sink support. The next planned milestone is `0.6.0`, declarative YAML configuration. Later milestones describe intended scope and may be revised as implementation and testing clarify dependencies.
 
 ## Versioning policy
 
@@ -111,57 +112,25 @@ Scope:
 
 **Done when:** Local CSV and Parquet sources/sinks work through the same file composition model.
 
-### `0.4.0` — Storage contract stabilization (in development)
+### `0.4.0` — Storage contract stabilization (released)
 
-**Goal:** Make the `FileSystem` protocol a reliable, documented substitution boundary for the local-file pipelines required by v1.0.
+**Outcome:** Stabilized and documented the `FileSystem`/`LocalFileSystem` contract used by the local-file pipelines. The release specifies stream ownership and cleanup, read/write behavior, missing-path handling, path containment, overwrite behavior, and error propagation.
 
-Stabilize and test the existing contract around stream lifetime, read/write modes, missing paths, error propagation, path handling, output creation, overwrite semantics, and cleanup. Verify that `FileSource` and `FileSink` remain independent of the selected format and that existing CSV and Parquet workflows continue to work.
+The release retained local filesystem support only. S3, HDFS, and other remote-storage backends remain outside both the v0.4.0 milestone and the planned v1.0.0 scope. Additional storage/platform integrations may be reviewed after v1.0.0 if concrete requirements justify them; none is promised by this roadmap.
 
-Scope:
+**Done when:** The contract is explicit and tested, `LocalFileSystem` satisfies it, and existing CSV/Parquet pipelines remain functional.
 
-- Audit current `FileSystem`, `LocalFileSystem`, `FileSource`, `FileSink`, path validation, and storage tests.
-- Record the existing behavior and identify gaps before making implementation changes.
-- Specify when streams are opened and closed and who owns them.
-- Specify supported read/write modes, missing-path behavior, output creation, and overwrite behavior.
-- Specify path normalization and validation responsibilities.
-- Define how filesystem errors propagate to callers.
-- Add failing tests for contract decisions before changing implementation.
-- Make only the changes needed for `LocalFileSystem` to satisfy the contract.
-- Test normal reads/writes, missing resources, path handling, overwrite behavior, resource cleanup, and permission/I/O failures where practical.
-- Confirm existing CSV and Parquet file pipelines remain functional.
-- Document the finalized contract and the scope of storage support.
+### `0.5.0` — SQL source and sink (released)
 
+**Outcome:** Added SQLAlchemy-backed `SqlSource` and `SqlSink` as direct implementations of the core source/sink contracts, independent of file storage and reader/writer abstractions.
 
-**Remote-storage decision:** S3, HDFS, and all other remote-storage
-backends are explicitly outside both v0.4.0 and the planned v1.0.0 scope.
-No remote-storage implementation will be added as part of this milestone.
-Do not add speculative backend abstractions, dependencies, or
-cloud-specific configuration solely to anticipate future storage needs.
+The release supports bound query-value parameters, conversion of query results to Arrow-backed batches, and append-only insertion into existing destination tables. SQLite provides repeatable integration coverage for reads, writes, SQL round trips, and mixed file/SQL functional pipelines.
 
-Additional storage and platform integrations may be reviewed after v1.0.0
-if concrete requirements justify them. This is a future review opportunity,
-not a commitment to implement any particular integration or release it on
-a particular date.
+The caller owns the SQLAlchemy engine. `SqlSource` closes query results/connections after reading; `SqlSink` opens one transaction per non-empty batch. Consequently, earlier batches remain committed if a later batch fails. An empty SQL query returns no batches. The sink skips zero-row batches and requires the destination table to exist with compatible columns.
 
+The SQL API does not implement `replace`, ORM-model integration, table creation/schema migrations, automatic retries, or pipeline-wide transactions. SQLite is the reference integration backend; support for other SQLAlchemy dialects requires the relevant driver and verification.
 
-**Done when:** The contract is explicit and tested, `LocalFileSystem` satisfies it, existing file pipelines remain functional, and remote storage is explicitly documented as outside the v1.0 scope.
-
-### `0.5.0` — SQL source and sink
-
-**Goal:** Add database input/output through SQLAlchemy without forcing SQL into the file storage or reader/writer abstractions.
-
-Scope:
-
-- Implement `SqlSource` and `SqlSink` as independent `Source`/`Sink` implementations.
-- Use SQLAlchemy connection/statement facilities.
-- Define the initial database support and test at least SQLite for repeatable integration tests.
-- Support parameterized query values.
-- Validate or safely construct SQL identifiers that cannot be supplied as bind parameters.
-- Support a small, documented write mode, initially `append` and optionally `replace` if semantics are clear.
-- Convert query results and input batches to/from the agreed Arrow-backed `Batch` contract.
-- Test transaction and error behavior.
-
-**Done when:** A SQL query can supply batches to a pipeline, and processed batches can be written to a SQL table with safe parameter handling and documented transaction behavior.
+**Done when:** SQL input and append-only output compose with ETLRelay pipelines, value parameters are bound, and the behavior and limitations are documented and tested.
 
 ### `0.6.0` — Declarative YAML configuration
 
@@ -289,8 +258,8 @@ The `etlrelay` distribution has already been published to PyPI; see the [ETLRela
 | `0.1.x` | Released | Stabilization | Compatible fixes and documentation improvements |
 | `0.2.0` | Released | Batch contract and processors | Basic useful transformations |
 | `0.3.0` | Released | Parquet | CSV and Parquet through shared reader/writer interfaces |
-| `0.4.0` | In development | Storage contract stabilization | Define and test filesystem behavior; no remote-storage implementation |
-| `0.5.0` | Planned | SQL source/sink | Tested database input/output |
+| `0.4.0` | Released | Storage contract stabilization | Documented and tested local filesystem behavior; no remote-storage implementation |
+| `0.5.0` | Released | SQL source/sink | Tested SQLite reads/writes and mixed file/SQL pipelines |
 | `0.6.0` | Planned | YAML | Validated declarative pipelines |
 | `0.7.0` | Planned | CLI | Validate and run pipelines from a shell |
 | `0.8.0` | Planned | Security and operational readiness | Security review, errors/logging, installation and CI gates |

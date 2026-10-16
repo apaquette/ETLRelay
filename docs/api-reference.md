@@ -44,6 +44,12 @@ This reference is generated from the code and its docstrings. Keep public classe
 
 ::: etlrelay.sinks.file.FileSink
 
+## SQL source and sink
+
+::: etlrelay.sources.sql.SqlSource
+
+::: etlrelay.sinks.sql.SqlSink
+
 ## CSV reader and writer
 
 ::: etlrelay.readers.csv.CsvReader

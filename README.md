@@ -30,14 +30,14 @@ pip install etlrelay
 
 ## Documentation
 
-See the [ETLRelay documentation](https://apaquette.github.io/ETLRelay/0.4.0) for usage instructions, examples, and API details.
+See the [ETLRelay documentation](https://apaquette.github.io/ETLRelay/0.5.0) for usage instructions, examples, and API details.
 
 
 ## Project Status
 
-**Current milestone: `0.4.0` — Storage contract stabilization**
+**Current release: `0.5.0` — SQL source and sink**
 
-The foundational components are implemented, including the batch model, pipeline, local filesystem access, CSV and Parquet readers/writers, file source and sink, and path validation.
+The foundational components include the batch model, pipeline, local filesystem access, CSV and Parquet readers/writers, file source and sink, path validation, and SQL source/sink implementations through SQLAlchemy.
 
 Unit tests validate individual components. Integration and functional tests exercise their composition.
 
@@ -70,6 +70,8 @@ a new storage backend.
 | `ParquetWriter`   | Serializes ETLRelay batches as Parquet                         |
 | `FileSource`      | Composes a filesystem and reader to produce batches             |
 | `FileSink`        | Composes a filesystem and writer to consume batches             |
+| `SqlSource`     | Reads SQL query results into batches using SQLAlchemy           |
+| `SqlSink`       | Appends batch rows to an existing SQL table                     |
 
 
 ### Planned Capabilities
@@ -79,7 +81,6 @@ guaranteed to be available:
 
 - Additional file formats, including JSON.
 - Additional built-in data transformation processors.
-- SQL sources and sinks using SQLAlchemy.
 - Declarative YAML pipeline configuration.
 - A command-line interface.
 - Improved configuration, secrets, and operational error handling.
@@ -166,6 +167,10 @@ LocalFileSystem.open_write(path)
 This prevents source and sink implementations from becoming coupled to individual storage technologies or serialization formats.
 
 The current implementation supports the local filesystem with CSV and Parquet. Additional combinations can be introduced through new implementations of the existing contracts when they are needed.
+
+### SQL Sources and Sinks
+
+`SqlSource` and `SqlSink` implement the core source/sink contracts using SQLAlchemy. They are separate from file storage and file-format readers/writers. Query values can be supplied as bound parameters; the sink appends to an existing table using one transaction per non-empty batch. The caller owns the SQLAlchemy engine. SQLite is the reference integration-test backend; see [SQL source and sink](docs/architecture/sql_source_and_sink.md) for identifier handling, empty-data behavior, transaction boundaries, and limitations.
 
 ### Common Data Representation
 
@@ -333,7 +338,6 @@ Current filesystem path validation resolves candidate paths and checks that they
 
 Further security work will be required as ETLRelay gains more capabilities. Areas for future development include:
 
-* Safe SQL parameterization and identifier validation
 * Configuration validation
 * Secure credential and secret handling
 * Sensitive-data redaction
@@ -355,12 +359,13 @@ Unit tests validate components independently, including:
 * Path containment
 * Filesystem interactions
 * CSV and Parquet parsing and serialization
+* SQL source/sink validation, bound query values, table reflection, transactions, and resource cleanup
 * File source and sink orchestration
 * Error propagation and resource cleanup
 
 ### Integration Tests
 
-Integration tests verify interactions between real components, including local filesystem operations and CSV/Parquet reading and writing.
+Integration tests verify real local filesystem and CSV/Parquet operations plus SQLAlchemy/SQLite reads, writes, and round trips. Functional tests also cover mixed file/SQL pipelines.
 
 ### Functional Tests
 
@@ -400,9 +405,11 @@ src/
     │   ├── csv.py
     │   └── parquet.py
     ├── sources/
-    │   └── file.py
+    │   ├── file.py
+    │   └── sql.py
     └── sinks/
-        └── file.py
+        ├── file.py
+        └── sql.py
 
 tests/
 ├── unit/

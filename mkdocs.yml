@@ -24,6 +24,7 @@ nav:
       - Local filesystem: architecture/local_filesystem.md
       - Path validator: architecture/path_validator.md
       - Reader and writer: architecture/reader_and_writer.md
+      - SQL source and sink: architecture/sql_source_and_sink.md
 
 theme:
   name: material

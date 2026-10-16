@@ -105,10 +105,25 @@ Exceptions raised while reading from a source, iterating over its batches, proce
 If a later batch fails, batches successfully written before the failure are not automatically rolled back. The pipeline does not provide transactional execution across multiple batches.
 
 
+## SQL Sources and Sinks
+
+`SqlSource` and `SqlSink` are direct implementations of the `Source` and `Sink` contracts. They do not route database I/O through `FileSystem`, `Reader`, or `Writer` components.
+
+`SqlSource` executes a SQLAlchemy text query. Supply values through the optional `parameters` mapping, using named bind markers such as `:status`. A non-empty result becomes one Arrow-backed `Batch`; an empty query result produces no batches. The current source materializes query results in memory, so it is not a streaming or paginated reader.
+
+`SqlSink` appends rows to a destination table that must already exist. It reflects the table and validates batch column names before inserting. It does not create/replace a table, update or upsert rows, migrate a schema, or retry a failed operation. Destination columns omitted from a batch must be satisfied by defaults/nullability or database constraints will fail.
+
+The SQLAlchemy `Engine` is created and owned by the caller. ETLRelay closes the query connection/result and the sink's per-batch transaction contexts; it does not dispose the engine. SQLite is the repeatable integration backend. Other SQLAlchemy dialects need their driver and application-level validation.
+
+**Transactions are per non-empty sink batch.** A successful batch is committed independently; a later failure does not roll back earlier batches. Empty query results produce no batches, and `SqlSink` skips explicitly supplied zero-row batches.
+
+Bound parameters apply to query values, not SQL identifiers or arbitrary SQL syntax. `SqlSink` delegates destination table identifier handling to SQLAlchemy's table reflection/insert APIs. Since `SqlSource` accepts caller-authored SQL text, callers must not interpolate untrusted input into it and must validate or allowlist any dynamic identifiers.
+
+`replace`, ORM models, schema migrations, automatic retries, and a pipeline-wide transaction are not supported. See [SQL source and sink architecture](architecture/sql_source_and_sink.md) for the full contract.
+
 ## Current Scope
 
-ETLRelay provides synchronous, batch-oriented pipeline execution with local
-CSV and Parquet input/output and a small set of built-in processors.
+ETLRelay provides synchronous, batch-oriented pipeline execution with local CSV/Parquet I/O, SQL input/output, and a small set of built-in processors.
 
 The local storage contract, including binary stream modes, path containment,
 error propagation, output creation, overwrite behavior, and stream cleanup,
