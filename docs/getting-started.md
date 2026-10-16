@@ -130,3 +130,68 @@ sink = FileSink(
 ```
 
 Parquet retains its supported schema and data types, while CSV is text-based and infers types when read. A `ParquetWriter` requires at least one batch to establish its schema: an empty iterable raises `WriterError`. A zero-row `Batch` with a schema is valid and creates a schema-bearing Parquet file. `ParquetReader` requires a seekable binary stream; the reader/writer contracts are stream-based and leave stream lifecycle management to the component that opened the stream. See [Reader and Writer](architecture/reader_and_writer.md) and [Core Concepts](concepts.md) for format-specific behavior and limitations.
+
+
+## Using SQL with SQLite
+
+The following small example creates an in-memory SQLite database, reads selected orders with a **bound query parameter**, removes an unused column, and appends the processed rows to an existing table. It requires SQLAlchemy and the project's declared dependencies; it uses no credentials or external database service.
+
+The complete runnable version is [`examples/sqlite_pipeline.py`](https://github.com/apaquette/ETLRelay/blob/v0.5.0/examples/sqlite_pipeline.py).
+
+```python
+from sqlalchemy import Column, Float, Integer, MetaData, String, Table, create_engine
+
+from etlrelay.pipeline import Pipeline
+from etlrelay.processors import SelectColumns
+from etlrelay.sinks import SqlSink
+from etlrelay.sources import SqlSource
+
+engine = create_engine("sqlite://")  # in-memory SQLite; no credentials
+metadata = MetaData()
+
+orders = Table(
+    "orders", metadata,
+    Column("id", Integer, primary_key=True),
+    Column("customer", String, nullable=False),
+    Column("status", String, nullable=False),
+    Column("total", Float, nullable=False),
+)
+Table(
+    "processed_orders", metadata,
+    Column("id", Integer, primary_key=True),
+    Column("customer", String, nullable=False),
+    Column("total", Float, nullable=False),
+)
+metadata.create_all(engine)  # setup for this demo; SqlSink does not create tables
+
+with engine.begin() as connection:
+    connection.execute(orders.insert(), [
+        {"id": 1, "customer": "Avery", "status": "ready", "total": 18.5},
+        {"id": 2, "customer": "Riley", "status": "held", "total": 27.0},
+    ])
+
+pipeline = Pipeline(
+    source=SqlSource(
+        engine,
+        "SELECT id, customer, status, total FROM orders WHERE status = :status",
+        parameters={"status": "ready"},
+    ),
+    processors=[SelectColumns(columns=["id", "customer", "total"])],
+    sink=SqlSink(engine, "processed_orders"),
+)
+pipeline.run()
+
+# The engine belongs to the application. Dispose it when all DB work is done.
+engine.dispose()
+```
+
+Important contract details:
+
+- `SqlSource` binds query **values** with `parameters`; do not interpolate untrusted values into SQL text. Bind parameters cannot stand in for table/column identifiers.
+- `SqlSink` is append-only and requires the destination table to exist with compatible columns. It does not implement `replace`, ORM models, or schema migrations.
+- Each non-empty batch is committed in its own transaction. Earlier batches remain committed if a later batch fails.
+- The application owns the SQLAlchemy engine. ETLRelay closes connections/results it opens but does not dispose the engine.
+- SQLite is the continuously tested reference backend; other SQLAlchemy dialects need the matching driver and independent verification.
+
+See [SQL source and sink architecture](architecture/sql_source_and_sink.md) and the [API Reference](api-reference.md) for full behavior and limitations.
+
