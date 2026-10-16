@@ -4,6 +4,27 @@ Notable changes to ETLRelay are documented here.
 
 This project follows the principles of [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and [Semantic Versioning](https://semver.org/).
 
+## [0.5.0] - 2026-10-16
+
+### Added
+
+- Add `SqlSource` and `SqlSink` as SQLAlchemy-backed implementations of the core source and sink contracts, separate from file storage and reader/writer abstractions.
+- Support bound query-value parameters in `SqlSource` and conversion of non-empty query results into Arrow-backed batches.
+- Support append-only writes from batches into existing SQL tables, with SQLAlchemy table reflection and per-batch transactions.
+- Add SQLite integration coverage for SQL reads/writes, SQL round trips, and mixed file/SQL functional pipelines.
+- Document SQL API contracts, connection ownership, identifier handling, empty-data behavior, transaction boundaries, supported database scope, and limitations.
+- Add a runnable in-memory SQLite pipeline example without real credentials.
+
+### Behavior and limitations
+
+- `SqlSource` returns no batches when a query returns no rows; a non-empty query result is materialized as one batch.
+- `SqlSink` appends to an existing table. It does not create or replace tables, update existing rows, or manage schema migrations.
+- Each non-empty batch written by `SqlSink` has its own transaction. A later failed batch does not roll back previously committed batches.
+- The caller owns the SQLAlchemy `Engine`; source connections and results are closed by the component, and sink transaction contexts are closed per batch.
+- Query values must be supplied through SQLAlchemy bound parameters. Identifiers in source query text remain part of the caller-authored SQL; dynamic identifiers require trusted construction or validation.
+- SQLite is the repeatable integration-test backend. Other database dialects require their SQLAlchemy dialect/driver and are not implied to have equivalent integration coverage.
+- `replace`, ORM models, schema migrations, and automatic retries are not supported.
+
 ## [0.4.0] - 2026-10-14
 
 ### Changed
