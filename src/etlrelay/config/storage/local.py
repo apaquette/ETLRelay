@@ -57,22 +57,17 @@ class LocalFileSystemValidator:
         if missing:
             return [f"{path} required property missing: {', '.join(missing)}"]
 
-        unknown = config.keys() - (
-            self.required_properties | self.optional_properties
-        )
+        unknown = config.keys() - (self.required_properties | self.optional_properties)
         for key in unknown:
             errors.append(f"{path}.{str(key)}: unknown property")
 
         if config["type"] != "local":
-            errors.append(
-                f"{path}.type must be 'local'; "
-                f"got {config['type']!r}"
-            )
+            errors.append(f"{path}.type must be 'local'; got {config['type']!r}")
 
         if "base_path" in config and (
             not isinstance(config.get("base_path"), str)
-            or not (str(config.get("base_path")).strip()
-        )):
+            or not (str(config.get("base_path")).strip())
+        ):
             errors.append(f"{path}.base_path must be a non-empty string")
 
         return errors
