@@ -1,0 +1,282 @@
+"""Integration tests for the SQL sink."""
+
+from collections.abc import Iterator
+from pathlib import Path
+from typing import Any
+
+import pyarrow as pa
+import pytest
+from sqlalchemy import (
+    Column,
+    Float,
+    Integer,
+    MetaData,
+    String,
+    Table,
+    create_engine,
+    event,
+    select,
+    text,
+)
+from sqlalchemy.engine import Engine
+from sqlalchemy.exc import IntegrityError, NoSuchTableError
+from sqlalchemy.pool import StaticPool
+
+from etlrelay.core import Batch
+from etlrelay.sinks import SqlSink
+
+
+@pytest.fixture
+def sqlite_engine(tmp_path: Path) -> Iterator[Engine]:
+    """Create a temporary SQLite database with an existing customers table."""
+    engine = create_engine(f"sqlite:///{tmp_path / 'sql_sink.db'}")
+    metadata = MetaData()
+
+    customers = Table(
+        "customers",
+        metadata,
+        Column("id", Integer, primary_key=True),
+        Column("name", String, nullable=False),
+        Column("score", Float, nullable=True),
+    )
+
+    metadata.create_all(engine)
+
+    with engine.begin() as connection:
+        connection.execute(
+            customers.insert(),
+            [{"id": 1, "name": "Existing", "score": 1.5}],
+        )
+
+    try:
+        yield engine
+    finally:
+        engine.dispose()
+
+
+def make_batch(rows: list[dict[str, Any]]) -> Batch:
+    """Create an Arrow-backed batch from row dictionaries."""
+    return Batch(table=pa.Table.from_pylist(rows))
+
+
+def read_customers(engine: Engine) -> list[dict[str, Any]]:
+    """Read customers in deterministic ID order."""
+    with engine.connect() as connection:
+        result = connection.execute(
+            text(
+                """
+                SELECT id, name, score
+                FROM customers
+                ORDER BY id
+                """
+            )
+        )
+        return [dict(row) for row in result.mappings()]
+
+
+def test_write_inserts_rows_and_preserves_nulls(sqlite_engine: Engine) -> None:
+    """Append rows to the real target table while preserving their values."""
+    sink = SqlSink(sqlite_engine, "customers")
+
+    sink.write(
+        [
+            make_batch(
+                [
+                    {"id": 2, "name": "Alice", "score": 9.5},
+                    {"id": 3, "name": "Bob", "score": None},
+                ]
+            )
+        ]
+    )
+
+    assert read_customers(sqlite_engine) == [
+        {"id": 1, "name": "Existing", "score": 1.5},
+        {"id": 2, "name": "Alice", "score": 9.5},
+        {"id": 3, "name": "Bob", "score": None},
+    ]
+
+
+def test_write_appends_across_separate_calls(sqlite_engine: Engine) -> None:
+    """Preserve existing records when the sink is used repeatedly."""
+    sink = SqlSink(sqlite_engine, "customers")
+
+    sink.write([make_batch([{"id": 2, "name": "Alice", "score": 9.5}])])
+    sink.write([make_batch([{"id": 3, "name": "Bob", "score": 7.0}])])
+
+    assert read_customers(sqlite_engine) == [
+        {"id": 1, "name": "Existing", "score": 1.5},
+        {"id": 2, "name": "Alice", "score": 9.5},
+        {"id": 3, "name": "Bob", "score": 7.0},
+    ]
+
+
+def test_write_skips_zero_row_batch(sqlite_engine: Engine) -> None:
+    """Leave the database unchanged when the batch has no rows."""
+    sink = SqlSink(sqlite_engine, "customers")
+    batch = Batch(
+        table=pa.table(
+            {
+                "id": pa.array([], type=pa.int64()),
+                "name": pa.array([], type=pa.string()),
+                "score": pa.array([], type=pa.float64()),
+            }
+        )
+    )
+
+    sink.write([batch])
+
+    assert read_customers(sqlite_engine) == [
+        {"id": 1, "name": "Existing", "score": 1.5},
+    ]
+
+
+def test_write_rejects_unknown_batch_columns(sqlite_engine: Engine) -> None:
+    """Reject columns that do not exist in the reflected target table."""
+    sink = SqlSink(sqlite_engine, "customers")
+
+    with pytest.raises(ValueError, match="columns not present"):
+        sink.write(
+            [
+                make_batch(
+                    [
+                        {
+                            "id": 2,
+                            "name": "Alice",
+                            "score": 9.5,
+                            "unexpected": "value",
+                        }
+                    ]
+                )
+            ]
+        )
+
+    assert read_customers(sqlite_engine) == [
+        {"id": 1, "name": "Existing", "score": 1.5},
+    ]
+
+
+def test_write_propagates_missing_table_error(sqlite_engine: Engine) -> None:
+    """Raise NoSuchTableError when the destination table does not exist."""
+    sink = SqlSink(sqlite_engine, "missing_customers")
+
+    with pytest.raises(NoSuchTableError):
+        sink.write([make_batch([{"id": 2, "name": "Alice", "score": 9.5}])])
+
+
+def test_failed_batch_rolls_back_all_rows(sqlite_engine: Engine) -> None:
+    """Roll back all rows in a batch after a constraint violation."""
+    sink = SqlSink(sqlite_engine, "customers")
+
+    with pytest.raises(IntegrityError):
+        sink.write(
+            [
+                make_batch(
+                    [
+                        {"id": 2, "name": "Must roll back", "score": 2.0},
+                        {"id": 1, "name": "Duplicate ID", "score": 3.0},
+                        {"id": 3, "name": "Must also roll back", "score": 4.0},
+                    ]
+                )
+            ]
+        )
+
+    assert read_customers(sqlite_engine) == [
+        {"id": 1, "name": "Existing", "score": 1.5},
+    ]
+
+
+def test_previous_batch_commit_survives_later_batch_failure(
+    sqlite_engine: Engine,
+) -> None:
+    """Keep an earlier batch committed when a later batch fails."""
+    sink = SqlSink(sqlite_engine, "customers")
+
+    with pytest.raises(IntegrityError):
+        sink.write(
+            [
+                make_batch([{"id": 2, "name": "Committed", "score": 2.0}]),
+                make_batch(
+                    [
+                        {"id": 3, "name": "Must roll back", "score": 3.0},
+                        {"id": 1, "name": "Duplicate ID", "score": 4.0},
+                    ]
+                ),
+            ]
+        )
+
+    assert read_customers(sqlite_engine) == [
+        {"id": 1, "name": "Existing", "score": 1.5},
+        {"id": 2, "name": "Committed", "score": 2.0},
+    ]
+
+
+def test_write_targets_configured_schema() -> None:
+    """Write to the configured SQLite schema instead of the default schema."""
+    engine = create_engine("sqlite://", poolclass=StaticPool)
+
+    def attach_archive(
+        dbapi_connection: Any,
+        _connection_record: Any,
+    ) -> None:
+        """Attach an in-memory database as the archive schema."""
+        cursor = dbapi_connection.cursor()
+        try:
+            cursor.execute("ATTACH DATABASE ':memory:' AS archive")
+        finally:
+            cursor.close()
+
+    event.listen(engine, "connect", attach_archive)
+
+    metadata = MetaData()
+    main_customers = Table(
+        "customers",
+        metadata,
+        Column("id", Integer, primary_key=True),
+        Column("name", String, nullable=False),
+    )
+    archive_customers = Table(
+        "customers",
+        metadata,
+        Column("id", Integer, primary_key=True),
+        Column("name", String, nullable=False),
+        schema="archive",
+    )
+
+    try:
+        metadata.create_all(engine)
+
+        with engine.begin() as connection:
+            connection.execute(
+                main_customers.insert(),
+                [{"id": 1, "name": "Main"}],
+            )
+            connection.execute(
+                archive_customers.insert(),
+                [{"id": 10, "name": "Archive"}],
+            )
+
+        sink = SqlSink(engine, "customers", schema="archive")
+        sink.write([make_batch([{"id": 11, "name": "New archive row"}])])
+
+        with engine.connect() as connection:
+            main_rows = [
+                dict(row)
+                for row in connection.execute(
+                    select(main_customers).order_by(main_customers.c.id)
+                ).mappings()
+            ]
+            archive_rows = [
+                dict(row)
+                for row in connection.execute(
+                    select(archive_customers).order_by(archive_customers.c.id)
+                ).mappings()
+            ]
+
+        assert main_rows == [{"id": 1, "name": "Main"}]
+        assert archive_rows == [
+            {"id": 10, "name": "Archive"},
+            {"id": 11, "name": "New archive row"},
+        ]
+    finally:
+        event.remove(engine, "connect", attach_archive)
+        engine.dispose()
