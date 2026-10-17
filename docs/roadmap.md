@@ -136,7 +136,7 @@ The SQL API does not implement `replace`, ORM-model integration, table creation/
 
 **Goal:** Let users define supported pipelines without writing Python assembly code.
 
-The intended reader and data-representation direction is recorded in [`docs/architecture/data-representation-contracts.md`](docs/architecture/data-representation-contracts.md). That document distinguishes tabular `Batch` streams, mapping-shaped documents, and future row-record conversion; it does not expand the immediate v0.6.0 implementation scope beyond configuration loading and validation.
+The intended reader and data-representation direction is recorded in [`architecture/data-representation-contracts.md`](architecture/data-representation-contracts.md). That document distinguishes tabular `Batch` streams, mapping-shaped documents, and future row-record conversion; it does not expand the immediate v0.6.0 implementation scope beyond configuration loading and validation.
 
 Scope:
 
