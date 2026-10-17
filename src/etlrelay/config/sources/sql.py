@@ -1,13 +1,34 @@
 """Configuration validation for SQL-backed data sources."""
 
 from collections.abc import Mapping
-from typing import Final
+from typing import Any, Final, cast
 
 from etlrelay.config._validation import (
     as_mapping,
     non_empty_string_error,
     validate_keys,
 )
+from etlrelay.config.sql_engine_factory import SqlEngineProvider
+from etlrelay.sources.sql import SqlSource
+
+
+class SqlSourceConfigFactory:
+    """Construct an existing SQL source from validated configuration."""
+
+    def __init__(self, engine_factory: SqlEngineProvider) -> None:
+        self._engine_factory = engine_factory
+
+    def build(self, config: Mapping[str, object]) -> SqlSource:
+        """Construct a SQL source using an engine resolved during preflight."""
+        engine = self._engine_factory.create(cast(str, config["connection_url_env"]))
+        return SqlSource(
+            engine=engine,
+            query=cast(str, config["query"]),
+            parameters=cast(
+                Mapping[str, Any] | None,
+                config.get("parameters"),
+            ),
+        )
 
 
 class SqlSourceConfigValidator:
