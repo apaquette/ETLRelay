@@ -1,11 +1,29 @@
 from collections.abc import Mapping
-from typing import Final
+from typing import Final, cast
 
 from etlrelay.config._validation import (
     as_mapping,
     non_empty_string_error,
     validate_keys,
 )
+from etlrelay.config.sql_engine_factory import SqlEngineProvider
+from etlrelay.sinks.sql import SqlSink
+
+
+class SqlSinkConfigFactory:
+    """Construct an existing SQL sink from validated configuration."""
+
+    def __init__(self, engine_factory: SqlEngineProvider) -> None:
+        self._engine_factory = engine_factory
+
+    def build(self, config: Mapping[str, object]) -> SqlSink:
+        """Construct a SQL sink using an engine resolved during preflight."""
+        engine = self._engine_factory.create(cast(str, config["connection_url_env"]))
+        return SqlSink(
+            engine=engine,
+            table_name=cast(str, config["table_name"]),
+            schema=cast(str | None, config.get("schema")),
+        )
 
 
 class SqlSinkConfigValidator:
