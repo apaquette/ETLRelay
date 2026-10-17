@@ -28,11 +28,16 @@ def make_validator() -> tuple[ConfigValidator, Mock, Mock, Mock]:
     processors.validate.return_value = []
     sink.validate.return_value = []
 
-    return ConfigValidator(
-        source_validator=source,
-        processor_validator=processors,
-        sink_validator=sink,
-    ), source, processors, sink
+    return (
+        ConfigValidator(
+            source_validator=source,
+            processor_validator=processors,
+            sink_validator=sink,
+        ),
+        source,
+        processors,
+        sink,
+    )
 
 
 def test_valid_config_delegates_to_all_component_validators() -> None:

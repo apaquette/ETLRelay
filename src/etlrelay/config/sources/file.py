@@ -55,14 +55,9 @@ class FileSourceConfigValidator:
             format_name = mapping["format"]
 
             if not isinstance(format_name, str) or not format_name.strip():
-                errors.append(
-                    f"{path}.format must be a non-empty string."
-                )
+                errors.append(f"{path}.format must be a non-empty string.")
             elif not self._format_registry.supports_reading(format_name):
-                errors.append(
-                    f"{path}.format '{format_name}' is not supported "
-                    "for reading."
-                )
+                errors.append(f"{path}.format '{format_name}' is not supported for reading.")
 
         if "storage" in mapping:
             errors.extend(

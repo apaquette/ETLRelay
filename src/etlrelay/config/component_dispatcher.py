@@ -41,8 +41,7 @@ class ComponentConfigDispatcher:
             registration = self._registry.get(component_type)
         except KeyError:
             return [
-                f"{path}.type '{component_type}' is not a registered "
-                f"{self._component_kind} type."
+                f"{path}.type '{component_type}' is not a registered {self._component_kind} type."
             ]
 
         return registration.validator.validate(config, path)

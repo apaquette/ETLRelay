@@ -25,9 +25,7 @@ class StubConfigValidator:
 
 def make_registry(
     validators: Mapping[str, ComponentConfigValidator],
-    factories: Mapping[
-        str, Callable[[Mapping[str, object]], object]
-    ] | None = None,
+    factories: Mapping[str, Callable[[Mapping[str, object]], object]] | None = None,
 ) -> ComponentRegistry[object]:
     """Create a processor registry using test doubles."""
     supplied_factories = factories or {}
@@ -49,9 +47,7 @@ def make_registry(
 def test_processor_dispatcher_delegates_to_registered_validator() -> None:
     validator = StubConfigValidator()
     config = {"type": "select_columns", "columns": ["id"]}
-    dispatcher = ProcessorConfigValidator(
-        make_registry({"select_columns": validator})
-    )
+    dispatcher = ProcessorConfigValidator(make_registry({"select_columns": validator}))
 
     errors = dispatcher.validate(config, "processors[0]")
 
@@ -61,9 +57,7 @@ def test_processor_dispatcher_delegates_to_registered_validator() -> None:
 
 def test_processor_dispatcher_returns_child_validation_errors() -> None:
     validator = StubConfigValidator(["invalid processor configuration"])
-    dispatcher = ProcessorConfigValidator(
-        make_registry({"select_columns": validator})
-    )
+    dispatcher = ProcessorConfigValidator(make_registry({"select_columns": validator}))
 
     errors = dispatcher.validate(
         {"type": "select_columns"},
@@ -75,9 +69,7 @@ def test_processor_dispatcher_returns_child_validation_errors() -> None:
 
 def test_processor_dispatcher_rejects_missing_type() -> None:
     validator = StubConfigValidator()
-    dispatcher = ProcessorConfigValidator(
-        make_registry({"select_columns": validator})
-    )
+    dispatcher = ProcessorConfigValidator(make_registry({"select_columns": validator}))
 
     errors = dispatcher.validate({}, "processors[0]")
 
@@ -87,9 +79,7 @@ def test_processor_dispatcher_rejects_missing_type() -> None:
 
 def test_processor_dispatcher_rejects_unregistered_type() -> None:
     validator = StubConfigValidator()
-    dispatcher = ProcessorConfigValidator(
-        make_registry({"select_columns": validator})
-    )
+    dispatcher = ProcessorConfigValidator(make_registry({"select_columns": validator}))
 
     errors = dispatcher.validate(
         {"type": "unknown_processor"},
@@ -121,9 +111,7 @@ def test_processor_dispatcher_does_not_invoke_factory() -> None:
 def test_processor_sequence_accepts_empty_list() -> None:
     validator = StubConfigValidator()
     sequence_validator = ProcessorSequenceConfigValidator(
-        ProcessorConfigValidator(
-            make_registry({"select_columns": validator})
-        )
+        ProcessorConfigValidator(make_registry({"select_columns": validator}))
     )
 
     assert sequence_validator.validate([], "processors") == []
@@ -136,9 +124,7 @@ def test_processor_sequence_rejects_non_list_config(
 ) -> None:
     validator = StubConfigValidator()
     sequence_validator = ProcessorSequenceConfigValidator(
-        ProcessorConfigValidator(
-            make_registry({"select_columns": validator})
-        )
+        ProcessorConfigValidator(make_registry({"select_columns": validator}))
     )
 
     errors = sequence_validator.validate(config, "processors")
@@ -200,9 +186,7 @@ def test_processor_sequence_aggregates_errors_and_continues() -> None:
 def test_processor_sequence_reports_invalid_item_at_its_index() -> None:
     validator = StubConfigValidator()
     sequence_validator = ProcessorSequenceConfigValidator(
-        ProcessorConfigValidator(
-            make_registry({"select_columns": validator})
-        )
+        ProcessorConfigValidator(make_registry({"select_columns": validator}))
     )
 
     errors = sequence_validator.validate(
@@ -211,6 +195,4 @@ def test_processor_sequence_reports_invalid_item_at_its_index() -> None:
     )
 
     assert errors == ["processors[1] must be a mapping."]
-    assert validator.calls == [
-        ({"type": "select_columns"}, "processors[0]")
-    ]
+    assert validator.calls == [({"type": "select_columns"}, "processors[0]")]

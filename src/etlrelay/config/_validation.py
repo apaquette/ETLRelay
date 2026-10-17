@@ -13,9 +13,7 @@ def as_mapping(
         return None, [f"{path} must be a mapping."]
 
     errors = [
-        f"{path} contains a non-string key: {key!r}."
-        for key in config
-        if not isinstance(key, str)
+        f"{path} contains a non-string key: {key!r}." for key in config if not isinstance(key, str)
     ]
 
     return cast(Mapping[str, object], config), errors
@@ -35,11 +33,7 @@ def validate_keys(
         if isinstance(key, str) and key not in allowed
     ]
 
-    errors.extend(
-        f"{path}.{key} is required."
-        for key in required
-        if key not in config
-    )
+    errors.extend(f"{path}.{key} is required." for key in required if key not in config)
 
     return errors
 

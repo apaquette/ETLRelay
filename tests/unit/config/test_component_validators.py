@@ -1,13 +1,12 @@
 """Unit tests for component configuration validators."""
 
-from collections.abc import Mapping
 from unittest.mock import Mock
 
 import pytest
 
 from etlrelay.config.sinks import FileSinkConfigValidator
-from etlrelay.config.storage import LocalFileStorageValidator
 from etlrelay.config.sources.file import FileSourceConfigValidator
+from etlrelay.config.storage import LocalFileStorageValidator
 from etlrelay.file_formats import TabularFileFormatRegistry
 
 
@@ -53,10 +52,13 @@ def test_local_storage_accepts_default_base_path() -> None:
 def test_local_storage_accepts_explicit_base_path() -> None:
     validator = LocalFileStorageValidator()
 
-    assert validator.validate(
-        {"type": "local", "base_path": "/data"},
-        "source.storage",
-    ) == []
+    assert (
+        validator.validate(
+            {"type": "local", "base_path": "/data"},
+            "source.storage",
+        )
+        == []
+    )
 
 
 @pytest.mark.parametrize("config", [None, [], "local", 42])
@@ -114,9 +116,7 @@ def test_file_source_accepts_readable_format() -> None:
     errors = validator.validate(valid_file_config(), "source")
 
     assert errors == []
-    assert storage_validator.calls == [
-        ({"type": "local"}, "source.storage")
-    ]
+    assert storage_validator.calls == [({"type": "local"}, "source.storage")]
 
 
 def test_file_source_requires_its_fields() -> None:
@@ -188,9 +188,7 @@ def test_file_source_rejects_unknown_fields() -> None:
 
 
 def test_file_source_propagates_storage_validation_errors() -> None:
-    storage_validator = StubStorageValidator(
-        ["source.storage: invalid storage configuration"]
-    )
+    storage_validator = StubStorageValidator(["source.storage: invalid storage configuration"])
     validator = FileSourceConfigValidator(
         format_registry=make_format_registry(),
         storage_validator=storage_validator,
@@ -198,9 +196,7 @@ def test_file_source_propagates_storage_validation_errors() -> None:
 
     errors = validator.validate(valid_file_config(), "source")
 
-    assert errors == [
-        "source.storage: invalid storage configuration"
-    ]
+    assert errors == ["source.storage: invalid storage configuration"]
 
 
 def test_file_source_rejects_non_mapping_config() -> None:
@@ -264,6 +260,7 @@ def test_file_sink_rejects_unknown_fields() -> None:
 
     assert any("unexpected" in error for error in errors)
 
+
 @pytest.mark.parametrize("format_name", ["", "   ", 42, None])
 def test_file_source_rejects_invalid_format(
     format_name: object,
@@ -280,6 +277,7 @@ def test_file_source_rejects_invalid_format(
 
     assert any("source.format" in error for error in errors)
 
+
 def test_file_sink_rejects_non_mapping_config() -> None:
     validator = FileSinkConfigValidator(
         format_registry=make_format_registry(),
@@ -289,6 +287,7 @@ def test_file_sink_rejects_non_mapping_config() -> None:
     errors = validator.validate(None, "sink")
 
     assert any("mapping" in error for error in errors)
+
 
 def test_file_sink_requires_its_fields() -> None:
     validator = FileSinkConfigValidator(
@@ -300,6 +299,7 @@ def test_file_sink_requires_its_fields() -> None:
 
     for field in ("type", "path", "format", "storage"):
         assert any(f"sink.{field}" in error for error in errors)
+
 
 @pytest.mark.parametrize("path", ["", "   ", 42, None])
 def test_file_sink_rejects_invalid_path(path: object) -> None:
@@ -314,6 +314,7 @@ def test_file_sink_rejects_invalid_path(path: object) -> None:
     errors = validator.validate(config, "sink")
 
     assert any("sink.path" in error for error in errors)
+
 
 @pytest.mark.parametrize("format_name", ["", "   ", 42, None])
 def test_file_sink_rejects_invalid_format(

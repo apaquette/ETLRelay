@@ -88,9 +88,7 @@ def test_dispatcher_returns_errors_from_registered_validator(
     path: str,
 ) -> None:
     child_validator = StubConfigValidator(["invalid component configuration"])
-    dispatcher = dispatcher_class(
-        make_registry({component_type: child_validator})
-    )
+    dispatcher = dispatcher_class(make_registry({component_type: child_validator}))
 
     errors = dispatcher.validate({"type": component_type}, path)
 
@@ -107,9 +105,7 @@ def test_dispatcher_rejects_non_mapping_configuration(
     path: str,
 ) -> None:
     child_validator = StubConfigValidator()
-    dispatcher = dispatcher_class(
-        make_registry({component_type: child_validator})
-    )
+    dispatcher = dispatcher_class(make_registry({component_type: child_validator}))
 
     errors = dispatcher.validate(None, path)
 
@@ -127,9 +123,7 @@ def test_dispatcher_rejects_missing_type(
     path: str,
 ) -> None:
     child_validator = StubConfigValidator()
-    dispatcher = dispatcher_class(
-        make_registry({component_type: child_validator})
-    )
+    dispatcher = dispatcher_class(make_registry({component_type: child_validator}))
 
     errors = dispatcher.validate({"custom": "value"}, path)
 
@@ -149,9 +143,7 @@ def test_dispatcher_rejects_invalid_type(
     invalid_type: object,
 ) -> None:
     child_validator = StubConfigValidator()
-    dispatcher = dispatcher_class(
-        make_registry({component_type: child_validator})
-    )
+    dispatcher = dispatcher_class(make_registry({component_type: child_validator}))
 
     errors = dispatcher.validate({"type": invalid_type}, path)
 
@@ -169,9 +161,7 @@ def test_dispatcher_rejects_unregistered_type(
     path: str,
 ) -> None:
     child_validator = StubConfigValidator()
-    dispatcher = dispatcher_class(
-        make_registry({component_type: child_validator})
-    )
+    dispatcher = dispatcher_class(make_registry({component_type: child_validator}))
 
     errors = dispatcher.validate({"type": "unknown"}, path)
 
@@ -213,9 +203,7 @@ def test_dispatcher_rejects_non_string_mapping_keys(
     path: str,
 ) -> None:
     child_validator = StubConfigValidator()
-    dispatcher = dispatcher_class(
-        make_registry({component_type: child_validator})
-    )
+    dispatcher = dispatcher_class(make_registry({component_type: child_validator}))
 
     errors = dispatcher.validate(
         {"type": component_type, 42: "invalid key"},  # type: ignore[dict-item]

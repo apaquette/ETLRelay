@@ -39,26 +39,16 @@ class ConfigValidator:
 
         for key in mapping:
             if key not in allowed_fields:
-                errors.append(
-                    f"Unknown top-level configuration field: {key!r}."
-                )
+                errors.append(f"Unknown top-level configuration field: {key!r}.")
 
         for field in allowed_fields:
             if field not in mapping:
-                errors.append(
-                    f"Required top-level field '{field}' is missing."
-                )
+                errors.append(f"Required top-level field '{field}' is missing.")
 
         if "version" in mapping:
             version = mapping["version"]
-            if (
-                type(version) is not int
-                or version != self.SUPPORTED_VERSION
-            ):
-                errors.append(
-                    f"version must be the integer "
-                    f"{self.SUPPORTED_VERSION}."
-                )
+            if type(version) is not int or version != self.SUPPORTED_VERSION:
+                errors.append(f"version must be the integer {self.SUPPORTED_VERSION}.")
 
         if "source" in mapping:
             errors.extend(
