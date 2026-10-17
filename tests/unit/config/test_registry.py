@@ -53,7 +53,7 @@ def test_registration_is_immutable() -> None:
     registration = make_registration()
 
     with pytest.raises(FrozenInstanceError):
-        registration.factory = StubConfigFactory()
+        setattr(registration, "factory", StubConfigFactory())  # noqa: B010
 
 
 def test_registry_returns_registered_component() -> None:
