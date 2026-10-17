@@ -6,7 +6,7 @@ import pytest
 
 from etlrelay.config.sinks import FileSinkConfigValidator
 from etlrelay.config.sources.file import FileSourceConfigValidator
-from etlrelay.config.storage import LocalFileStorageValidator
+from etlrelay.config.storage import LocalFileSystemConfigValidator
 from etlrelay.file_formats import TabularFileFormatRegistry
 
 
@@ -44,13 +44,13 @@ def valid_file_config() -> dict[str, object]:
 
 
 def test_local_storage_accepts_default_base_path() -> None:
-    validator = LocalFileStorageValidator()
+    validator = LocalFileSystemConfigValidator()
 
     assert validator.validate({"type": "local"}, "source.storage") == []
 
 
 def test_local_storage_accepts_explicit_base_path() -> None:
-    validator = LocalFileStorageValidator()
+    validator = LocalFileSystemConfigValidator()
 
     assert (
         validator.validate(
@@ -63,7 +63,7 @@ def test_local_storage_accepts_explicit_base_path() -> None:
 
 @pytest.mark.parametrize("config", [None, [], "local", 42])
 def test_local_storage_rejects_non_mapping_config(config: object) -> None:
-    validator = LocalFileStorageValidator()
+    validator = LocalFileSystemConfigValidator()
 
     errors = validator.validate(config, "source.storage")
 
@@ -71,7 +71,7 @@ def test_local_storage_rejects_non_mapping_config(config: object) -> None:
 
 
 def test_local_storage_rejects_wrong_type() -> None:
-    validator = LocalFileStorageValidator()
+    validator = LocalFileSystemConfigValidator()
 
     errors = validator.validate(
         {"type": "remote"},
@@ -85,7 +85,7 @@ def test_local_storage_rejects_wrong_type() -> None:
 def test_local_storage_rejects_invalid_base_path(
     base_path: object,
 ) -> None:
-    validator = LocalFileStorageValidator()
+    validator = LocalFileSystemConfigValidator()
 
     errors = validator.validate(
         {"type": "local", "base_path": base_path},
@@ -96,7 +96,7 @@ def test_local_storage_rejects_invalid_base_path(
 
 
 def test_local_storage_rejects_unknown_fields() -> None:
-    validator = LocalFileStorageValidator()
+    validator = LocalFileSystemConfigValidator()
 
     errors = validator.validate(
         {"type": "local", "directory": "/data"},

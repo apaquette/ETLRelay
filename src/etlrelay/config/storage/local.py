@@ -28,7 +28,7 @@ class LocalFileSystemConfigFactory:
         return LocalFileSystem(path_validator=path_validator)
 
 
-class LocalFileStorageValidator:
+class LocalFileSystemConfigValidator:
     """Validate configuration for local filesystem storage."""
 
     def validate(self, config: object, path: str) -> list[str]:
