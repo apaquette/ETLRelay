@@ -1,7 +1,7 @@
 """Protocols and exceptions for reading serialized data into ETLRelay batches."""
 
-from collections.abc import Iterable
-from typing import BinaryIO, Protocol, runtime_checkable
+from collections.abc import Iterable, Mapping
+from typing import Any, BinaryIO, Protocol, runtime_checkable
 
 from etlrelay.core import Batch
 
@@ -34,3 +34,8 @@ class Reader(Protocol):
             ReaderError.
         """
         ...
+
+
+@runtime_checkable
+class KeyValueReader(Protocol):
+    def read(self, stream: BinaryIO) -> Mapping[str, Any]: ...
