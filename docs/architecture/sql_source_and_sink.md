@@ -8,65 +8,9 @@
 flowchart LR
     DB[(SQL database)] --> SqlSource[SqlSource]
     SqlSource --> Batch[Batch]
-    Batch --> Pipeline["Pipeline and processors"]
+    Batch --> Pipeline["Processor(s) / Pipeline"]
     Pipeline --> SqlSink[SqlSink]
     SqlSink --> DB2[(SQL database table)]
-```
-
-### Class diagram
-
-The class diagram shows that the SQL components implement the existing source and sink contracts directly. They use a caller-owned SQLAlchemy `Engine`; they do not depend on the file-system, reader, or writer abstractions.
-
-```mermaid
-classDiagram
-    direction LR
-
-    class Source {
-        <<protocol>>
-        +read() Iterable~Batch~
-    }
-
-    class Sink {
-        <<protocol>>
-        +write(batches: Iterable~Batch~) None
-    }
-
-    class SqlSource {
-        -_engine: Engine
-        -_query: str
-        -_parameters: Mapping~str, Any~
-        +SqlSource(engine, query, parameters=None)
-        +read() Iterable~Batch~
-    }
-
-    class SqlSink {
-        -_engine: Engine
-        -_table_name: str
-        -_schema: Optional~str~
-        +SqlSink(engine, table_name, schema=None)
-        +write(batches: Iterable~Batch~) None
-    }
-
-    class Batch {
-        +table: pa.Table
-    }
-
-    class Pipeline {
-        +run() None
-    }
-
-    class Engine {
-        <<SQLAlchemy>>
-    }
-
-    Source <|.. SqlSource
-    Sink <|.. SqlSink
-    SqlSource ..> Engine : queries through
-    SqlSink ..> Engine : reflects and inserts through
-    SqlSource ..> Batch : produces
-    SqlSink ..> Batch : consumes
-    Pipeline --> Source : reads batches from
-    Pipeline --> Sink : writes processed batches to
 ```
 
 A SQL engine is created and owned by the caller. ETLRelay borrows the engine to obtain connections and transactions; it does not dispose the caller's engine.
@@ -185,3 +129,78 @@ Consequently, if a pipeline writes several batches and a later batch fails, earl
 - **No automatic credential management or authorization layer:** the caller is responsible for configuring connections, managing secrets, and limiting database permissions.
 
 These limits are deliberate. Additional write modes, ORM support, migrations, retries, pagination, and broader database integration should be introduced only with explicit requirements and corresponding tests.
+
+## SQL components in YAML configuration
+
+ETLRelay 0.6.0 supports the SQL source and sink through schema-v1 YAML configuration as well as direct Python construction. The YAML properties are `connection_url_env`, `query`, and optional scalar `parameters` for a source; a sink uses `connection_url_env`, `table_name`, and optional `schema`.
+
+Unlike the direct Python API, the configuration builder does not receive an `Engine` argument. It receives the name of an environment variable containing the SQLAlchemy connection URL. `PipelineBuilder` first resolves all component registrations and calls the shared `SqlEngineFactory.preflight()` for the referenced variable names. If a variable is missing or empty, building fails before SQL component factories, engine creation, or configured source/sink I/O.
+
+After preflight succeeds, the SQL factory creates engines on demand and caches them by environment-variable name. A single `SqlEngineFactory` is shared by the catalog's SQL source and sink factories. The caller must call `PipelineBuilder.close()` after the configured pipeline completes to dispose of these factory-owned engines and clear the resolved URLs.
+
+This is separate from direct Python usage: a caller that constructs `SqlSource(engine, ...)` or `SqlSink(engine, ...)` continues to own and dispose of that supplied engine. The configuration lifecycle does not change the direct API contract.
+
+See [YAML Configuration](../configuration.md) for environment-variable setup, redaction behavior, supported combinations, and complete runnable examples.
+
+## Class diagram: direct SQL API and configuration-managed engines
+
+The diagram below summarizes the principal types and dependencies described on this page. Existing flow, sequence, and data-flow diagrams remain part of this document.
+
+```mermaid
+classDiagram
+    direction TB
+
+    class Source {
+        <<protocol>>
+        +read() Iterable~Batch~
+    }
+    class Sink {
+        <<protocol>>
+        +write(batches) None
+    }
+    class SqlSource {
+        -engine: Engine
+        -query: str
+        -parameters
+        +read() Iterable~Batch~
+    }
+    class SqlSink {
+        -engine: Engine
+        -table_name: str
+        -schema: str
+        +write(batches) None
+    }
+    class Engine {
+        <<SQLAlchemy>>
+    }
+    class SqlEngineProvider {
+        <<protocol>>
+        +create(variable_name) Engine
+    }
+    class SqlEngineFactory {
+        -resolved_urls
+        -engines
+        +preflight(references) None
+        +create(variable_name) Engine
+        +close() None
+    }
+    class SqlSourceConfigFactory {
+        +build(config) SqlSource
+    }
+    class SqlSinkConfigFactory {
+        +build(config) SqlSink
+    }
+    class PipelineBuilder {
+        +build(config) Pipeline
+        +close() None
+    }
+
+    Source <|.. SqlSource
+    Sink <|.. SqlSink
+    SqlSource --> Engine : borrows direct API engine
+    SqlSink --> Engine : borrows direct API engine
+    SqlEngineProvider <|.. SqlEngineFactory
+    SqlSourceConfigFactory --> SqlEngineProvider : obtains engine
+    SqlSinkConfigFactory --> SqlEngineProvider : obtains engine
+    PipelineBuilder --> SqlEngineFactory : preflight and lifecycle
+```

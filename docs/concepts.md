@@ -34,7 +34,7 @@ A `Sink` consumes an iterable of processed batches. A file sink composes a stora
 
 ### Storage and File Formats
 
-Storage provides binary streams; readers and writers handle the file format.
+Storage provides binary streams; readers and writers handle file formats.
 
 ```text
 FileSource → FileSystem → BinaryIO → Reader → Batch
@@ -44,25 +44,48 @@ Batch iterable → Writer → BinaryIO → FileSystem → Destination
 
 `FileSource` composes a filesystem with a reader. `FileSink` composes a filesystem with a writer. This separates resource access from format-specific parsing and serialization.
 
-The current implementation supports local filesystem access through `LocalFileSystem`, with CSV through `CsvReader`/`CsvWriter` and Parquet through `ParquetReader`/`ParquetWriter`. Select the reader and writer explicitly when constructing `FileSource` and `FileSink`; the file extension does not select a format automatically.
+The built-in local storage and tabular formats are `LocalFileSystem`, CSV, and Parquet. Select the reader and writer explicitly when composing `FileSource` and `FileSink`; the file extension does not select a format automatically.
 
 ## CSV and Parquet Behavior
 
-The file format is selected when composing the source or sink. `FileSource` and `FileSink` do not inspect the filename extension or choose a reader/writer automatically.
-
 | Behavior | CSV | Parquet |
-| --- | --- | --- |
+|---|---|---|
 | Representation | Text; no embedded Arrow schema | Columnar binary format with schema and type information |
-| Reading types | PyArrow infers types from text; exact schema round trips are not guaranteed | Preserves schema and supported Arrow types represented in the Parquet file |
+| Reading types | PyArrow infers types from text; exact schema round trips are not guaranteed | Preserves supported schema/type information represented in the file |
 | Multiple batches | Serializes batches in order; a CSV stream has one header written by the first batch | Serializes batches in order into one Parquet file |
-| Zero-row batch with schema | Can write a header-only CSV | Writes a valid schema-bearing zero-row Parquet file; the reader yields one empty batch with the schema |
+| Zero-row batch with schema | Can write a header-only CSV | Writes a valid schema-bearing zero-row Parquet file; the reader yields an empty batch with the schema |
 | Empty batch iterable | Writes no bytes | Raises `WriterError` because no schema is available to initialize the file |
-| Stream requirements | Binary stream | Reader: seekable binary stream; writer: writable binary stream supported by PyArrow |
+| Stream requirements | Binary stream | Reader requires a seekable binary stream; writer requires a writable binary stream supported by PyArrow |
 
 A zero-row batch and an empty batch iterable are different: the former still carries an Arrow schema; the latter carries no batch from which a schema can be obtained. `ParquetWriter` uses the first batch's schema and requires following batches to have the same schema. ETLRelay does not merge incompatible schemas or automatically cast batches.
 
-Parquet preserves supported Arrow schema/type information and values for the types handled by the installed PyArrow version; this should not be read as a guarantee that every Arrow-specific type, extension type, or metadata field is losslessly represented by Parquet. The stream protocols use `BinaryIO`, which does not express seekability in its type signature. `ParquetReader` therefore has a stronger runtime requirement than the generic `Reader` protocol suggests. The caller/component that opens a stream retains responsibility for its lifecycle; readers and writers must not close caller-owned streams.
+The component that opens a stream retains responsibility for its lifecycle; readers and writers must not close caller-owned streams.
 
+## Declarative Configuration
+
+ETLRelay 0.6.0 adds schema-versioned YAML configuration as an alternative to direct Python composition. The supported configuration surface is deliberately fixed: file and SQL sources/sinks, local storage, CSV/Parquet file formats, and the built-in column-selection, renaming, and row-filtering processors.
+
+The workflow is:
+
+```text
+YAML file
+   ↓
+ConfigLoader + KeyValueReader/YamlReader
+   ↓
+ConfigValidator
+   ↓
+Validated mapping
+   ↓
+PipelineBuilder + shared ComponentCatalog
+   ↓
+Pipeline
+   ↓
+Pipeline.run()
+```
+
+A mapping-shaped configuration document is not a tabular `Batch` stream. `KeyValueReader` is a separate protocol from the current tabular `Reader` protocol. `YamlReader` handles YAML syntax and document shape; `ConfigValidator` handles ETLRelay's schema; `PipelineBuilder` resolves explicit registrations and constructs runtime components. Neither loading nor schema validation builds or executes a pipeline.
+
+Configuration schema version `1` requires exactly `version`, `source`, `processors`, and `sink`. Unknown fields and unsupported component types are rejected. SQL source/sink connection URLs are referenced by environment-variable name, then checked during builder preflight before component factories and source/sink I/O begin. See [YAML Configuration](configuration.md) for properties, combinations, errors, and examples.
 
 ## Pipeline Execution
 
@@ -81,13 +104,9 @@ Compatibility requires matching:
 - Arrow field types
 - Field nullability
 
-Schema metadata differences are ignored when checking compatibility.
+Schema metadata differences are ignored when checking compatibility. Schema validation takes place after all configured processors have run. This allows processors to normalize inputs with different schemas into compatible output schemas.
 
-Schema validation takes place after all configured processors have run. This allows processors to normalize inputs with different schemas into compatible output schemas.
-
-If a processed batch has an incompatible schema, the pipeline raises `ValueError` before yielding that batch to the sink. The pipeline does not automatically merge schemas, cast values, or reconcile incompatible outputs.
-
-Zero-row batches participate in schema validation just like non-empty batches.
+If a processed batch has an incompatible schema, the pipeline raises `ValueError` before yielding that batch to the sink. The pipeline does not automatically merge schemas, cast values, or reconcile incompatible outputs. Zero-row batches participate in schema validation just like non-empty batches.
 
 ### Empty Sources and Zero-Row Batches
 
@@ -104,37 +123,8 @@ Exceptions raised while reading from a source, iterating over its batches, proce
 
 If a later batch fails, batches successfully written before the failure are not automatically rolled back. The pipeline does not provide transactional execution across multiple batches.
 
-
-## SQL Sources and Sinks
-
-`SqlSource` and `SqlSink` are direct implementations of the `Source` and `Sink` contracts. They do not route database I/O through `FileSystem`, `Reader`, or `Writer` components.
-
-`SqlSource` executes a SQLAlchemy text query. Supply values through the optional `parameters` mapping, using named bind markers such as `:status`. A non-empty result becomes one Arrow-backed `Batch`; an empty query result produces no batches. The current source materializes query results in memory, so it is not a streaming or paginated reader.
-
-`SqlSink` appends rows to a destination table that must already exist. It reflects the table and validates batch column names before inserting. It does not create/replace a table, update or upsert rows, migrate a schema, or retry a failed operation. Destination columns omitted from a batch must be satisfied by defaults/nullability or database constraints will fail.
-
-The SQLAlchemy `Engine` is created and owned by the caller. ETLRelay closes the query connection/result and the sink's per-batch transaction contexts; it does not dispose the engine. SQLite is the repeatable integration backend. Other SQLAlchemy dialects need their driver and application-level validation.
-
-**Transactions are per non-empty sink batch.** A successful batch is committed independently; a later failure does not roll back earlier batches. Empty query results produce no batches, and `SqlSink` skips explicitly supplied zero-row batches.
-
-Bound parameters apply to query values, not SQL identifiers or arbitrary SQL syntax. `SqlSink` delegates destination table identifier handling to SQLAlchemy's table reflection/insert APIs. Since `SqlSource` accepts caller-authored SQL text, callers must not interpolate untrusted input into it and must validate or allowlist any dynamic identifiers.
-
-`replace`, ORM models, schema migrations, automatic retries, and a pipeline-wide transaction are not supported. See [SQL source and sink architecture](architecture/sql_source_and_sink.md) for the full contract.
-
 ## Current Scope
 
-ETLRelay provides synchronous, batch-oriented pipeline execution with local CSV/Parquet I/O, SQL input/output, and a small set of built-in processors.
+ETLRelay provides synchronous, batch-oriented execution with local CSV/Parquet I/O, SQLAlchemy-backed SQL sources/sinks, a small set of built-in processors, and YAML-driven construction. SQLite is the reference SQL integration-test backend; other SQLAlchemy dialects require appropriate drivers and independent verification. SQL sink tables must already exist and be compatible with the output columns.
 
-The local storage contract, including binary stream modes, path containment,
-error propagation, output creation, overwrite behavior, and stream cleanup,
-is documented in the [local filesystem architecture](architecture/local_filesystem.md).
-
-S3, HDFS, and other remote-storage backends are outside the v0.4.0 milestone
-and planned v1.0.0 scope. Additional storage and platform integrations may
-be reviewed after v1.0.0 if concrete requirements justify them. No
-particular backend or delivery date is promised.
-
-Scheduling, distributed execution, parallel processing, automatic retries,
-and automatic schema reconciliation are not provided by the current
-pipeline implementation. Additional capabilities should be introduced
-when concrete requirements justify them and their scope is established.
+S3, HDFS, and other remote-storage backends remain outside the planned v1.0.0 scope. Scheduling, distributed execution, parallel processing, automatic retries, generic plugins, and automatic schema reconciliation are not provided by the current implementation. Additional capabilities should be introduced only when concrete requirements justify them.

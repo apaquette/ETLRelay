@@ -1,4 +1,4 @@
-# FileSource Class Diagram
+# FileSource
 
 ## Purpose
 
@@ -9,7 +9,7 @@ It composes two independent components:
 * `FileSystem`, which provides access to the resource through a binary stream.
 * `Reader`, which parses the resource and produces an iterable of `Batch` objects.
 
-`FileSource` does not depend on a particular storage implementation or file format. This allows it to work with `LocalFileSystem` and future storage implementations, as well as `CsvReader` and future readers, without changing its implementation.
+`FileSource` does not depend on a particular file format. The current implementation combines `LocalFileSystem` with `CsvReader` or `ParquetReader` without changing the source implementation.
 
 ## Class Diagram
 
@@ -45,6 +45,10 @@ classDiagram
         +read(stream: BinaryIO) Iterable~Batch~
     }
 
+    class ParquetReader {
+        +read(stream: BinaryIO) Iterable~Batch~
+    }
+
     class PathValidator {
         +validate(path: Path | str) Path
     }
@@ -54,12 +58,13 @@ classDiagram
     Source <|.. FileSource
     FileSystem <|.. LocalFileSystem
     Reader <|.. CsvReader
+    Reader <|.. ParquetReader
 
     FileSource --> FileSystem : uses
     FileSource --> Reader : uses
 
     LocalFileSystem --> PathValidator : validates paths with
-    CsvReader --> Batch : produces
+    Reader --> Batch : produces
 ```
 
 ## Responsibilities
@@ -79,7 +84,7 @@ classDiagram
 
 * Implementing filesystem operations.
 * Validating local filesystem path containment.
-* Parsing CSV or other file formats.
+* Parsing CSV, Parquet, or other file formats.
 * Constructing `Batch` objects directly.
 * Transforming data.
 * Writing files.
@@ -97,9 +102,9 @@ Its implementations open resources for reading and provide binary streams. Stora
 
 `Reader` defines the contract for parsing a binary stream and producing an iterable of ETLRelay `Batch` objects.
 
-Its implementations handle format-specific parsing. For example, `CsvReader` uses PyArrow to parse CSV data.
+Its implementations handle format-specific parsing. The current built-in readers are `CsvReader` and `ParquetReader`.
 
-A reader may produce one or more batches. `FileSource` does not need to know how the reader divides its output into batches or how it interprets the underlying format.
+A reader may produce one or more batches. `FileSource` does not need to know how the reader divides its output into batches or how it interprets the underlying format. Format-specific constraints remain the reader's responsibility; for example, the Parquet reader requires a seekable binary stream.
 
 ## Dependency Relationship
 
@@ -114,21 +119,20 @@ FileSource
   │              └── PathValidator
   │
   └── Reader
-         └── CsvReader
+         ├── CsvReader
+         └── ParquetReader
 ```
 
 `FileSource` depends on the `FileSystem` and `Reader` protocols, not their concrete implementations.
 
-This enables different combinations without modifying `FileSource`:
+Current file-based combinations use local storage with one of the built-in formats:
 
 ```text
 LocalFileSystem + CsvReader
 LocalFileSystem + ParquetReader
-S3Storage       + CsvReader
-HdfsStorage     + CsvReader
 ```
 
-Additional combinations can be supported as new storage and reader implementations are introduced.
+Remote storage backends such as S3 and HDFS are not implemented in v0.6.0 and are not part of the planned v1.0.0 scope. Additional storage implementations may be reviewed after v1.0.0 if concrete requirements justify them; no particular backend or release date is promised.
 
 ## Data Flow
 
@@ -181,17 +185,17 @@ class FileSource:
 
 ## Contract
 
-| Operation                                        | Expected behavior                                                         |
-| ------------------------------------------------ | ------------------------------------------------------------------------- |
-| Construct with path, storage, and reader         | Stores the supplied dependencies and resource path                        |
-| Read a valid resource                            | Produces an iterable of parsed batches                                    |
-| Read a nonexistent local file                    | Propagates the storage error                                              |
-| Read an invalid CSV resource                     | Propagates the reader's parsing error                                     |
-| Read a resource outside the permitted local base | Propagates the path-validation error from local storage                   |
-| Consume batches                                  | Keeps the opened stream available while the reader's iterable is consumed |
-| Finish or terminate iteration                    | Closes the opened stream                                                  |
-| Supply another storage implementation            | Works without modifying `FileSource`, provided it satisfies `FileSystem`  |
-| Supply another reader implementation             | Works without modifying `FileSource`, provided it satisfies `Reader`      |
+| Operation | Expected behavior |
+| --- | --- |
+| Construct with path, storage, and reader | Stores the supplied dependencies and resource path |
+| Read a valid resource | Produces an iterable of parsed batches |
+| Read a nonexistent local file | Propagates the storage error |
+| Read an invalid CSV or Parquet resource | Propagates the reader's parsing error |
+| Read a resource outside the permitted local base | Propagates the path-validation error from local storage |
+| Consume batches | Keeps the opened stream available while the reader's iterable is consumed |
+| Finish or terminate iteration | Closes the opened stream |
+| Supply another storage implementation | Works without modifying `FileSource`, provided it satisfies `FileSystem` and its behavioral contract |
+| Supply another reader implementation | Works without modifying `FileSource`, provided it satisfies `Reader` and its behavioral contract |
 
 Exceptions are propagated rather than wrapped in a new `FileSource` exception hierarchy.
 
@@ -205,17 +209,15 @@ It does not implement filesystem operations or format-specific parsing.
 
 ### Open/Closed Principle
 
-New storage backends and reader implementations can be introduced without modifying `FileSource`.
+New reader implementations can be introduced without modifying `FileSource`. New storage implementations could also satisfy the protocol, but none beyond `LocalFileSystem` is currently included in the supported project scope.
 
-For example, adding `ParquetReader` or `S3Storage` does not require changes to the source implementation.
+For example, adding a new reader for another supported local file format does not require changes to the source implementation.
 
 No factory, registry, or plugin framework is required for this behavior.
 
 ### Liskov Substitution Principle
 
-Any implementation satisfying `FileSystem` can replace another storage implementation, and any implementation satisfying `Reader` can replace another reader.
-
-Substitutions must preserve their documented contracts, including binary-stream behavior, batch iteration, resource lifetime, and exception propagation.
+Any implementation satisfying `FileSystem` can be supplied as storage, and any implementation satisfying `Reader` can be supplied as a reader, provided it preserves the documented contracts, including binary-stream behavior, batch iteration, resource lifetime, and exception propagation.
 
 ### Interface Segregation Principle
 
@@ -234,7 +236,7 @@ This keeps source orchestration independent of local filesystem details and spec
 
 ## Design Constraints
 
-The initial implementation should remain small:
+The implementation should remain small:
 
 * Accept a resource path, `FileSystem`, and `Reader`.
 * Use `FileSystem.open_read()` to obtain the stream.
