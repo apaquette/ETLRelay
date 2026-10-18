@@ -8,39 +8,39 @@ Its core execution model is:
 Source → Processor(s) → Sink
 ```
 
-For file workflows, storage access and file-format handling are separate concerns. A file source composes a storage implementation with a reader; a file sink composes storage with a writer. This keeps the core pipeline independent of filesystem and serialization details.
+A source produces batches, processors transform them, and a sink consumes the processed output. For file workflows, storage access is independent of format-specific reading and writing.
 
+## Current release: 0.6.0
 
-## Current release scope
+ETLRelay 0.6.0 adds declarative, versioned YAML configuration while preserving direct Python composition. The YAML configuration path loads and validates a mapping-shaped document, resolves explicit built-in component registrations, preflights required SQL connection-variable references, and then builds a runtime pipeline.
 
-The `0.5.0` release extends ETLRelay's tested local CSV/Parquet pipeline model with SQL input and append-only SQL output through SQLAlchemy.
+Capabilities include:
 
-Current capabilities include:
-
-- An Arrow-backed `Batch` model and synchronous source → processor(s) → sink execution.
-- Local filesystem access through `FileSystem` and `LocalFileSystem`.
-- CSV and Parquet readers/writers composed through `FileSource` and `FileSink`.
+- Arrow-backed `Batch` data and synchronous pipeline execution.
+- Local filesystem access with path-containment validation.
+- CSV and Parquet file input/output.
 - Built-in column selection, column renaming, and row filtering processors.
-- `SqlSource` for parameterized SQL queries and `SqlSink` for append-only writes to existing SQL tables.
-- Unit, integration, round-trip, and functional tests for component behavior and composed local-file/SQLite pipelines.
+- SQLAlchemy-backed `SqlSource` and append-only `SqlSink`.
+- YAML schema version 1, strict configuration validation, and path-qualified validation errors.
+- A shared default component catalog and `PipelineBuilder` for configuration-built pipelines.
+- Integration and functional coverage for file, SQLite, and mixed source/sink combinations.
 
-SQLite is the repeatable SQL integration-test backend. Other SQLAlchemy dialects require their appropriate drivers and application-level verification; the project does not claim equal integration coverage for every database. SQL output tables must exist before a pipeline runs. `SqlSink` does not create or migrate tables, replace existing data, or retry failed operations.
-
-S3, HDFS, and other remote filesystem/storage backends are outside the planned v1.0.0 scope. Additional storage and platform integrations may be reviewed after v1.0.0 if concrete requirements justify them; no particular backend or delivery date is promised.
-
-ETLRelay remains pre-1.0 software. Its public APIs may evolve between minor releases.
+SQLite is the reference SQL integration-test backend. Other SQLAlchemy dialects require their appropriate drivers and application-level verification. SQL sink tables must already exist and accept the output columns. ETLRelay remains pre-1.0 software; public APIs may evolve between minor versions.
 
 ## Documentation
 
-- [Getting Started](getting-started.md) — run local CSV, Parquet, or SQLite SQL pipelines.
-- [Concepts](concepts.md) — understand batches, sources, processors, sinks, storage, schema behavior, and file formats.
-- [Security](security.md) — understand current path validation and release limitations.
-- [API Reference](api-reference.md) — public classes and methods, generated from the Python source documentation.
-- [Reader and Writer](architecture/reader_and_writer.md) — file-format behavior, stream requirements, and reader/writer contracts.
-- [Development](development.md) — test and build ETLRelay and its documentation.
-- [Local filesystem](architecture/local_filesystem.md) — storage contract, local filesystem behavior, error handling, and stream ownership.
-- [Path validation](architecture/path_validator.md) — path containment, resolution, and security limitations.
-- [SQL source and sink](architecture/sql_source_and_sink.md) — query parameters, identifier handling, append semantics, engine ownership, and transaction boundaries.
-- [Roadmap](roadmap.md) — release milestones and the planned v1.0 scope.
+- [Getting Started](getting-started.md) — prepare demo data and run YAML- or Python-defined pipelines.
+- [YAML Configuration](configuration.md) — schema version 1, properties, supported combinations, environment variables, and errors.
+- [Core Concepts](concepts.md) — batches, processors, schema behavior, and file formats.
+- [Security](security.md) — path containment, safe YAML parsing, SQL parameterization, and connection-secret handling.
+- [API Reference](api-reference.md) — public classes and methods, generated from Python docstrings.
+- [Configuration Loading Architecture](architecture/configuration-loading.md) — reading, validation, building, and execution boundaries.
+- [Configuration Validation Architecture](architecture/configuration-validation.md) — root and component validation.
+- [Component Registry Architecture](architecture/component-registry.md) — registrations, factories, and the default component catalog.
+- [Reader and Writer Contracts](architecture/reader_and_writer.md) — tabular streams versus mapping-shaped configuration documents.
+- [SQL source and sink](architecture/sql_source_and_sink.md) — direct SQL API behavior, query parameters, engine ownership, and transaction boundaries.
+- [Roadmap](roadmap.md) — released milestones and the remaining v1.0 roadmap.
 
-> **Release status:** ETLRelay is pre-1.0 software. Its public API is not yet guaranteed to remain stable across minor releases.
+## Scope
+
+The v0.6.0 YAML format supports local CSV/Parquet files and SQL sources/sinks, with `select_columns`, `rename_columns`, and `filter_rows` processors. Schema version 1 has a fixed built-in component set. It is not a general dynamic plugin system. A command-line interface remains planned for a later milestone.

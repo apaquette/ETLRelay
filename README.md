@@ -30,14 +30,14 @@ pip install etlrelay
 
 ## Documentation
 
-See the [ETLRelay documentation](https://apaquette.github.io/ETLRelay/0.5.0) for usage instructions, examples, and API details.
+See the [ETLRelay documentation](https://apaquette.github.io/ETLRelay/0.6.0) for usage instructions, examples, and API details.
 
 
 ## Project Status
 
-**Current release: `0.5.0` — SQL source and sink**
+**Current release: `0.6.0` — declarative YAML configuration**
 
-The foundational components include the batch model, pipeline, local filesystem access, CSV and Parquet readers/writers, file source and sink, path validation, and SQL source/sink implementations through SQLAlchemy.
+The release includes the batch model, pipeline, local filesystem access, CSV and Parquet readers/writers, file source and sink, path validation, SQL source/sink implementations, and a versioned YAML configuration path. YAML configuration is loaded and validated separately from runtime component construction; the shared component catalog and `PipelineBuilder` compose supported registrations into an executable pipeline.
 
 Unit tests validate individual components. Integration and functional tests exercise their composition.
 
@@ -72,18 +72,22 @@ a new storage backend.
 | `FileSink`        | Composes a filesystem and writer to consume batches             |
 | `SqlSource`     | Reads SQL query results into batches using SQLAlchemy           |
 | `SqlSink`       | Appends batch rows to an existing SQL table                     |
+| `KeyValueReader` | Defines the mapping-shaped document reader contract              |
+| `YamlReader`     | Safely parses one YAML configuration document                    |
+| `ConfigLoader`   | Reads, parses, and validates configuration documents             |
+| `ConfigValidator` | Validates schema version 1 and its component sections            |
+| `ComponentCatalog` | Shares built-in registries, validators, factories, and SQL service |
+| `PipelineBuilder` | Builds runtime pipelines from validated configuration mappings   |
 
 
 ### Planned Capabilities
 
-The following are potential areas of development, not features currently
-guaranteed to be available:
+The following are not part of the v0.6.0 release contract and remain possible future work:
 
-- Additional file formats, including JSON.
+- Additional document and tabular formats, including a JSON configuration reader.
 - Additional built-in data transformation processors.
-- Declarative YAML pipeline configuration.
-- A command-line interface.
-- Improved configuration, secrets, and operational error handling.
+- A command-line interface (planned for the v0.7.0 milestone).
+- Additional runtime integrations if concrete use cases justify their maintenance cost.
 
 S3, HDFS, and other remote-storage backends are outside the v0.4.0
 milestone and the planned v1.0.0 scope. Additional storage and platform
@@ -166,11 +170,21 @@ LocalFileSystem.open_write(path)
 
 This prevents source and sink implementations from becoming coupled to individual storage technologies or serialization formats.
 
-The current implementation supports the local filesystem with CSV and Parquet. Additional combinations can be introduced through new implementations of the existing contracts when they are needed.
+For file-based pipelines, the current implementation supports the local filesystem with CSV and Parquet. SQL input/output is a separate source/sink integration rather than a file-format or storage variant.
 
 ### SQL Sources and Sinks
 
 `SqlSource` and `SqlSink` implement the core source/sink contracts using SQLAlchemy. They are separate from file storage and file-format readers/writers. Query values can be supplied as bound parameters; the sink appends to an existing table using one transaction per non-empty batch. The caller owns the SQLAlchemy engine. SQLite is the reference integration-test backend; see [SQL source and sink](docs/architecture/sql_source_and_sink.md) for identifier handling, empty-data behavior, transaction boundaries, and limitations.
+
+### Declarative YAML Configuration
+
+Schema version 1 defines a closed set of supported components: file and SQL sources/sinks, local storage, CSV/Parquet file formats, and the `select_columns`, `rename_columns`, and `filter_rows` processors. The schema requires `version`, `source`, `processors`, and `sink`; unsupported keys and types are rejected.
+
+The configuration lifecycle is `ConfigLoader` → `ConfigValidator` → `PipelineBuilder` → `Pipeline.run()`. Loading and validation do not construct runtime components. The builder resolves all configured component registrations and preflights SQL connection environment-variable references before invoking component factories. It returns a pipeline but does not execute it.
+
+For SQL configuration, YAML stores an environment-variable name such as `ETLRELAY_SOURCE_DATABASE_URL`, not the resolved connection URL. Missing/empty variables fail before component factories or source/sink I/O. The `PipelineBuilder` owns the lifecycle of engines created by the catalog's shared `SqlEngineFactory`; callers close the builder after execution. Direct Python `SqlSource`/`SqlSink` engine ownership remains unchanged.
+
+See the [YAML Configuration reference](https://apaquette.github.io/ETLRelay/0.6.0/configuration/) for the versioned schema, examples, supported combinations, and validation errors.
 
 ### Common Data Representation
 
@@ -212,7 +226,7 @@ Writer
     Serializes batches to a stream
 ```
 
-Concrete implementations remain independent of higher-level orchestration. The design avoids unnecessary abstract base classes, factories, registries, and inheritance hierarchies.
+Concrete implementations remain independent of higher-level orchestration. The configuration path uses explicit registries and factories where a YAML component name must resolve to a validator and runtime implementation. It does not use a general dynamic plugin system, import-by-string, or reflection-based construction.
 
 ## Development Environment
 
@@ -336,13 +350,13 @@ Security is a design concern from the beginning.
 
 Current filesystem path validation resolves candidate paths and checks that they remain within the permitted base directory. It does not determine whether a path exists; filesystem operations handle existence and access errors.
 
+Configuration uses a safe YAML loader, a strict versioned schema, and explicit component registrations. SQL connection URLs are referenced through environment-variable names rather than placed in YAML. The builder preflights required variables before constructing ETL components, and its SQL engine factory avoids exposing resolved connection URLs in its own errors. Environment variables are not a secrets vault; deployments remain responsible for controlling access to secrets and runtime diagnostics.
+
 Further security work will be required as ETLRelay gains more capabilities. Areas for future development include:
 
-* Configuration validation
-* Secure credential and secret handling
-* Sensitive-data redaction
-* Storage-specific authentication and access control
-* Appropriate error handling for external resources
+* A command-line entry point for validate/run workflows (planned)
+* JSON configuration reading, if a concrete use case justifies it
+* Additional storage-specific authentication and access-control capabilities for future integrations
 
 The current path-validation component is a filesystem containment control, not a complete filesystem sandbox or authorization system.
 
@@ -400,16 +414,29 @@ src/
     │   └── local.py
     ├── readers/
     │   ├── csv.py
-    │   └── parquet.py
+    │   ├── parquet.py
+    │   └── yaml.py
     ├── writers/
     │   ├── csv.py
     │   └── parquet.py
     ├── sources/
     │   ├── file.py
     │   └── sql.py
-    └── sinks/
-        ├── file.py
-        └── sql.py
+    ├── sinks/
+    │   ├── file.py
+    │   └── sql.py
+    ├── config/
+    │   ├── loader.py
+    │   ├── validator.py
+    │   ├── pipeline_builder.py
+    │   ├── registry.py
+    │   ├── sql_engine_factory.py
+    │   ├── sources/
+    │   ├── sinks/
+    │   ├── storage/
+    │   └── processors/
+    ├── default_components.py
+    └── file_formats.py
 
 tests/
 ├── unit/

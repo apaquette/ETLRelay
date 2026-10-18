@@ -1,0 +1,27 @@
+version: 1
+
+source:
+  type: sql
+  connection_url_env: ETLRELAY_SOURCE_DATABASE_URL
+  query: "SELECT id, amount, state FROM source_records WHERE state = :state ORDER BY id"
+  parameters:
+    state: ready
+
+processors:
+  - type: select_columns
+    columns: [id, amount]
+  - type: filter_rows
+    column: amount
+    operator: ">="
+    value: 0
+  - type: rename_columns
+    mapping:
+      id: record_id
+
+sink:
+  type: file
+  path: examples/configuration/data/output.csv
+  format: csv
+  storage:
+    type: local
+    base_path: "."

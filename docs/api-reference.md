@@ -1,6 +1,42 @@
 # API Reference
 
-This reference is generated from the code and its docstrings. Keep public classes and methods documented as their contracts evolve.
+This reference is generated from the public code and its docstrings. The configuration APIs introduced in ETLRelay 0.6.0 are listed separately from the direct runtime component APIs.
+
+## Configuration loading and validation
+
+::: etlrelay.config.loader.ConfigLoader
+
+::: etlrelay.config.validator.ConfigValidator
+
+::: etlrelay.config.errors.ConfigurationError
+
+::: etlrelay.readers.yaml.YamlReader
+
+::: etlrelay.core.reader.KeyValueReader
+
+## Configuration construction
+
+::: etlrelay.default_components.ComponentCatalog
+
+::: etlrelay.default_components.create_default_component_catalog
+
+::: etlrelay.config.registry.ComponentRegistration
+
+::: etlrelay.config.registry.ComponentRegistry
+
+::: etlrelay.config.component_validator.ComponentConfigValidator
+
+::: etlrelay.config.component_dispatcher.ComponentConfigDispatcher
+
+::: etlrelay.config.pipeline_builder.PipelineBuilder
+
+::: etlrelay.config.pipeline_builder.PipelineBuildError
+
+::: etlrelay.config.sql_engine_factory.SqlEngineProvider
+
+::: etlrelay.config.sql_engine_factory.SqlEngineFactory
+
+::: etlrelay.config.sql_engine_factory.SqlEngineFactoryError
 
 ## Core contracts and data model
 

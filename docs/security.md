@@ -1,34 +1,43 @@
 # Security
 
-ETLRelay is experimental pre-1.0 software. It should be evaluated in a non-production environment before it is used for important or sensitive workloads.
+ETLRelay 0.6.0 adds versioned YAML configuration, component validation, SQL environment-variable preflight, and a shared SQL engine factory for configuration-built pipelines. These features reduce ambiguity and prevent several classes of configuration error before data operations begin, but they do not form a full security boundary. ETLRelay remains pre-1.0 software; evaluate it in a controlled environment before using it for sensitive or production workloads.
 
 ## Local filesystem paths
 
-`PathValidator` resolves candidate paths and verifies that their resolved locations remain within the configured base directory. It checks path containment; it deliberately does not check existence. The filesystem operation determines whether a read or write succeeds.
+`PathValidator` resolves candidate paths and verifies that resolved locations remain within the configured base directory. It checks path containment, not existence; the filesystem operation determines whether a read or write succeeds. Parent directories are not created automatically by the local filesystem implementation.
 
-This validation is not an operating-system sandbox and does not eliminate time-of-check/time-of-use races if another process can change the filesystem concurrently. Run ETLRelay with only the filesystem permissions it needs and use a dedicated working directory where appropriate.
+Path validation is not an operating-system sandbox and does not eliminate time-of-check/time-of-use races if another process can modify the filesystem concurrently. Run ETLRelay with only the filesystem permissions it needs and use a dedicated working directory where appropriate.
+
+## YAML configuration safety
+
+`YamlReader` uses a safe YAML loader. It rejects duplicate mapping keys, malformed documents, multiple documents where a single document is expected, non-mapping roots, and non-string root keys. It does not construct arbitrary Python objects from YAML tags.
+
+`ConfigValidator` rejects unknown top-level fields, unknown component properties, unsupported component types, and unsupported schema versions. `PipelineBuilder` resolves explicit registrations; the v0.6.0 configuration format does not support arbitrary imports, `eval`, or unrestricted Python expression execution.
+
+Configuration validation is not a guarantee that runtime inputs are trustworthy. SQL query text is still caller-authored SQL, and data-dependent column/schema constraints can fail during execution.
+
+## SQL connection secrets
+
+Use `connection_url_env` to name an environment variable containing a SQLAlchemy connection URL. Do not put credential-bearing connection URLs, passwords, API tokens, or other secrets directly in YAML files, examples, changelog entries, or version control.
+
+During `PipelineBuilder.build()`, required connection-variable references are preflighted before ETL component factories run. Missing or empty values cause a `PipelineBuildError` before source/sink I/O begins. `SqlEngineFactory` avoids putting resolved connection URLs, credentials, or underlying driver exception text in its own error messages.
+
+Environment variables provide indirection, not a secrets vault. Application deployment remains responsible for setting environment values securely, limiting who can inspect them, preventing them from leaking into logs or diagnostics, and rotating credentials when needed. Avoid logging environment dumps or complete connection URLs. Use a secrets manager or platform-native secret injection appropriate to the deployment when stronger lifecycle and access controls are required.
+
+## SQL safety and limits
+
+Use SQLAlchemy bound parameters for SQL **values**. Do not interpolate untrusted value data into SQL query strings. Bind parameters cannot represent table names, column names, operators, or sort direction; dynamic identifiers require a trusted allowlist and appropriate SQLAlchemy APIs.
+
+`SqlSource` is not a SQL parser, query-policy engine, or authorization boundary. Use database credentials with the minimum required permissions. `SqlSink` appends to an existing table and does not implement a table-creation/migration or replace policy. SQLite is the reference integration-test backend; other SQLAlchemy dialects require suitable drivers and independent verification.
+
+## Resource lifecycle
+
+Direct Python `SqlSource` and `SqlSink` instances borrow the SQLAlchemy engine supplied by the caller; the application owns that engine and disposes it when it is no longer needed.
+
+For YAML-built pipelines, `create_default_component_catalog()` creates or accepts a shared `SqlEngineFactory`, and the `PipelineBuilder` uses it for SQL components. The caller must invoke `builder.close()` after execution to release engines created by this shared factory and discard resolved URLs. Do not close a successful build's engine resources before the pipeline runs.
 
 ## Current limitations
 
+ETLRelay does not provide a full filesystem sandbox, credentials vault, SQL authorization layer, external API security model, or remote-storage security model. Remote storage such as S3 and HDFS remains outside the planned v1.0.0 scope. Additional integrations require their own threat review and tests.
 
-## Current limitations
-
-ETLRelay does not provide a complete filesystem sandbox, credentials vault, SQL authorization/query-policy layer, external API security model, or remote-storage security model. SQL query values can be bound through `SqlSource`, and `SqlSink` delegates destination-table statement construction to SQLAlchemy; these mechanisms do not make caller-authored SQL text or uncontrolled identifiers safe. The application remains responsible for query structure, database permissions, and secret handling.
-
-## SQL values and identifiers
-
-`SqlSource` supports SQLAlchemy bound parameters for query values. Use named placeholders (for example, `:customer_id`) and pass the value separately through `parameters`; do not interpolate untrusted values into SQL text. This is a narrow parameterization facility, not a complete SQL authorization or query-policy layer.
-
-SQL identifiers such as table and column names cannot be supplied as ordinary bind parameters. `SqlSink` passes the configured destination table and optional schema to SQLAlchemy table-reflection/insert APIs, which handle dialect-aware identifier quoting. If an application constructs dynamic source query text, it must keep the query structure trusted and validate/allowlist dynamic identifiers. Never treat caller-controlled SQL text as safe merely because query values are bound.
-
-The application is responsible for creating a least-privilege database engine/connection, protecting any credentials in real connection URLs, and following its database's authorization rules. Documentation examples use in-memory SQLite and contain no credentials.
-
-
-The file-storage implementation supports the local filesystem only. S3, HDFS, and other remote-storage backends remain outside the planned v1.0.0 scope. SQL sources and sinks are separate SQLAlchemy-backed components; SQLite is the repeatable integration-test backend, while other database dialects need their matching driver and independent verification.
-
-Additional storage or platform integrations may be reviewed after v1.0.0
-if concrete requirements justify them. No particular integration or
-release date is promised.
-
-
-For reporting suspected vulnerabilities, follow the procedure in the repository's [Security policy](https://github.com/apaquette/ETLRelay/blob/main/SECURITY.md).
+For reporting suspected vulnerabilities, follow the procedure in the repository's [Security policy](https://github.com/apaquette/ETLRelay/blob/v0.6.0/SECURITY.md).

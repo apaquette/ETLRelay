@@ -1,0 +1,29 @@
+"""Storage-specific dispatch for component configuration validation.
+
+This module provides a storage configuration validator that delegates to the
+shared component dispatcher using the storage component registry.
+"""
+
+from typing import Any
+
+from etlrelay.config.component_dispatcher import ComponentConfigDispatcher
+from etlrelay.config.registry import ComponentRegistry
+
+
+class StorageConfigValidator(ComponentConfigDispatcher):
+    """Dispatch storage configuration to its registered validator.
+
+    This class specializes the shared component dispatcher for storage
+    configurations. It resolves each configuration's ``type`` against the
+    supplied registry and delegates validation to the corresponding registered
+    validator.
+    """
+
+    def __init__(self, registry: ComponentRegistry[Any]) -> None:
+        """Initialize the validator with the storage component registry.
+
+        Args:
+            registry: Registry containing storage registrations and their
+                configuration validators.
+        """
+        super().__init__(registry, component_kind="storage")

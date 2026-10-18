@@ -9,7 +9,7 @@ It composes two independent components:
 * `FileSystem`, which provides a writable binary stream for the destination.
 * `Writer`, which serializes an iterable of `Batch` objects into the supplied stream.
 
-`FileSink` does not depend on a particular storage implementation or file format. This allows it to work with `LocalFileSystem` and future storage implementations, as well as `CsvWriter` and future writers, without changing its implementation.
+`FileSink` does not depend on a particular storage implementation or file format. The current implementation combines `LocalFileSystem` with `CsvWriter` or `ParquetWriter` without changing the sink implementation.
 
 ## Class Diagram
 
@@ -45,6 +45,10 @@ classDiagram
         +write(batches: Iterable~Batch~, stream: BinaryIO) None
     }
 
+    class ParquetWriter {
+        +write(batches: Iterable~Batch~, stream: BinaryIO) None
+    }
+
     class PathValidator {
         +validate(path: Path | str) Path
     }
@@ -54,6 +58,7 @@ classDiagram
     Sink <|.. FileSink
     FileSystem <|.. LocalFileSystem
     Writer <|.. CsvWriter
+    Writer <|.. ParquetWriter
 
     FileSink --> FileSystem : uses
     FileSink --> Writer : uses
@@ -80,7 +85,7 @@ classDiagram
 
 * Implementing filesystem operations.
 * Validating local filesystem path containment.
-* Serializing CSV or other file formats.
+* Serializing CSV, Parquet, or other file formats.
 * Transforming or constructing `Batch` objects.
 * Selecting a storage backend or writer implementation.
 * Orchestrating pipeline execution.
@@ -99,9 +104,9 @@ Its implementations handle storage-specific behavior, including resource access,
 
 `Writer` defines the contract for serializing an iterable of `Batch` objects into a binary stream.
 
-Its implementations handle format-specific serialization. For example, `CsvWriter` serializes batches into CSV data using PyArrow.
+Its implementations handle format-specific serialization. The current built-in writers are `CsvWriter` and `ParquetWriter`.
 
-The writer is responsible for processing the iterable according to its contract, including handling empty batches and determining how multiple batches are represented in one output resource.
+The writer is responsible for processing the iterable according to its contract, including handling empty batches and determining how multiple batches are represented in one output resource. Format-specific constraints remain the writer's responsibility; for example, `ParquetWriter` requires a first batch to establish the output schema, so an empty iterable is not equivalent to a zero-row batch with a schema.
 
 `FileSink` does not need to know how the writer serializes the batches.
 
@@ -118,21 +123,20 @@ FileSink
  │              └── PathValidator
  │
  └── Writer
-        └── CsvWriter
+        ├── CsvWriter
+        └── ParquetWriter
 ```
 
 `FileSink` depends on the `FileSystem` and `Writer` protocols, not their concrete implementations.
 
-This enables different combinations without modifying `FileSink`:
+Current file-based combinations use local storage with one of the built-in formats:
 
 ```text
 LocalFileSystem + CsvWriter
 LocalFileSystem + ParquetWriter
-S3Storage       + CsvWriter
-HdfsStorage     + CsvWriter
 ```
 
-Additional combinations can be supported as new storage and writer implementations are introduced.
+Remote storage backends such as S3 and HDFS are not implemented in v0.6.0 and are not part of the planned v1.0.0 scope. Additional storage implementations may be reviewed after v1.0.0 if concrete requirements justify them; no particular backend or release date is promised.
 
 ## Data Flow
 
@@ -191,20 +195,20 @@ class FileSink:
 
 ## Contract
 
-| Operation                                  | Expected behavior                                                                     |
-| ------------------------------------------ | ------------------------------------------------------------------------------------- |
-| Construct with path, storage, and writer   | Stores the supplied dependencies and destination path                                 |
-| Write an iterable of batches               | Delegates serialization to the supplied writer                                        |
-| Write multiple batches                     | Passes all batches through a single output stream                                     |
-| Write an empty iterable                    | Delegates empty-input handling to the writer                                          |
-| Write an iterable containing empty batches | Delegates empty-batch handling to the writer                                          |
-| Write to a new valid local destination     | Creates the destination file when the parent directory exists and access is permitted |
-| Write to an invalid local path             | Propagates the path-validation error from local storage                               |
-| Write when storage access fails            | Propagates the underlying storage error                                               |
-| Write when serialization fails             | Propagates the writer's exception                                                     |
-| Complete or fail a write                   | Closes the opened stream                                                              |
-| Supply another storage implementation      | Works without modifying `FileSink`, provided it satisfies `FileSystem`                |
-| Supply another writer implementation       | Works without modifying `FileSink`, provided it satisfies `Writer`                    |
+| Operation | Expected behavior |
+| --- | --- |
+| Construct with path, storage, and writer | Stores the supplied dependencies and destination path |
+| Write an iterable of batches | Delegates serialization to the supplied writer |
+| Write multiple batches | Passes all batches through a single output stream |
+| Write an empty iterable | Delegates empty-input handling to the writer |
+| Write an iterable containing empty batches | Delegates empty-batch handling to the writer |
+| Write to a new valid local destination | Creates the destination file when the parent directory exists and access is permitted |
+| Write to an invalid local path | Propagates the path-validation error from local storage |
+| Write when storage access fails | Propagates the underlying storage error |
+| Write when serialization fails | Propagates the writer's exception |
+| Complete or fail a write | Closes the opened stream |
+| Supply another storage implementation | Works without modifying `FileSink`, provided it satisfies `FileSystem` and its behavioral contract |
+| Supply another writer implementation | Works without modifying `FileSink`, provided it satisfies `Writer` and its behavioral contract |
 
 Exceptions are propagated rather than wrapped in a new `FileSink` exception hierarchy.
 
@@ -220,17 +224,15 @@ It does not implement filesystem operations or format-specific serialization.
 
 ### Open/Closed Principle
 
-New storage backends and writer implementations can be introduced without modifying `FileSink`.
+New writer implementations can be introduced without modifying `FileSink`. New storage implementations could also satisfy the protocol, but none beyond `LocalFileSystem` is currently included in the supported project scope.
 
-For example, adding `ParquetWriter` or `S3Storage` does not require changes to the sink implementation.
+For example, adding a new local-compatible writer does not require changes to the sink implementation.
 
-No factory, registry, or plugin framework is required at this stage.
+No factory, registry, or plugin framework is required at this layer.
 
 ### Liskov Substitution Principle
 
-Any implementation satisfying `FileSystem` can replace another storage implementation, and any implementation satisfying `Writer` can replace another writer.
-
-Substitutions must preserve their respective contracts, including writable-stream behavior, iterable consumption, and exception propagation.
+Any implementation satisfying `FileSystem` can be supplied as storage, and any implementation satisfying `Writer` can be supplied as a writer, provided it preserves the documented behavioral contracts, including writable-stream behavior, iterable consumption, and exception propagation.
 
 ### Interface Segregation Principle
 
@@ -249,7 +251,7 @@ This keeps sink orchestration independent of local filesystem details and partic
 
 ## Design Constraints
 
-The initial implementation should remain small:
+The implementation should remain small:
 
 * Accept a destination path, `FileSystem`, and `Writer`.
 * Use `FileSystem.open_write()` to obtain the output stream.

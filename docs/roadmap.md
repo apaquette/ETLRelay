@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This roadmap defines incremental, testable milestones from the current local-file pipeline implementation to a stable ETLRelay `1.0.0` release.
+This roadmap defines incremental, testable milestones from the current YAML-configurable, batch-oriented ETL implementation to a stable ETLRelay `1.0.0` release.
 
 The target for `1.0.0` is a lightweight, synchronous, batch-oriented ETL framework that can read from local files or SQL, apply a small set of transformations, and write to local files or SQL. File storage and serialization remain separate concerns. YAML configuration and a small CLI make pipelines usable without writing Python for every job.
 
@@ -18,9 +18,10 @@ The roadmap is feature-led, not date-led. A version should be released when its 
 | Released | `0.3.0` | Parquet format support |
 | Released | `0.4.0` | Storage contract stabilization |
 | Released | `0.5.0` | SQL source and sink |
-| Planned | `0.6.0` onward | YAML configuration, CLI, and v1.0 readiness milestones |
+| Released | `0.6.0` | YAML configuration and runtime pipeline construction |
+| Planned | `0.7.0` onward | CLI and v1.0 readiness milestones |
 
-The latest released milestone is `0.5.0`. Releases `0.4.0` and `0.5.0` stabilized local filesystem behavior and added SQL source/sink support. The next planned milestone is `0.6.0`, declarative YAML configuration. Later milestones describe intended scope and may be revised as implementation and testing clarify dependencies.
+The latest released milestone is `0.6.0`. Releases `0.4.0` and `0.5.0` stabilized local filesystem behavior and added SQL source/sink support; `0.6.0` adds versioned YAML loading and validation, explicit component registrations, a shared default component catalog, SQL environment preflight, and configuration-driven pipeline construction. The CLI remains planned for `0.7.0`. Later milestones describe intended scope and may be revised as implementation and testing clarify dependencies.
 
 ## Versioning policy
 
@@ -132,21 +133,28 @@ The SQL API does not implement `replace`, ORM-model integration, table creation/
 
 **Done when:** SQL input and append-only output compose with ETLRelay pipelines, value parameters are bound, and the behavior and limitations are documented and tested.
 
-### `0.6.0` — Declarative YAML configuration
+### `0.6.0` — Declarative YAML configuration (released)
 
-**Goal:** Let users define supported pipelines without writing Python assembly code.
+**Outcome:** Added versioned YAML configuration and construction of runtime pipelines from validated mappings while preserving the direct Python APIs.
 
-Scope:
+The release includes:
 
-- Define and document a versioned YAML schema for source, processor sequence, and sink.
-- Validate required properties and types before execution.
-- Resolve only explicitly supported component types through a small, explicit mapping.
-- Support configured storage and file formats where implemented.
-- Reference secrets through environment variables or another clearly documented mechanism; do not accept plaintext secrets as the recommended approach.
-- Reject unknown component types, unknown properties where appropriate, invalid combinations, and malformed configuration with actionable errors.
-- Do not use `eval`, arbitrary imports, or unrestricted Python execution to construct pipelines.
+- `KeyValueReader` and `YamlReader` for safe, mapping-shaped YAML documents, including duplicate-key rejection and root mapping/string-key checks.
+- `ConfigLoader` to coordinate configuration file access, parsing, and schema validation.
+- `ConfigValidator`, `ConfigurationError`, component-specific validators, and family dispatchers for source, sink, storage, and processor configuration.
+- `ComponentRegistry` and `ComponentRegistration` to associate a supported component name with its validator and runtime factory.
+- `TabularFileFormatRegistry` capability checks for CSV and Parquet reading/writing.
+- `ComponentCatalog` and `create_default_component_catalog()` to compose shared registries, validators, factories, and the SQL engine factory.
+- `PipelineBuilder` to resolve all component types and preflight SQL environment-variable references before invoking component factories.
+- SQL engine caching, credential-aware error redaction, and explicit builder cleanup for configuration-built pipelines.
+- End-to-end tests for YAML/direct-Python equivalence, processor order, supported file/SQLite source-sink combinations, and rejection before external I/O or component construction.
+- User-facing documentation for schema version 1, supported properties and combinations, environment-variable references, error handling, architecture, and runnable examples.
 
-**Done when:** YAML configuration builds the same pipeline as direct Python composition and invalid configuration is rejected before the pipeline starts.
+Schema version 1 supports file sources/sinks with CSV and Parquet, SQL sources/sinks, local filesystem storage, and the `select_columns`, `rename_columns`, and `filter_rows` processors. It uses explicit registrations only; dynamic plugin loading, arbitrary imports, and `eval` are not supported. Missing or empty SQL environment variables fail during builder preflight before component factory construction and source/sink I/O.
+
+The shared SQL engine factory is owned by the configuration-building lifecycle. Callers close the `PipelineBuilder` after a successfully built pipeline finishes execution. Direct Python SQL components retain their caller-owned engine contract.
+
+**Done when:** A user can define a supported pipeline in YAML, load and validate it, build the same effective pipeline as direct Python composition, execute it, and diagnose configuration/preflight errors without leaking resolved connection URLs. Full regression and release checks pass.
 
 ### `0.7.0` — Command-line interface
 
@@ -194,13 +202,17 @@ Scope:
 
 - Feature freeze.
 - Review public names, constructors, protocol signatures, configuration schema, CLI behavior, and documented exceptions.
+- Complete the pre-`1.0.0` protocol naming cleanup: rename `Reader` and `Writer` to `TabularReader` and `TabularWriter` to make their `Batch`-oriented contracts explicit. Update concrete implementations, type annotations, public exports, tests, examples, and documentation consistently.
+- Keep `KeyValueReader` as a separate protocol for mapping-shaped documents. Confirm that configuration loading depends on this abstraction rather than the concrete `YamlReader`.
+- Decide whether `KeyValueWriter` has a concrete v1.0 use case before adding it; do not introduce it solely for symmetry.
+- Document the distinction between a mapping-shaped document and row records. Review possible tabular-to-records and records-to-tabular conversion contracts before the API freeze, but do not add a generic conversion framework without a demonstrated v1.0 use case.
 - Test full pipelines across supported combinations: local CSV, local Parquet, and SQL input/output.
 - Test empty inputs, empty batches, schema mismatches, malformed data, inaccessible resources, processor failures, sink failures, and stream cleanup.
 - Test a clean install on each supported Python version/platform combination the project claims to support.
 - Complete README, quick start, examples, API reference, configuration reference, security notes, contribution instructions, and release notes.
 - Document unsupported features and known limitations.
 
-**Done when:** No required v1.0 feature remains unimplemented, release-blocking defects are resolved, and the project can maintain a clear public API contract.
+**Done when:** No required v1.0 feature remains unimplemented, release-blocking defects are resolved, and the project can maintain a clear public API contract. Reader/writer names clearly identify tabular contracts, the mapping-document contract is separate, and conversion scope is explicitly documented as either required or deferred.
 
 ### `1.0.0rc1` — Release candidate
 
@@ -234,6 +246,7 @@ Potential areas for future review include, but are not limited to:
 - Web UI, job queue, monitoring server, and data catalog/lineage systems.
 - Expanded custom-component loading or plugin mechanisms.
 - Larger processor libraries or a general-purpose expression language.
+- Tabular/record conversion utilities (for example, converting `Batch` data to a sequence of row mappings and back), if concrete use cases justify their contracts and maintenance cost.
 
 These examples describe areas that may be evaluated, not features promised for a particular release. After v1.0.0, review candidate enhancements as a separate roadmap decision: identify concrete use cases, define acceptance criteria, estimate implementation and maintenance costs, and determine priority and sequencing. Do not assume that every listed integration will be implemented.
 
@@ -260,10 +273,10 @@ The `etlrelay` distribution has already been published to PyPI; see the [ETLRela
 | `0.3.0` | Released | Parquet | CSV and Parquet through shared reader/writer interfaces |
 | `0.4.0` | Released | Storage contract stabilization | Documented and tested local filesystem behavior; no remote-storage implementation |
 | `0.5.0` | Released | SQL source/sink | Tested SQLite reads/writes and mixed file/SQL pipelines |
-| `0.6.0` | Planned | YAML | Validated declarative pipelines |
+| `0.6.0` | Released | YAML configuration | Versioned schema validation, explicit component catalog, SQL preflight, and runtime pipeline construction |
 | `0.7.0` | Planned | CLI | Validate and run pipelines from a shell |
 | `0.8.0` | Planned | Security and operational readiness | Security review, errors/logging, installation and CI gates |
-| `0.9.0` | Planned | Feature-complete beta | Feature freeze and full API review |
+| `0.9.0` | Planned | Feature-complete beta | Feature freeze, reader/writer naming cleanup, and full API/representation-contract review |
 | `1.0.0rc1` | Planned | Release candidate | Final validation and feedback |
 | `1.0.0` | Planned | Stable release | Documented, usable, tested config-driven ETL product |
 
