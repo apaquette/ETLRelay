@@ -98,3 +98,56 @@ def test_rejects_non_string_property_keys() -> None:
 
     assert errors
     assert all(isinstance(error, str) for error in errors)
+
+
+def test_filter_rows_validator_rejects_invalid_column_values() -> None:
+    validator = FilterRowsConfigValidator()
+
+    for column in ("", "   ", None, 42):
+        errors = validator.validate(
+            {
+                "type": "filter_rows",
+                "column": column,
+                "operator": "==",
+                "value": 1,
+            },
+            "processors[0]",
+        )
+        assert any("column" in error for error in errors), column
+
+
+def test_filter_rows_validator_rejects_invalid_operator_and_value_types() -> None:
+    validator = FilterRowsConfigValidator()
+
+    for operator in (None, 3, "LIKE"):
+        errors = validator.validate(
+            {
+                "type": "filter_rows",
+                "column": "amount",
+                "operator": operator,
+                "value": 1,
+            },
+            "processors[0]",
+        )
+        assert any("operator" in error for error in errors), operator
+
+    for value in (None, [], {}):
+        errors = validator.validate(
+            {
+                "type": "filter_rows",
+                "column": "amount",
+                "operator": "==",
+                "value": value,
+            },
+            "processors[0]",
+        )
+        assert any("value" in error for error in errors), value
+
+
+def test_rejects_mismatched_processor_type() -> None:
+    config = valid_config()
+    config["type"] = "select_columns"
+
+    errors = FilterRowsConfigValidator().validate(config, "processors[0]")
+
+    assert any("processors[0].type" in error and "'filter_rows'" in error for error in errors)
