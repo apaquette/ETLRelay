@@ -1,10 +1,10 @@
 """Unit tests for processor configuration dispatch."""
 
-from collections.abc import Callable, Mapping
-from unittest.mock import Mock
+from collections.abc import Mapping
 
 import pytest
 
+from etlrelay.config.component_factory import ComponentFactory
 from etlrelay.config.component_validator import ComponentConfigValidator
 from etlrelay.config.processors.dispatcher import ProcessorConfigValidator
 from etlrelay.config.processors.sequence import ProcessorSequenceConfigValidator
@@ -23,25 +23,37 @@ class StubConfigValidator:
         return self.errors
 
 
+class StubConfigFactory:
+    """Record factory calls and return a placeholder component."""
+
+    def __init__(self) -> None:
+        self.calls: list[Mapping[str, object]] = []
+
+    def build(self, config: Mapping[str, object]) -> object:
+        self.calls.append(config)
+        return object()
+
+
 def make_registry(
     validators: Mapping[str, ComponentConfigValidator],
-    factories: Mapping[str, Callable[[Mapping[str, object]], object]] | None = None,
+    factories: Mapping[str, ComponentFactory[object]] | None = None,
 ) -> ComponentRegistry[object]:
     """Create a processor registry using test doubles."""
     supplied_factories = factories or {}
+    registrations: dict[str, ComponentRegistration[object]] = {}
 
-    return ComponentRegistry(
-        {
-            name: ComponentRegistration[object](
-                validator=validator,
-                factory=supplied_factories.get(
-                    name,
-                    Mock(return_value=object()),
-                ),
-            )
-            for name, validator in validators.items()
-        }
-    )
+    for name, validator in validators.items():
+        factory = supplied_factories.get(name)
+
+        if factory is None:
+            factory = StubConfigFactory()
+
+        registrations[name] = ComponentRegistration[object](
+            validator=validator,
+            factory=factory,
+        )
+
+    return ComponentRegistry(registrations)
 
 
 def test_processor_dispatcher_delegates_to_registered_validator() -> None:
@@ -92,7 +104,7 @@ def test_processor_dispatcher_rejects_unregistered_type() -> None:
 
 def test_processor_dispatcher_does_not_invoke_factory() -> None:
     validator = StubConfigValidator()
-    factory = Mock(return_value=object())
+    factory = StubConfigFactory()
     dispatcher = ProcessorConfigValidator(
         make_registry(
             {"select_columns": validator},
@@ -105,7 +117,7 @@ def test_processor_dispatcher_does_not_invoke_factory() -> None:
         "processors[0]",
     )
 
-    factory.assert_not_called()
+    assert factory.calls == []
 
 
 def test_processor_sequence_accepts_empty_list() -> None:

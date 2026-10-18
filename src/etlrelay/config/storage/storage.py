@@ -3,7 +3,7 @@
 from collections.abc import Mapping
 from typing import Any
 
-from etlrelay.config.validator import ComponentConfigValidator
+from etlrelay.config.component_validator import ComponentConfigValidator
 
 
 class StorageConfigValidator:

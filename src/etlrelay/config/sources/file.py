@@ -1,5 +1,6 @@
 """Configuration validator for file sources."""
 
+from collections.abc import Mapping
 from typing import Any
 
 from etlrelay.config._validation import (
@@ -8,7 +9,28 @@ from etlrelay.config._validation import (
     validate_keys,
 )
 from etlrelay.config.component_validator import ComponentConfigValidator
+from etlrelay.config.registry import ComponentRegistry
 from etlrelay.file_formats import TabularFileFormatRegistry
+from etlrelay.sources import FileSource
+from etlrelay.storage import FileSystem
+
+
+class FileSourceConfigFactory:
+    def __init__(
+        self,
+        storage_registry: ComponentRegistry[FileSystem],
+        format_registry: TabularFileFormatRegistry,
+    ) -> None:
+        self._storage_registry = storage_registry
+        self._format_registry = format_registry
+
+    def build(self, config: Mapping) -> FileSource:
+        path = config["path"]
+        storage = self._storage_registry.get(config["storage"]["type"]).factory.build(
+            config["storage"]
+        )
+        reader = self._format_registry.create_reader(config["format"])
+        return FileSource(path=path, storage=storage, reader=reader)
 
 
 class FileSourceConfigValidator:

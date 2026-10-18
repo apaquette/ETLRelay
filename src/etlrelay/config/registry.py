@@ -1,7 +1,8 @@
-from collections.abc import Callable, Mapping
+from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import TypeVar
 
+from etlrelay.config.component_factory import ComponentFactory
 from etlrelay.config.component_validator import ComponentConfigValidator
 
 T = TypeVar("T")
@@ -24,7 +25,7 @@ class ComponentRegistration[T]:
     """
 
     validator: ComponentConfigValidator
-    factory: Callable[[Mapping[str, object]], T]
+    factory: ComponentFactory[T]
 
 
 class ComponentRegistry[T]:

@@ -1,9 +1,7 @@
-"""Unit tests for generic component registration and lookup contracts."""
+"""Tests for registrations using class-based component factories."""
 
 from collections.abc import Mapping
 from dataclasses import FrozenInstanceError
-from typing import Any
-from unittest.mock import Mock
 
 import pytest
 
@@ -18,51 +16,44 @@ class StubConfigValidator:
         return []
 
 
-def build_component(config: Mapping[str, object]) -> str:
-    """Return a marker value without constructing a real ETL component."""
-    return str(config.get("type", "component"))
+class StubConfigFactory:
+    """Factory spy implementing the proposed build(config) interface."""
+
+    def __init__(self, result: str = "constructed") -> None:
+        self.result = result
+        self.configs: list[Mapping[str, object]] = []
+
+    def build(self, config: Mapping[str, object]) -> str:
+        self.configs.append(config)
+        return self.result
 
 
 def make_registration(
     validator: ComponentConfigValidator | None = None,
-    factory: Any = build_component,
+    factory: StubConfigFactory | None = None,
 ) -> ComponentRegistration[str]:
-    """Create a registration with test doubles for its collaborators."""
     return ComponentRegistration(
-        validator=(validator if validator is not None else StubConfigValidator()),
-        factory=factory,
+        validator=validator or StubConfigValidator(),
+        factory=factory or StubConfigFactory(),
     )
 
 
 def test_registration_keeps_validator_and_factory_associated() -> None:
     validator = StubConfigValidator()
-    factory = Mock(return_value="constructed")
+    factory = StubConfigFactory()
 
-    registration = ComponentRegistration[str](
-        validator=validator,
-        factory=factory,
-    )
+    registration = ComponentRegistration[str](validator=validator, factory=factory)
 
     assert registration.validator is validator
     assert registration.factory is factory
-    factory.assert_not_called()
+    assert factory.configs == []
 
 
-@pytest.mark.parametrize(
-    ("attribute", "value"),
-    [
-        ("validator", StubConfigValidator()),
-        ("factory", build_component),
-    ],
-)
-def test_registration_is_immutable(
-    attribute: str,
-    value: object,
-) -> None:
+def test_registration_is_immutable() -> None:
     registration = make_registration()
 
     with pytest.raises(FrozenInstanceError):
-        setattr(registration, attribute, value)
+        setattr(registration, "factory", StubConfigFactory())  # noqa: B010
 
 
 def test_registry_returns_registered_component() -> None:
@@ -75,12 +66,7 @@ def test_registry_returns_registered_component() -> None:
 def test_registry_names_returns_registered_names_in_insertion_order() -> None:
     file_registration = make_registration()
     sql_registration = make_registration()
-    registry = ComponentRegistry[str](
-        {
-            "file": file_registration,
-            "sql": sql_registration,
-        }
-    )
+    registry = ComponentRegistry[str]({"file": file_registration, "sql": sql_registration})
 
     assert registry.names() == ("file", "sql")
 
@@ -116,7 +102,7 @@ def test_registry_copies_input_mapping() -> None:
 
 
 def test_registry_does_not_invoke_factories_during_construction_or_lookup() -> None:
-    factory = Mock(return_value="constructed")
+    factory = StubConfigFactory()
     registration = make_registration(factory=factory)
 
     registry = ComponentRegistry[str]({"file": registration})
@@ -125,19 +111,19 @@ def test_registry_does_not_invoke_factories_during_construction_or_lookup() -> N
 
     assert retrieved is registration
     assert names == ("file",)
-    factory.assert_not_called()
+    assert factory.configs == []
 
 
 def test_registered_factory_can_be_invoked_explicitly() -> None:
-    factory = Mock(return_value="constructed")
+    factory = StubConfigFactory()
     registration = make_registration(factory=factory)
     registry = ComponentRegistry[str]({"file": registration})
     config: Mapping[str, object] = {"type": "file", "path": "input.csv"}
 
-    result = registry.get("file").factory(config)
+    result = registry.get("file").factory.build(config)
 
     assert result == "constructed"
-    factory.assert_called_once_with(config)
+    assert factory.configs == [config]
 
 
 @pytest.mark.parametrize("name", ["", " ", "\t"])

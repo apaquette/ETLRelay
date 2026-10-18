@@ -1,4 +1,8 @@
-from .local import LocalFileStorageValidator
+from .local import LocalFileSystemConfigFactory, LocalFileSystemConfigValidator
 from .storage import StorageConfigValidator
 
-__all__ = ["LocalFileStorageValidator", "StorageConfigValidator"]
+__all__ = [
+    "LocalFileSystemConfigValidator",
+    "StorageConfigValidator",
+    "LocalFileSystemConfigFactory",
+]
