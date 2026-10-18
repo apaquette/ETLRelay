@@ -1,3 +1,9 @@
+"""Configuration validation and construction for the FilterRows processor.
+
+This module provides a configuration validator and factory for creating
+FilterRows processors from validated configuration mappings.
+"""
+
 from collections.abc import Mapping
 from typing import Final, cast
 
@@ -10,10 +16,22 @@ from etlrelay.processors.filter_rows import FilterRows
 
 
 class FilterRowsConfigFactory:
-    """Construct a FilterRows processor from validated configuration."""
+    """Construct FilterRows processors from validated configuration mappings."""
 
     def build(self, config: Mapping[str, object]) -> FilterRows:
-        """Build a processor using the configured predicate."""
+        """Build a FilterRows processor from its configuration.
+
+        Args:
+            config: Validated configuration mapping containing the ``column``,
+                ``operator``, and ``value`` fields.
+
+        Returns:
+            A FilterRows processor configured with the specified predicate.
+
+        Note:
+            This method assumes the configuration has already been validated.
+            It does not independently check field presence or value types.
+        """
         return FilterRows(
             column=cast(str, config["column"]),
             operator=cast(str, config["operator"]),
@@ -22,14 +40,33 @@ class FilterRowsConfigFactory:
 
 
 class FilterRowsConfigValidator:
-    """Validate configuration for the FilterRows processor."""
+    """Validate configuration mappings for the FilterRows processor.
+
+    The validator checks the supported and required fields, the configured
+    processor type, the column name, the comparison operator, and the
+    predicate value's type.
+    """
 
     _ALLOWED_KEYS: Final[frozenset[str]] = frozenset({"type", "column", "operator", "value"})
     _REQUIRED_KEYS: Final[frozenset[str]] = frozenset({"type", "column", "operator", "value"})
     _SUPPORTED_OPERATORS: Final[frozenset[str]] = frozenset({"==", "!=", "<", "<=", ">", ">="})
 
     def validate(self, config: object, path: str) -> list[str]:
-        """Return validation errors for a FilterRows configuration."""
+        """Validate a FilterRows configuration and report any errors.
+
+        The configuration must be a mapping containing the required fields.
+        The ``type`` field must be ``"filter_rows"``, ``column`` must be a
+        non-empty string, ``operator`` must be a supported comparison
+        operator, and ``value`` must be a string, integer, float, or boolean.
+
+        Args:
+            config: Configuration value to validate.
+            path: Configuration path used to identify validation errors.
+
+        Returns:
+            A list of validation error messages. The list is empty when no
+            validation errors are found.
+        """
         mapping, errors = as_mapping(config, path)
         if mapping is None:
             return errors

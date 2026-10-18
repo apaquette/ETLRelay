@@ -1,4 +1,9 @@
-"""Explicit composition of ETLRelay's default configuration components."""
+"""Explicit composition of ETLRelay's default configuration components.
+
+This module assembles the default file formats, storage implementations,
+source and sink factories, processor factories, component registries, and
+configuration validators into a shared component catalog.
+"""
 
 from dataclasses import dataclass
 
@@ -42,7 +47,27 @@ from etlrelay.writers import CsvWriter, ParquetWriter
 
 @dataclass(frozen=True)
 class ComponentCatalog:
-    """Shared registries and services used for validation and construction."""
+    """Bundle shared registries and services for configuration processing.
+
+    The catalog exposes the registries used to resolve storage, source, sink,
+    and processor types, as well as the tabular file-format registry, SQL
+    engine factory, and root configuration validator.
+
+    File sources and sinks share the catalog's storage and file-format
+    registries. SQL sources and sinks share its SQL engine factory.
+
+    Attributes:
+        tabular_file_format_registry: Registry of supported tabular readers
+            and writers.
+        storage_registry: Registry of storage component registrations.
+        source_registry: Registry of source component registrations.
+        sink_registry: Registry of sink component registrations.
+        processor_registry: Registry of processor component registrations.
+        sql_engine_factory: Shared provider for preflighted SQL connection
+            references and the lifecycle of created SQL engines.
+        config_validator: Validator for the root pipeline configuration and
+            its component sections.
+    """
 
     tabular_file_format_registry: TabularFileFormatRegistry
     storage_registry: ComponentRegistry[FileSystem]
@@ -57,12 +82,35 @@ def create_default_component_catalog(
     *,
     sql_engine_factory: SqlEngineFactory | None = None,
 ) -> ComponentCatalog:
-    """Create the default validators, factories, and component registries.
+    """Create the default component catalog and its shared dependencies.
 
-    Construction is lazy with respect to runtime components: this function
-    creates registrations but does not call their component factories,
-    resolve SQL environment variables, create database engines, open files,
-    or execute a pipeline.
+    The catalog registers CSV and Parquet readers and writers, local
+    filesystem storage, file and SQL sources and sinks, and the
+    ``select_columns``, ``rename_columns``, and ``filter_rows`` processors.
+    It also assembles the dispatchers and root configuration validator.
+
+    A single set of registries is shared between the corresponding validators
+    and factories, and the same SQL engine factory is supplied to both SQL
+    component factories.
+
+    Args:
+        sql_engine_factory: Optional SQL engine factory to share with the
+            catalog's SQL source and sink factories. If omitted, a new
+            ``SqlEngineFactory`` is created.
+
+    Returns:
+        A ``ComponentCatalog`` containing the default component registries,
+        shared SQL engine factory, and root configuration validator.
+
+    Note:
+        Creating the catalog assembles configuration components and their
+        registrations; it does not invoke component ``build`` methods,
+        resolve SQL environment variables, create database engines, open
+        files, or execute a pipeline.
+
+        The tabular file-format registry is separate from key-value document
+        readers such as ``YamlReader``, which are not registered as tabular
+        data formats.
     """
     if sql_engine_factory is None:
         sql_engine_factory = SqlEngineFactory()

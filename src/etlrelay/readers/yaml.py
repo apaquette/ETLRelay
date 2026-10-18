@@ -1,4 +1,10 @@
-"""Read safe, single-document YAML mappings from binary streams."""
+"""Read safe, single-document YAML mappings from binary streams.
+
+The reader uses PyYAML's safe loader and rejects duplicate mapping keys,
+including duplicates exposed after YAML merge keys are flattened. It requires
+the document root to be a mapping with string keys but leaves application-
+specific schema validation to the configuration validator.
+"""
 
 from collections.abc import Mapping
 from typing import Any, BinaryIO, cast
@@ -11,9 +17,10 @@ from yaml.nodes import MappingNode
 class _UniqueKeySafeLoader(yaml.SafeLoader):
     """Safely load YAML while rejecting duplicate mapping keys.
 
-    Mapping keys are checked after YAML merge keys have been flattened.
-    Consequently, a key inherited through a merge and repeated explicitly
-    is also rejected.
+    This loader retains the safe-construction behavior of ``yaml.SafeLoader``
+    and rejects duplicate or unhashable mapping keys. Duplicate-key detection
+    occurs after YAML merge keys have been flattened, so a key inherited
+    through a merge and repeated explicitly is also rejected.
     """
 
     def construct_mapping(
@@ -21,10 +28,22 @@ class _UniqueKeySafeLoader(yaml.SafeLoader):
         node: MappingNode,
         deep: bool = False,
     ) -> dict[Any, Any]:
-        """Construct a mapping, rejecting unhashable and duplicate keys.
+        """Construct a mapping and reject unhashable or duplicate keys.
+
+        YAML merge keys are flattened before entries are processed. Each key
+        is constructed and checked for hashability and duplication before its
+        corresponding value is added to the result.
+
+        Args:
+            node: YAML mapping node to construct.
+            deep: PyYAML construction flag indicating whether nested objects
+                should be constructed deeply.
+
+        Returns:
+            A dictionary containing the constructed mapping entries.
 
         Raises:
-            ConstructorError: If a key is unhashable or a key occurs more
+            ConstructorError: If a mapping key is unhashable or appears more
                 than once in the flattened mapping.
         """
         self.flatten_mapping(node)
@@ -61,31 +80,31 @@ class _UniqueKeySafeLoader(yaml.SafeLoader):
 class YamlReader:
     """Read a YAML document whose root is a string-keyed mapping.
 
-    This reader handles YAML parsing and the mapping-shaped output contract.
-    It does not validate an application's schema or the structure of nested
-    mappings.
+    This reader handles safe YAML parsing and enforces the root mapping
+    contract. It does not validate application-specific schema rules or
+    restrict the key types of nested mappings.
     """
 
     def read(self, stream: BinaryIO) -> Mapping[str, Any]:
-        """Parse one YAML document from a binary stream.
+        """Parse a single YAML document from a binary stream.
 
-        The stream remains open after this method returns or raises.
+        The YAML root must be a mapping, and all root-level keys must be
+        strings. Duplicate keys are rejected by the custom safe loader.
+        The stream is not explicitly closed by this method.
 
         Args:
-            stream: A binary stream containing one YAML document, positioned
-                at the beginning of the document.
+            stream: Binary stream containing the YAML document.
 
         Returns:
-            The parsed root mapping. Root-level keys are guaranteed to be
-            strings. Nested mapping keys are not restricted to strings by
-            this reader.
+            The parsed root mapping, with string keys at the root. Nested
+            mappings may contain keys of other types.
 
         Raises:
-            ValueError: If the document root is not a mapping or if a
+            ValueError: If the parsed document root is not a mapping or any
                 root-level key is not a string.
-            yaml.YAMLError: If the YAML is malformed, contains duplicate
-                mapping keys, contains unhashable mapping keys, or contains
-                multiple documents.
+            yaml.YAMLError: If parsing fails, the document contains duplicate
+                or unhashable mapping keys, or the stream contains multiple
+                YAML documents instead of a single document.
         """
         document = yaml.load(stream, Loader=_UniqueKeySafeLoader)
 

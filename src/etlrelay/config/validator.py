@@ -1,4 +1,9 @@
-"""Root validation for versioned ETLRelay pipeline configurations."""
+"""Root validation for versioned ETLRelay pipeline configurations.
+
+This module validates the top-level structure and supported version of a
+pipeline configuration, then delegates validation of the source, processor
+sequence, and sink sections to their respective validators.
+"""
 
 from etlrelay.config._validation import as_mapping
 from etlrelay.config.component_validator import ComponentConfigValidator
@@ -6,7 +11,17 @@ from etlrelay.config.errors import ConfigurationError
 
 
 class ConfigValidator:
-    """Validate a complete versioned pipeline configuration."""
+    """Validate a complete versioned pipeline configuration.
+
+    The validator enforces the root configuration schema, including the
+    supported version and required top-level fields. It delegates validation
+    of individual pipeline sections to the injected component validators and
+    aggregates their errors with any root-level validation errors.
+
+    Attributes:
+        SUPPORTED_VERSION: The configuration schema version accepted by this
+            validator.
+    """
 
     SUPPORTED_VERSION = 1
 
@@ -16,7 +31,14 @@ class ConfigValidator:
         processor_validator: ComponentConfigValidator,
         sink_validator: ComponentConfigValidator,
     ) -> None:
-        """Initialize the validator with the component-family validators."""
+        """Initialize the validator with the component-family validators.
+
+        Args:
+            source_validator: Validator for the source configuration section.
+            processor_validator: Validator for the ordered processor
+                configuration sequence.
+            sink_validator: Validator for the sink configuration section.
+        """
         self._source_validator = source_validator
         self._processor_validator = processor_validator
         self._sink_validator = sink_validator
@@ -24,10 +46,23 @@ class ConfigValidator:
     def validate(self, config: object) -> None:
         """Validate the root schema and all present pipeline sections.
 
+        The root value must be a mapping with string keys. The supported
+        top-level fields are ``version``, ``source``, ``processors``, and
+        ``sink``, and all four fields are required. The version must be the
+        integer specified by ``SUPPORTED_VERSION``.
+
+        After checking the root mapping, this method delegates validation of
+        each present pipeline section and aggregates the reported errors.
+        Root values that are not mappings, or mappings containing non-string
+        keys, are rejected before section validation begins.
+
+        Args:
+            config: Configuration value to validate.
+
         Raises:
-            ConfigurationError: If the configuration is malformed,
-                contains unsupported fields, uses an unsupported version,
-                or has errors reported by a component validator.
+            ConfigurationError: If the root configuration is malformed,
+                contains unsupported or missing fields, uses an unsupported
+                version, or contains errors reported by a section validator.
         """
         mapping, errors = as_mapping(config, "configuration")
 
