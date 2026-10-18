@@ -1,4 +1,10 @@
-"""Construct runtime pipelines from validated configuration mappings."""
+"""Construct runtime pipelines from validated configuration mappings.
+
+This module resolves component registrations, preflights SQL environment
+references, and constructs runtime pipelines from configuration mappings.
+Component factories are invoked only after all component types have been
+resolved and SQL environment preflight has succeeded.
+"""
 
 from __future__ import annotations
 
@@ -15,27 +21,60 @@ EnvironmentLookup = Callable[[str], str | None]
 
 
 class SqlEnginePreflighter(Protocol):
-    """Interface needed to preflight and release SQL resources."""
+    """Define the interface for SQL environment preflight and cleanup.
+
+    Implementations resolve environment-variable references before SQL
+    component construction and manage the lifecycle of any SQL engines
+    they own.
+    """
 
     def preflight(self, references: Mapping[str, str]) -> None:
-        """Resolve all referenced environment variables without creating engines."""
+        """Resolve referenced environment variables without creating engines.
+
+        Args:
+            references: Mapping from configuration paths to environment
+                variable names that provide SQL connection URLs.
+
+        Raises:
+            SqlEngineFactoryError: If a referenced environment variable
+                cannot be resolved or validated.
+        """
         ...
 
     def close(self) -> None:
-        """Dispose engines owned by the factory and discard resolved URLs."""
+        """Release owned SQL engines and discard resolved connection URLs.
+
+        Raises:
+            SqlEngineFactoryError: If the implementation encounters an error
+                while releasing its SQL resources.
+        """
         ...
 
 
 class PipelineBuildError(ValueError):
-    """Raised when validated configuration cannot be composed into a pipeline."""
+    """Raised when configuration cannot be composed into a runtime pipeline.
+
+    This exception represents structural, component-resolution, and
+    configuration-preflight failures encountered while building a pipeline.
+    """
 
 
 class PipelineBuilder:
-    """Build a pipeline after resolving all component types and SQL references.
+    """Build runtime pipelines from validated configuration mappings.
 
-    ``getenv`` is a lightweight fallback for isolated builder use and tests. In
-    the default application composition, pass the shared ``SqlEngineFactory``
-    so its successful preflight makes resolved URLs available to SQL factories.
+    The builder resolves source, processor, and sink registrations before
+    invoking component factories. SQL environment references are preflighted
+    before component construction to prevent missing or empty environment
+    variables from causing partial pipeline construction.
+
+    ``getenv`` provides a lightweight environment lookup for isolated builder
+    use and tests. In the default application composition, the shared
+    ``SqlEngineFactory`` should be supplied so successful preflight makes
+    resolved connection URLs available to SQL component factories.
+
+    The builder does not execute the pipeline it constructs. When a shared
+    SQL engine factory is supplied, the caller is responsible for closing
+    the builder after pipeline execution to release the factory's resources.
     """
 
     def __init__(
@@ -47,6 +86,20 @@ class PipelineBuilder:
         *,
         sql_engine_factory: SqlEnginePreflighter | None = None,
     ) -> None:
+        """Initialize the builder with component registries and SQL preflight.
+
+        Args:
+            source_registry: Registry of source component registrations.
+            sink_registry: Registry of sink component registrations.
+            processor_registry: Registry of processor component registrations.
+            getenv: Optional environment-variable lookup function. Defaults to
+                ``os.environ.get`` when omitted.
+            sql_engine_factory: Optional shared SQL engine factory interface
+                used to preflight connection references and release SQL
+                resources. When omitted, the builder uses ``getenv`` to
+                preflight the required environment variables without managing
+                SQL engine resources itself.
+        """
         self._source_registry = source_registry
         self._sink_registry = sink_registry
         self._processor_registry = processor_registry
@@ -54,7 +107,36 @@ class PipelineBuilder:
         self._sql_engine_factory = sql_engine_factory
 
     def build(self, validated_config: Mapping[str, object]) -> Pipeline:
-        """Build a pipeline without executing it or partially building on preflight errors."""
+        """Construct a pipeline from a validated configuration mapping.
+
+        The builder resolves the source, sink, and all processor registrations
+        before performing SQL environment preflight. Only after these steps
+        succeed does it invoke component factories and construct the pipeline.
+        Processors are constructed in their configured order.
+
+        The returned pipeline is not executed. If component construction fails
+        after SQL resources have been acquired during this attempt, the shared
+        SQL engine factory is closed before the original exception is
+        propagated.
+
+        Args:
+            validated_config: Configuration mapping that has already passed
+                configuration validation.
+
+        Returns:
+            A constructed ``Pipeline`` containing the configured source,
+            processors, and sink.
+
+        Raises:
+            PipelineBuildError: If required configuration sections are
+                malformed, processor configurations are not mappings,
+                component types are invalid or unregistered, SQL connection
+                references are malformed, or SQL environment preflight fails.
+            Exception: Exceptions raised by component factories or pipeline
+                construction propagate to the caller. If construction fails
+                after SQL preflight and resource acquisition, cleanup is
+                attempted before the original exception is re-raised.
+        """
         source_config = self._mapping_at(validated_config, "source")
         sink_config = self._mapping_at(validated_config, "sink")
         processors_config = validated_config.get("processors")
@@ -107,10 +189,15 @@ class PipelineBuilder:
             raise
 
     def close(self) -> None:
-        """Release SQL engines owned by this builder's shared engine factory.
+        """Release SQL resources owned by the shared engine factory.
 
-        Call after the built pipeline has finished executing. This is a no-op
-        when the builder was created without an SQL engine factory.
+        Call this method after the built pipeline has finished executing.
+        It does not close the pipeline's source, processors, or sink directly.
+        When no SQL engine factory was supplied, this method does nothing.
+
+        Raises:
+            PipelineBuildError: If the SQL engine factory raises
+                ``SqlEngineFactoryError`` while releasing its resources.
         """
         if self._sql_engine_factory is not None:
             try:
@@ -120,6 +207,19 @@ class PipelineBuilder:
 
     @staticmethod
     def _mapping_at(config: Mapping[str, object], section: str) -> Mapping[str, object]:
+        """Retrieve a required mapping-valued configuration section.
+
+        Args:
+            config: Configuration mapping containing the requested section.
+            section: Name of the section to retrieve.
+
+        Returns:
+            The section value as a mapping.
+
+        Raises:
+            PipelineBuildError: If the section is missing or its value is not
+                a mapping.
+        """
         value = config.get(section)
         if not isinstance(value, Mapping):
             raise PipelineBuildError(f"'{section}' must be a mapping in validated configuration.")
@@ -131,6 +231,20 @@ class PipelineBuilder:
         config: Mapping[str, object],
         path: str,
     ) -> ComponentRegistration[T]:
+        """Resolve a component registration from its configuration type.
+
+        Args:
+            registry: Registry containing the component registrations.
+            config: Component configuration mapping with a ``type`` field.
+            path: Configuration path used to identify errors.
+
+        Returns:
+            The registration associated with the configured component type.
+
+        Raises:
+            PipelineBuildError: If the ``type`` field is missing, is not a
+                non-empty string, or does not identify a registered component.
+        """
         component_type = config.get("type")
         if not isinstance(component_type, str) or not component_type.strip():
             raise PipelineBuildError(f"{path}.type must be a non-empty component type.")
@@ -147,6 +261,25 @@ class PipelineBuilder:
         source_config: Mapping[str, object],
         sink_config: Mapping[str, object],
     ) -> dict[str, str]:
+        """Collect SQL connection environment-variable references.
+
+        Inspects the source and sink configurations and collects the
+        environment-variable names required by components whose type is
+        ``sql``. This method identifies references but does not resolve
+        environment variables or create SQL engines.
+
+        Args:
+            source_config: Source component configuration.
+            sink_config: Sink component configuration.
+
+        Returns:
+            A mapping from configuration paths to the names of their required
+            environment variables. Non-SQL components produce no entries.
+
+        Raises:
+            PipelineBuildError: If a SQL source or sink does not specify a
+                non-empty ``connection_url_env`` value.
+        """
         references: dict[str, str] = {}
         for path, component_config in (
             ("source", source_config),
@@ -163,6 +296,23 @@ class PipelineBuilder:
         return references
 
     def _preflight_sql_environment(self, references: Mapping[str, str]) -> None:
+        """Resolve and validate SQL environment references before construction.
+
+        When a shared SQL engine factory is configured, delegates preflight to
+        that factory. Otherwise, uses the configured environment lookup,
+        resolving each unique environment variable at most once. Environment
+        lookup exceptions in the fallback path are treated as missing values.
+        Connection URL values are never included in validation error messages.
+
+        Args:
+            references: Mapping from configuration paths to required
+                environment-variable names.
+
+        Raises:
+            PipelineBuildError: If a referenced variable is missing or empty,
+                or if the shared factory raises ``SqlEngineFactoryError``
+                during preflight.
+        """
         if not references:
             return
 

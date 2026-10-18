@@ -1,4 +1,8 @@
-"""Dispatcher for source configuration validation."""
+"""Source-specific dispatch for component configuration validation.
+
+This module provides a source configuration validator that delegates to the
+shared component dispatcher using the source component registry.
+"""
 
 from typing import Any
 
@@ -7,8 +11,19 @@ from etlrelay.config.registry import ComponentRegistry
 
 
 class SourceConfigValidator(ComponentConfigDispatcher):
-    """Dispatch source configuration to its registered validator."""
+    """Dispatch source configuration to its registered validator.
+
+    This class specializes the shared component dispatcher for source
+    configurations. It resolves each configuration's ``type`` against the
+    supplied registry and delegates validation to the corresponding registered
+    validator.
+    """
 
     def __init__(self, registry: ComponentRegistry[Any]) -> None:
-        """Initialize the source validator registry."""
+        """Initialize the validator with the source component registry.
+
+        Args:
+            registry: Registry containing source registrations and their
+                configuration validators.
+        """
         super().__init__(registry, component_kind="source")

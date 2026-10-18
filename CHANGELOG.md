@@ -4,6 +4,34 @@ Notable changes to ETLRelay are documented here.
 
 This project follows the principles of [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and [Semantic Versioning](https://semver.org/).
 
+## [0.6.0] - 2026-10-18
+
+### Added
+
+- Add safe YAML configuration loading through `KeyValueReader` and `YamlReader`, including single-document root-mapping validation and duplicate mapping-key rejection.
+- Add versioned configuration schema validation for schema version `1`, including root/section rules, component-specific validators, path-qualified diagnostics, and aggregated `ConfigurationError` failures.
+- Add explicit `ComponentRegistration` and `ComponentRegistry` contracts that associate component validators with runtime factories.
+- Add `TabularFileFormatRegistry` capability checks that distinguish readable and writable formats.
+- Add `ComponentCatalog` and `create_default_component_catalog()` to compose shared storage, format, source, sink, and processor registries plus the SQL engine factory.
+- Add `PipelineBuilder` to resolve component registrations, preflight SQL environment references, construct components in YAML order, and return a runtime `Pipeline` without executing it.
+- Add `SqlEngineFactory` support for resolving connection URLs from environment variables, creating/caching SQLAlchemy engines on demand, redacting credential-bearing values from its errors, and disposing owned engines during cleanup.
+- Add end-to-end and integration coverage for YAML/direct-Python equivalence, processor ordering, file and SQLite source/sink combinations, and invalid-config/missing-variable rejection before component factory invocation or source/sink I/O.
+- Document the versioned YAML contract, supported property/component matrix, environment-variable references, secret-handling constraints, validation boundaries, and configuration-driven examples.
+
+### Changed
+
+- Keep configuration-document parsing, schema validation, component construction, and pipeline execution as separate responsibilities.
+- Share the default component registries between validation and construction so supported component names cannot silently diverge between these stages.
+- Update project documentation and roadmap to reflect YAML configuration and runtime construction as implemented in v0.6.0. The CLI remains planned for v0.7.0.
+
+### Configuration contract and limitations
+
+- Schema version `1` requires exactly `version`, `source`, `processors`, and `sink`; the version must be the integer `1`. Unknown top-level and component properties are rejected, and `processors: []` is valid.
+- The supported source types are `file` and `sql`; sink types are `file` and `sql`; storage is `local`; file formats are `csv` and `parquet`; processors are `select_columns`, `rename_columns`, and `filter_rows`.
+- SQL `connection_url_env` fields contain environment-variable names, not connection URLs. Missing/empty variables fail during builder preflight before component factories and source/sink operations. The engine factory avoids including resolved URLs or credentials in its own errors.
+- SQL sinks append to existing tables and do not create, replace, truncate, or migrate them. SQLite is the reference integration-test backend; other SQLAlchemy dialects require appropriate drivers and independent verification.
+- Direct Python composition remains supported. Direct `SqlSource`/`SqlSink` callers retain ownership of the supplied engine; the shared engine factory lifecycle applies to configuration-built pipelines.
+
 ## [0.5.0] - 2026-10-16
 
 ### Added
@@ -18,38 +46,32 @@ This project follows the principles of [Keep a Changelog](https://keepachangelog
 ### Behavior and limitations
 
 - `SqlSource` returns no batches when a query returns no rows; a non-empty query result is materialized as one batch.
-- `SqlSink` appends to an existing table. It does not create or replace tables, update existing rows, or manage schema migrations.
+- `SqlSink` appends to an existing table. It does not create a table, replace a table, update or upsert existing rows, or manage schema migrations.
 - Each non-empty batch written by `SqlSink` has its own transaction. A later failed batch does not roll back previously committed batches.
 - The caller owns the SQLAlchemy `Engine`; source connections and results are closed by the component, and sink transaction contexts are closed per batch.
 - Query values must be supplied through SQLAlchemy bound parameters. Identifiers in source query text remain part of the caller-authored SQL; dynamic identifiers require trusted construction or validation.
-- SQLite is the repeatable integration-test backend. Other database dialects require their SQLAlchemy dialect/driver and are not implied to have equivalent integration coverage.
+- SQLite is the repeatable integration-test backend. Other database dialects require the matching driver and independent verification.
 - `replace`, ORM models, schema migrations, and automatic retries are not supported.
 
 ## [0.4.0] - 2026-10-14
 
 ### Changed
 
-- Stabilize and document the `FileSystem` contract for binary stream
-  ownership, error propagation, path handling, output creation, overwrite
-  semantics, and cleanup.
-- Normalize missing local input files to `FileSystemError`, including the
-  case where a file disappears between path validation and opening.
-- Document the shared storage/source/sink composition used by local CSV
-  and Parquet pipelines.
+- Stabilize and document the `FileSystem` contract for binary stream ownership, error propagation, path handling, output creation, overwrite semantics, and cleanup.
+- Normalize missing local input files to `FileSystemError`, including the case where a file disappears between path validation and opening.
+- Document the shared storage/source/sink composition used by local CSV and Parquet pipelines.
 
 ### Documentation
 
-- Clarify the local filesystem contract, public API, and current v1.0
-  storage scope.
-- Explicitly exclude S3, HDFS, and other remote-storage implementations
-  from v0.4.0 and the planned v1.0 scope.
+- Clarify the local filesystem contract, public API, and current v1.0 storage scope.
+- Explicitly exclude S3, HDFS, and other remote-storage implementations from v0.4.0 and the planned v1.0 scope.
 
 ## [0.3.0] - 2026-10-14
 
 ### Added
 
 - Add `ParquetReader` and `ParquetWriter` as implementations of the existing reader and writer protocols.
-- Support local Parquet input and output through `FileSource`, `FileSink`, and `LocalFileSystem`, without format-specific branches in source/sink orchestration.
+- Support local Parquet input and output through `FileSource`, `FileSink`, and `LocalFileSystem`.
 - Add Parquet unit, integration, round-trip, and functional pipeline coverage, including schema/type preservation, nulls, and zero-row files.
 - Add a runnable local Parquet pipeline example.
 

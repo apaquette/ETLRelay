@@ -1,62 +1,53 @@
-# MkDocs setup instructions for ETLRelay
+# Documentation setup and maintenance for ETLRelay
 
-The original ETLRelay technology plan selected MkDocs for documentation, `uv` for Python dependency management, GitHub Actions for CI, and PyPI for distribution. MkDocs was selected in the plan but is not yet configured in the current documentation set. This package adds a minimal setup using Material for MkDocs for the theme and `mkdocstrings[python]` for API reference generation from source docstrings.
+ETLRelay's documentation is built with MkDocs and Material for MkDocs. API reference pages use `mkdocstrings` to render documentation from the source tree, and Mermaid diagrams are enabled through the configured Markdown extensions. The documentation configuration lives in `mkdocs.yml`; published documentation pages live in `docs/`.
 
-## 1. Add documentation dependencies
+This document describes the current maintenance workflow. It is not a bootstrap procedure: do not add a second MkDocs configuration, copy a second `docs/` tree over the existing one, or add duplicate dependency groups.
 
-From the repository root, run:
+## Install the project environment
 
-```bash
-uv add --group docs "mkdocs>=1.6,<2" "mkdocs-material>=9,<10" "mkdocstrings[python]>=0.18,<1"
-```
-
-This should add a `docs` dependency group to `pyproject.toml` and update `uv.lock`. Keep these packages out of runtime dependencies.
-
-Install the group:
+From the repository root, synchronize the checked-in lockfile and all dependency groups:
 
 ```bash
-uv sync --locked --group docs
+uv sync --locked --all-groups
 ```
 
-## 2. Add the supplied files
+Keep documentation tooling in the existing documentation/development dependency groups rather than adding it to ETLRelay's runtime dependencies. If a command is supplied by the project's Nix development environment rather than by `uv`, run it from that environment and record any known baseline issue accurately.
 
-Copy `mkdocs.yml` and the `docs/` directory from this package into the repository root. Add `CHANGELOG.md`, `NOTICE`, and `SECURITY.md` at the repository root if they do not already exist. Merge rather than overwrite any existing project configuration.
+## Edit documentation
 
-## 3. Ignore generated output
+- Add and edit user-facing pages in `docs/`.
+- Update the navigation in `mkdocs.yml` when adding, removing, or renaming a page.
+- Keep `docs/configuration.md` aligned with the implemented schema and supported component registrations.
+- Keep `docs/api-reference.md` import paths aligned with the actual modules under `src/etlrelay`.
+- Treat architecture diagrams as descriptions of implemented classes and contracts. Mark future possibilities as such, and do not present unimplemented storage backends or APIs as available features.
+- Preserve relevant flow, data-flow, and class diagrams when updating an architecture page. Quote Mermaid node labels that contain punctuation which Mermaid could otherwise interpret as syntax.
+- Keep executable examples consistent with the v0.6.0 configuration contract and test them against the current package where practical.
 
-Add this line to the repository `.gitignore` if it is not already present:
+The site uses `pymdownx.superfences` for fenced code and Mermaid blocks. A Markdown file's presence on disk does not automatically add it to the navigation; update `mkdocs.yml` intentionally.
 
-```gitignore
-site/
-```
+## Preview and validate
 
-## 4. Build and preview
+Preview the site locally:
 
 ```bash
 uv run mkdocs serve
-uv run mkdocs build --strict
 ```
 
-The API page references the expected `src/etlrelay` module layout. Review those import paths against the actual repository and fix any differences before considering the docs build complete.
-
-## 5. Integrate with existing CI
-
-Add this command to the existing GitHub Actions quality-check workflow after installing the `docs` dependency group:
+Build all documentation and treat warnings as errors:
 
 ```bash
 uv run mkdocs build --strict
 ```
 
-Do not create a duplicate CI workflow if an existing one already performs quality checks. A green strict build should be required for documentation changes.
+The generated site is written to `site/`. Do not commit generated `site/` output; ensure `site/` is ignored by Git.
 
-## 6. Finish release documents
+A strict build checks MkDocs navigation, internal references, and API-reference resolution. It does not prove that each example is behaviorally correct or that every Mermaid diagram renders as intended, so review changed pages in the rendered preview as well.
 
-- `CHANGELOG.md`: move the initial-release entries under `[Unreleased]` to a `[0.1.0] - YYYY-MM-DD` heading with the actual release date when preparing the release tag.
-- `NOTICE`: confirm the copyright holder and year, and ensure the notice is consistent with the existing `LICENSE` file.
-- `SECURITY.md`: enable GitHub private vulnerability reporting before public release, or replace the reporting instructions with a verified private contact channel.
-- Getting Started: run `examples/copy_csv.py` against the built and installed package. Correct the example if actual signatures differ.
-- API reference: verify all paths listed in `docs/api-reference.md` exist in `src/etlrelay`.
+## Documentation release check
 
-## Hosting
+For a release candidate, run the repository's full quality and packaging checks, including the strict documentation build. The current v0.6.0 release checklist is maintained in `docs/development/release-automation.md` and `RELEASE_CHECKS.md`. Record results from the exact checkout intended for release; do not reuse a previous release's successful result as evidence for later documentation changes.
 
-MkDocs builds a static site in `site/`, which can be hosted on GitHub Pages or another static host. Hosting/deployment is intentionally not configured by this setup package because the repository URL, default branch, and GitHub Pages settings need to be confirmed in the actual repository. Add deployment after the strict local build passes.
+## Hosting and versioned documentation
+
+The MkDocs configuration includes the `mike` plugin for versioned documentation. Use the repository's documented publishing workflow and verify the target branch, version, and hosting settings before deploying. Do not create a second deployment workflow or assume that a local build has published the site.

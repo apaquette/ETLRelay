@@ -2,11 +2,11 @@ site_name: ETLRelay
 site_description: A lightweight, composable Python framework for batch-oriented ETL pipelines.
 docs_dir: docs
 site_url: "https://apaquette.github.io/ETLRelay/"
-
 nav:
   - Home: index.md
   - Getting Started: getting-started.md
   - Concepts: concepts.md
+  - YAML Configuration: configuration.md
   - Security: security.md
   - API Reference: api-reference.md
   - Development:
@@ -16,16 +16,20 @@ nav:
   - Architecture:
       - Overview: architecture/overview.md
       - Pipeline: architecture/pipeline.md
+      - Configuration:
+          - Loading: architecture/configuration-loading.md
+          - Validation: architecture/configuration-validation.md
+          - Component registry: architecture/component-registry.md
+          - Data representation contracts: architecture/data-representation-contracts.md
       - Processors:
           - Column selection and renaming: architecture/select_columns_and_rename_columns.md
           - Row filtering: architecture/filter_rows_processor.md
       - File source: architecture/file_source.md
       - File sink: architecture/file_sink.md
+      - SQL source and sink: architecture/sql_source_and_sink.md
       - Local filesystem: architecture/local_filesystem.md
       - Path validator: architecture/path_validator.md
       - Reader and writer: architecture/reader_and_writer.md
-      - SQL source and sink: architecture/sql_source_and_sink.md
-
 theme:
   name: material
   features:
@@ -46,7 +50,6 @@ plugins:
             members_order: source
             show_root_heading: true
             show_source: false
-
 
 markdown_extensions:
   - pymdownx.superfences:

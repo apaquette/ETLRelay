@@ -1,3 +1,9 @@
+"""Configuration validation and construction for the SelectColumns processor.
+
+This module provides a configuration validator and factory for constructing
+SelectColumns processors from validated configuration mappings.
+"""
+
 from collections.abc import Mapping
 from typing import Final, cast
 
@@ -9,23 +15,59 @@ from etlrelay.processors.select_columns import SelectColumns
 
 
 class SelectColumnsConfigFactory:
-    """Construct a SelectColumns processor from validated configuration."""
+    """Construct SelectColumns processors from validated configuration."""
 
     def build(self, config: Mapping[str, object]) -> SelectColumns:
-        """Build a processor using the configured column order."""
+        """Build a SelectColumns processor from its configuration.
+
+        Args:
+            config: Validated configuration mapping containing the ``columns``
+                field, which specifies the column names in the desired order.
+
+        Returns:
+            A SelectColumns processor configured with the specified column
+            sequence.
+
+        Note:
+            This method assumes the configuration has already been validated.
+            The cast provides static type information and does not perform
+            runtime validation.
+        """
         return SelectColumns(
             columns=cast(list[str], config["columns"]),
         )
 
 
 class SelectColumnsConfigValidator:
-    """Validate configuration for the SelectColumns processor."""
+    """Validate configuration mappings for the SelectColumns processor.
+
+    The validator checks supported and required fields, the configured
+    processor type, and the structure and contents of the column list.
+    """
 
     _ALLOWED_KEYS: Final[frozenset[str]] = frozenset({"type", "columns"})
     _REQUIRED_KEYS: Final[frozenset[str]] = frozenset({"type", "columns"})
 
     def validate(self, config: object, path: str) -> list[str]:
-        """Return validation errors for a SelectColumns configuration."""
+        """Validate a SelectColumns configuration and report any errors.
+
+        The configuration must be a mapping containing the required fields.
+        The ``type`` field must be ``"select_columns"``, and ``columns`` must
+        be a list containing only unique string values.
+
+        Args:
+            config: Configuration value to validate.
+            path: Configuration path used to identify validation errors.
+
+        Returns:
+            A list of validation error messages. The list is empty when no
+            validation errors are found.
+
+        Note:
+            An empty list of columns is accepted by this validator. Whether
+            selecting no columns is meaningful at runtime depends on the
+            processor's behavior.
+        """
         mapping, errors = as_mapping(config, path)
         if mapping is None:
             return errors

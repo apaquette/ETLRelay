@@ -1,4 +1,9 @@
-"""Configuration validator for local filesystem storage."""
+"""Configuration validation and construction for local filesystem storage.
+
+This module provides a factory for constructing LocalFileSystem instances and
+a validator for checking local storage configuration without accessing the
+filesystem during validation.
+"""
 
 from collections.abc import Mapping
 from pathlib import Path
@@ -14,13 +19,29 @@ from etlrelay.storage import LocalFileSystem
 
 
 class LocalFileSystemConfigFactory:
-    """Construct a LocalFileSystem from validated storage configuration."""
+    """Construct local filesystem storage from validated configuration.
+
+    The factory creates a PathValidator using the configured base path and
+    supplies it to the LocalFileSystem instance. When ``base_path`` is omitted,
+    the current working directory is used.
+    """
 
     def build(self, config: Mapping[str, object]) -> LocalFileSystem:
-        """Build local storage using the configured base path.
+        """Build local filesystem storage from its configuration.
 
-        The configuration is expected to have passed validation already.
-        An omitted base_path defaults to the current working directory.
+        Args:
+            config: Validated configuration mapping containing the optional
+                ``base_path`` field. When omitted, ``base_path`` defaults
+                to ``"."``, representing the current working directory.
+
+        Returns:
+            A LocalFileSystem instance configured with a PathValidator for
+            the selected base path.
+
+        Note:
+            This method assumes the configuration has already been validated.
+            It does not independently validate the type or contents of
+            ``base_path``.
         """
         base_path = Path(cast(str, config.get("base_path", ".")))
         path_validator = PathValidator(base_path=base_path)
@@ -29,14 +50,34 @@ class LocalFileSystemConfigFactory:
 
 
 class LocalFileSystemConfigValidator:
-    """Validate configuration for local filesystem storage."""
+    """Validate configuration mappings for local filesystem storage.
+
+    The validator checks supported and required fields, the storage type, and
+    the optional base path. It validates configuration structure and value
+    types without accessing the filesystem.
+    """
 
     def validate(self, config: object, path: str) -> list[str]:
-        """Validate local storage settings and return any errors.
+        """Validate local filesystem storage configuration.
 
-        The ``type`` field must be ``local``. ``base_path`` is optional and
-        defaults to the current directory when it is omitted. The validator
-        checks configuration shape only; it does not access the filesystem.
+        The configuration must be a mapping containing ``type`` with the value
+        ``"local"``. The optional ``base_path`` field must be a non-empty
+        string when present. If omitted, the factory uses the current working
+        directory as the base path.
+
+        Args:
+            config: Configuration value to validate.
+            path: Configuration path used to identify validation errors.
+
+        Returns:
+            A list of validation error messages. The list is empty when
+            validation finds no errors. Errors may identify malformed
+            configuration, unsupported or missing fields, an incorrect
+            storage type, or an invalid base path.
+
+        Note:
+            Validation does not check whether the base path exists, is
+            accessible, or can be used for filesystem operations.
         """
         mapping, errors = as_mapping(config, path)
         if mapping is None:

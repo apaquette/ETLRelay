@@ -2,135 +2,161 @@
 
 ## Purpose
 
-ETLRelay is organized around a small set of composable contracts. `Pipeline` coordinates batch processing; sources obtain data, processors transform batches, and sinks consume the processed output. File-based sources and sinks compose a filesystem implementation with a format-specific reader or writer.
+ETLRelay is organized around composable runtime contracts and a separate configuration-construction layer. `Pipeline` coordinates batch processing; sources obtain data, processors transform batches, and sinks consume the processed output. File sources and sinks compose filesystem access with format-specific readers and writers.
 
-This overview shows how the main components relate. The linked architecture pages describe each boundary in more detail.
+ETLRelay 0.6.0 also permits users to declare supported pipelines in YAML. Configuration parsing, schema validation, component registration lookup, pipeline construction, and execution remain separate responsibilities.
 
-## Class diagram
+## Runtime and configuration diagrams
 
 ```mermaid
-classDiagram
-    direction LR
-
-    class Batch {
-        -_table: pa.Table
-        +table: pa.Table
-    }
-
-    class Source {
-        <<protocol>>
-        +read() Iterable~Batch~
-    }
-
-    class Processor {
-        <<protocol>>
-        +process(batch: Batch) Batch
-    }
-
-    class Sink {
-        <<protocol>>
-        +write(batches: Iterable~Batch~) None
-    }
-
-    class Pipeline {
-        -source: Source
-        -processors: Sequence~Processor~
-        -sink: Sink
-        +run() None
-    }
-
-    class FileSource {
-        -path: str
-        -storage: FileSystem
-        -reader: Reader
-        +read() Iterable~Batch~
-    }
-
-    class FileSink {
-        -path: str
-        -storage: FileSystem
-        -writer: Writer
-        +write(batches: Iterable~Batch~) None
-    }
-
-    class FileSystem {
-        <<protocol>>
-        +open_read(path: str) BinaryIO
-        +open_write(path: str) BinaryIO
-    }
-
-    class LocalFileSystem {
-        +open_read(path: str) BinaryIO
-        +open_write(path: str) BinaryIO
-    }
-
-    class PathValidator
-
-    class Reader {
-        <<protocol>>
-        +read(stream: BinaryIO) Iterable~Batch~
-    }
-
-    class Writer {
-        <<protocol>>
-        +write(batches: Iterable~Batch~, stream: BinaryIO) None
-    }
-
-    class CsvReader
-    class CsvWriter
-
-    Source <|.. FileSource
-    Sink <|.. FileSink
-    FileSystem <|.. LocalFileSystem
-    LocalFileSystem ..> PathValidator : validates paths
-    Reader <|.. CsvReader
-    Writer <|.. CsvWriter
-
-    Pipeline --> Source : reads from
-    Pipeline o-- "0..*" Processor : applies in order
-    Pipeline --> Sink : sends output to
-
-    FileSource --> FileSystem : uses
-    FileSource --> Reader : uses
-    FileSink --> FileSystem : uses
-    FileSink --> Writer : uses
-
-    Source ..> Batch : produces
-    Reader ..> Batch : produces
-    Processor ..> Batch : transforms
-    Writer ..> Batch : serializes
-    Sink ..> Batch : consumes
+flowchart TD
+    subgraph Runtime pipeline
+        S[Source] --> B[Iterable of Batch]
+        B --> P[Processors in declared order]
+        P --> K[Sink]
+    end
+    subgraph Configuration path
+        Y[YAML document] --> L[ConfigLoader / YamlReader]
+        L --> V[ConfigValidator]
+        V --> M[Validated mapping]
+        M --> C[ComponentCatalog registrations]
+        C --> PB[PipelineBuilder]
+        PB --> S
+        PB --> K
+        PB --> P
+    end
 ```
+
+The configuration loader and validator do not construct runtime components. `PipelineBuilder` resolves all component registrations and preflights SQL environment references before it invokes component factories. It returns a `Pipeline`; the caller separately executes `pipeline.run()`.
 
 ## Component responsibilities
 
 | Component | Responsibility |
 |---|---|
-| `Batch` | Wraps the Apache Arrow table used as the pipeline's common tabular representation. |
+| `Batch` | Wraps the Arrow table used as the pipeline's common tabular representation. |
 | `Source` | Produces an iterable of batches. |
-| `Processor` | Transforms one batch and returns one batch through `process(batch: Batch) -> Batch`. |
+| `Processor` | Transforms one batch through `process(batch: Batch) -> Batch`. |
 | `Sink` | Consumes an iterable of processed batches. |
-| `Pipeline` | Applies processors in order and validates the schema of processed output batches during a run. |
+| `Pipeline` | Applies processors in order and validates processed output schemas during a run. |
 | `FileSource` / `FileSink` | Compose storage access with reading or writing. |
 | `FileSystem` | Opens readable or writable binary streams. |
-| `Reader` / `Writer` | Convert between a stream format and the common batch representation. |
-| `LocalFileSystem`, `CsvReader`, `CsvWriter` | Provide the current local-filesystem and CSV implementations. |
+| `Reader` / `Writer` | Convert between serialized tabular formats and batches. |
+| `KeyValueReader` / `YamlReader` | Parse one mapping-shaped configuration document; does not produce batches. |
+| `ConfigLoader` | Coordinates configuration-file reading, parsing, and validation. |
+| `ConfigValidator` | Validates version 1 of the YAML configuration schema. |
+| `ComponentRegistry` | Maps explicitly supported component names to validator/factory registrations. |
+| `ComponentCatalog` | Shares default registries, validators, factories, and SQL engine service. |
+| `PipelineBuilder` | Resolves registrations, preflights SQL environment variables, and builds a runtime pipeline. |
 
-The diagram shows the current local CSV composition, not an exhaustive list of every possible implementation. The built-in processors are documented in [SelectColumns and RenameColumns](select_columns_and_rename_columns.md), [FilterRows](filter_rows_processor.md), and the API Reference.
+## File runtime path
 
-## SQL source and sink
+```text
+FileSystem.open_read(path)
+          │
+          ▼
+      BinaryIO stream
+          │
+          ▼
+       Reader.read(stream)
+          │
+          ▼
+        Iterable[Batch]
+```
 
-`SqlSource` and `SqlSink` implement the core source/sink contracts directly. They do not pass through `FileSystem`, `Reader`, or `Writer`. `SqlSource` executes parameterized SQLAlchemy text queries and produces a batch for non-empty results; `SqlSink` appends rows to a pre-existing table with a separate transaction per non-empty batch. See [SQL source and sink](sql_source_and_sink.md) for the full behavior and limitations.
+The write path operates in the reverse direction. `LocalFileSystem` and `PathValidator` handle local resource access and path containment. CSV and Parquet formats are registered separately with independent reader/writer capabilities.
 
-## Batch and empty-data distinction
+## Configuration path
 
-A `Batch` is a single data unit backed by an Arrow table. A zero-row table is still a batch and retains its schema. An empty source iterable contains no batches; in that case the pipeline does not invoke processors or the sink. See [Pipeline](pipeline.md) for the full execution and schema-validation contract.
+`ConfigLoader` accepts a `FileSystem`, `KeyValueReader`, and `ConfigValidator`. Its `load(path)` method opens and parses the configuration document, closes the stream, validates the mapping, and returns that mapping. YAML syntax/root-shape failures, filesystem errors, and schema validation errors keep their distinct error boundaries.
+
+`ConfigValidator` checks the root schema and delegates to source, processor-sequence, and sink validators. Dispatchers look up explicit `ComponentRegistration` instances and delegate to their configuration validators; factories are not called during validation.
+
+`create_default_component_catalog()` wires a shared tabular-format registry, storage/source/sink/processor registries, dispatchers, root validator, and SQL engine factory. `PipelineBuilder` uses the same registries. This is an explicit composition root for a fixed built-in component set, not a dynamic plugin system.
+
+## SQL ownership
+
+Direct Python `SqlSource` and `SqlSink` components borrow the SQLAlchemy engine supplied by the caller. Configuration-built pipelines share the catalog's `SqlEngineFactory`, which resolves environment-variable references before engine creation and caches engines on demand. The caller must close the `PipelineBuilder` after execution so the factory disposes of the engines it owns.
 
 ## Related architecture pages
 
-- [Pipeline](pipeline.md) — execution order, output-schema validation, empty-data behavior, and exception propagation.
-- [SQL source and sink](sql_source_and_sink.md) — database query behavior, table requirements, engine ownership, and transaction scope.
-- [File source](file_source.md) and [File sink](file_sink.md) — composition of filesystem and format components.
-- [Reader and writer](reader_and_writer.md) — format boundaries.
-- [Local filesystem](local_filesystem.md) and [Path validator](path_validator.md) — local path access and containment.
-- [SelectColumns and RenameColumns](select_columns_and_rename_columns.md) and [FilterRows](filter_rows_processor.md) — built-in processor implementations.
+- [Pipeline](pipeline.md) — execution order, schema compatibility, empty data, and exception propagation.
+- [File source](file_source.md) and [File sink](file_sink.md) — storage and format composition.
+- [Reader and writer contracts](reader_and_writer.md) — tabular and mapping-shaped input boundaries.
+- [Configuration loading](configuration-loading.md), [validation](configuration-validation.md), and [component registry](component-registry.md).
+- [Local filesystem](local_filesystem.md) and [Path validator](path_validator.md).
+- [SQL source and sink](sql_source_and_sink.md).
+
+## Class diagram: runtime pipeline and configuration composition
+
+The diagram below summarizes the principal types and dependencies described on this page. Existing flow, sequence, and data-flow diagrams remain part of this document.
+
+```mermaid
+classDiagram
+    direction TB
+
+    class Source {
+        <<protocol>>
+        +read() Iterable~Batch~
+    }
+    class Processor {
+        <<protocol>>
+        +process(batch) Batch
+    }
+    class Sink {
+        <<protocol>>
+        +write(batches) None
+    }
+    class Pipeline {
+        -source: Source
+        -processors: list~Processor~
+        -sink: Sink
+        +run() None
+    }
+    class FileSource
+    class FileSink
+    class LocalFileSystem
+    class Reader {
+        <<protocol>>
+    }
+    class Writer {
+        <<protocol>>
+    }
+    class ConfigLoader {
+        +load(path) Mapping
+    }
+    class ConfigValidator {
+        +validate(config) None
+    }
+    class PipelineBuilder {
+        +build(config) Pipeline
+        +close() None
+    }
+    class ComponentCatalog {
+        +source_registry
+        +sink_registry
+        +processor_registry
+        +storage_registry
+        +tabular_file_format_registry
+        +sql_engine_factory
+        +config_validator
+    }
+    class ComponentRegistry
+    class SqlEngineFactory
+
+    Source <|.. FileSource
+    Sink <|.. FileSink
+    Pipeline o-- Source
+    Pipeline o-- Processor
+    Pipeline o-- Sink
+    FileSource --> LocalFileSystem
+    FileSource --> Reader
+    FileSink --> LocalFileSystem
+    FileSink --> Writer
+    ConfigLoader --> ConfigValidator
+    ComponentCatalog --> ConfigValidator : exposes root validator
+    ComponentCatalog o-- ComponentRegistry : exposes shared registries
+    ComponentCatalog o-- SqlEngineFactory : shares SQL engine lifecycle
+    PipelineBuilder --> ComponentRegistry : receives source/sink/processor registries
+    PipelineBuilder --> SqlEngineFactory : preflight and cleanup
+    PipelineBuilder --> Pipeline : constructs
+```

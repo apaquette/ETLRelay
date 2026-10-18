@@ -1,0 +1,28 @@
+version: 1
+
+source:
+  type: file
+  path: examples/configuration/data/input.parquet
+  format: parquet
+  storage:
+    type: local
+    base_path: "."
+
+processors:
+  - type: select_columns
+    columns: [id, amount]
+  - type: filter_rows
+    column: amount
+    operator: ">="
+    value: 0
+  - type: rename_columns
+    mapping:
+      id: record_id
+
+sink:
+  type: file
+  path: examples/configuration/data/output.parquet
+  format: parquet
+  storage:
+    type: local
+    base_path: "."
