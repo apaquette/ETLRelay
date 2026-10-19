@@ -1,4 +1,4 @@
-"""Command-line interface for ETLRelay."""
+"""Command-line interface for validating and executing ETLRelay pipelines."""
 
 from collections.abc import Callable
 from importlib.metadata import PackageNotFoundError, version
@@ -31,7 +31,11 @@ app = typer.Typer(
 
 
 class CliApplication:
-    """Handle ETLRelay CLI commands and present their outcomes."""
+    """Coordinate CLI workflows using ETLRelay's existing library services.
+
+    Command execution is separated from Typer registration. Dependencies are
+    supplied through factories to support substitution in unit tests.
+    """
 
     def __init__(
         self,
@@ -41,20 +45,45 @@ class CliApplication:
         pipeline_builder_factory: Callable[..., PipelineBuilder],
         version_provider: Callable[[str], str],
     ) -> None:
-        """Initialize the application with its service dependencies."""
+        """Initialize the application with its service dependencies.
+
+        Args:
+            component_catalog_factory: Creates the default component catalog.
+            config_loader_factory: Creates a loader for reading and validating
+                pipeline configurations.
+            pipeline_builder_factory: Creates a builder for constructing
+                configured pipelines.
+            version_provider: Retrieves installed package version metadata.
+        """
         self._component_catalog_factory = component_catalog_factory
         self._config_loader_factory = config_loader_factory
         self._pipeline_builder_factory = pipeline_builder_factory
         self._version_provider = version_provider
 
     def root_callback(self, ctx: typer.Context) -> None:
-        """Show root help when no command is supplied."""
+        """Display root help when no command is selected.
+
+        Args:
+            ctx: Typer context for the root command.
+
+        Raises:
+            typer.Exit: With exit code 0 when no subcommand was invoked.
+        """
         if ctx.invoked_subcommand is None:
             typer.echo(ctx.get_help())
             raise typer.Exit(code=0)
 
     def run_pipeline(self, pipeline: Path) -> None:
-        """Load, build, and execute a configured pipeline."""
+        """Load, build, and execute a configured pipeline.
+
+        Args:
+            pipeline: Path to the YAML pipeline configuration.
+
+        Raises:
+            typer.Exit: With exit code 1 for unexpected internal errors,
+                3 for configuration or pipeline-build failures, or 4 for
+                pipeline execution or resource-cleanup failures.
+        """
         components, validated_config = self._load_configuration(
             pipeline,
             unexpected_error_message=("Unexpected error while loading pipeline configuration."),
@@ -69,7 +98,15 @@ class CliApplication:
         typer.echo(f"Pipeline completed: {pipeline}")
 
     def validate_pipeline(self, pipeline: Path) -> None:
-        """Validate a YAML pipeline configuration without executing it."""
+        """Validate a YAML pipeline configuration without executing it.
+
+        Args:
+            pipeline: Path to the YAML pipeline configuration.
+
+        Raises:
+            typer.Exit: With exit code 1 for unexpected internal errors or
+                3 for configuration loading, parsing, or validation failures.
+        """
         self._load_configuration(
             pipeline,
             unexpected_error_message=("Unexpected error while validating pipeline configuration."),
@@ -77,7 +114,12 @@ class CliApplication:
         typer.echo(f"Pipeline configuration is valid: {pipeline}")
 
     def print_version(self) -> None:
-        """Print the installed ETLRelay package version."""
+        """Print the installed ETLRelay package version.
+
+        Raises:
+            typer.Exit: With exit code 1 if package version metadata is
+                unavailable.
+        """
         try:
             installed_version = self._version_provider("etlrelay")
         except PackageNotFoundError:
@@ -94,7 +136,15 @@ class CliApplication:
         ctx: typer.Context,
         command: str | None = None,
     ) -> None:
-        """Show root help or help for a specific command."""
+        """Display general CLI help or help for a specific command.
+
+        Args:
+            ctx: Typer context for the help command.
+            command: Optional command name for which to display help.
+
+        Raises:
+            typer.Exit: With exit code 2 if the requested command is unknown.
+        """
         root_context = ctx.parent
         assert root_context is not None
 
@@ -123,7 +173,26 @@ class CliApplication:
         *,
         unexpected_error_message: str,
     ) -> tuple[Any, Any]:
-        """Load and validate a pipeline configuration using library services."""
+        """Load and validate a pipeline configuration.
+
+        Creates the default component catalog and uses the configured loader
+        to parse and validate the YAML file. The same workflow is shared by
+        the run and validate commands.
+
+        Args:
+            pipeline: Path to the YAML pipeline configuration.
+            unexpected_error_message: Diagnostic to display for an
+                unexpected error during configuration loading.
+
+        Returns:
+            A tuple containing the component catalog and validated pipeline
+            configuration.
+
+        Raises:
+            typer.Exit: With exit code 1 for unexpected errors or 3 for
+                configuration, YAML parsing, filesystem, or path-validation
+                failures.
+        """
         config_path = pipeline.expanduser().resolve()
 
         try:
@@ -182,7 +251,17 @@ class CliApplication:
         config_path: Path,
         error: Exception | None = None,
     ) -> str:
-        """Create an actionable message for configuration file access errors."""
+        """Build a diagnostic for a configuration file access failure.
+
+        Args:
+            pipeline: Original path supplied to the CLI.
+            config_path: Expanded and resolved configuration file path.
+            error: Optional underlying filesystem or path-related exception.
+
+        Returns:
+            A user-facing message distinguishing permission denial, a missing
+            file, and another file access failure.
+        """
         if isinstance(error, PermissionError):
             return f"Permission denied reading pipeline configuration: {pipeline}"
 
@@ -198,7 +277,24 @@ class CliApplication:
         components: Any,
         validated_config: Any,
     ) -> None:
-        """Build and execute a pipeline, closing runtime resources afterward."""
+        """Build and execute a pipeline and release builder resources.
+
+        Attempts to close the builder after construction or execution,
+        including when either operation fails. Reports failures after cleanup
+        so cleanup errors do not mask earlier build or execution errors.
+
+        Args:
+            pipeline: Original path supplied to the CLI.
+            components: Component catalog containing the source, processor,
+                and sink registries and SQL engine factory.
+            validated_config: Configuration returned by the configuration
+                loader.
+
+        Raises:
+            typer.Exit: With exit code 1 for unexpected construction errors,
+                3 for pipeline-build validation failures, or 4 for execution
+                or resource-cleanup failures.
+        """
         builder: PipelineBuilder | None = None
         execution_pipeline: Pipeline | None = None
         build_error: PipelineBuildError | None = None
@@ -260,7 +356,14 @@ class CliApplication:
 
     @staticmethod
     def _exit_validation_error(message: str) -> NoReturn:
-        """Print a validation error and exit with status 3."""
+        """Display a validation error and terminate the command.
+
+        Args:
+            message: User-facing validation diagnostic.
+
+        Raises:
+            typer.Exit: Always, with exit code 3.
+        """
         typer.echo(message, err=True)
         raise typer.Exit(code=3)
 
@@ -269,7 +372,18 @@ class CliApplication:
         pipeline: Path,
         error: Exception,
     ) -> NoReturn:
-        """Report a safe pipeline execution error and exit with status 4."""
+        """Display a safe execution diagnostic and terminate the command.
+
+        The diagnostic includes the exception type but deliberately omits
+        its message to avoid exposing potentially sensitive data.
+
+        Args:
+            pipeline: Path to the pipeline that failed.
+            error: Exception raised during pipeline execution.
+
+        Raises:
+            typer.Exit: Always, with exit code 4.
+        """
         typer.echo(
             f"Pipeline execution failed for '{pipeline}' "
             f"({type(error).__name__}). "
@@ -281,7 +395,12 @@ class CliApplication:
 
 
 def _create_application() -> CliApplication:
-    """Compose the CLI application with the production dependencies."""
+    """Create the CLI application with production dependencies.
+
+    Returns:
+        A configured application using ETLRelay's default component catalog,
+        configuration loader, pipeline builder, and package version provider.
+    """
     return CliApplication(
         component_catalog_factory=create_default_component_catalog,
         config_loader_factory=ConfigLoader,
@@ -294,7 +413,14 @@ def _create_application() -> CliApplication:
 # application class.
 @app.callback()
 def _root_callback(ctx: typer.Context) -> None:
-    """Show root help when no command is supplied."""
+    """Show root help when no command is supplied.
+
+    Args:
+        ctx: Typer context for the root command.
+
+    Raises:
+        typer.Exit: With exit code 0 when no subcommand was invoked.
+    """
     _create_application().root_callback(ctx)
 
 
@@ -308,7 +434,16 @@ def run(
         ),
     ],
 ) -> None:
-    """Execute the pipeline defined by a YAML configuration file."""
+    """Execute a pipeline configuration through ETLRelay.
+
+    Args:
+        pipeline: Path to the YAML pipeline configuration.
+
+    Raises:
+        typer.Exit: With exit code 1 for unexpected internal errors,
+            3 for configuration or build failures, or 4 for pipeline
+            execution or resource-cleanup failures.
+    """
     _create_application().run_pipeline(pipeline)
 
 
@@ -322,13 +457,26 @@ def validate(
         ),
     ],
 ) -> None:
-    """Validate a YAML pipeline configuration without executing it."""
+    """Validate a pipeline configuration without executing it.
+
+    Args:
+        pipeline: Path to the YAML pipeline configuration.
+
+    Raises:
+        typer.Exit: With exit code 1 for unexpected internal errors or
+            3 for configuration loading, parsing, or validation failures.
+    """
     _create_application().validate_pipeline(pipeline)
 
 
 @app.command(name="version", context_settings=_HELP_CONTEXT_SETTINGS)
 def version_command() -> None:
-    """Print the installed ETLRelay package version."""
+    """Print the installed ETLRelay package version.
+
+    Raises:
+        typer.Exit: With exit code 1 if package version metadata is
+            unavailable.
+    """
     _create_application().print_version()
 
 
@@ -340,10 +488,18 @@ def help_command(
         typer.Argument(help="Command to show help for."),
     ] = None,
 ) -> None:
-    """Show general CLI help or help for a specific command."""
+    """Display help for the CLI or a specific command.
+
+    Args:
+        ctx: Typer context for the help command.
+        command: Optional command name for which to display help.
+
+    Raises:
+        typer.Exit: With exit code 2 if the requested command is unknown.
+    """
     _create_application().show_help(ctx, command)
 
 
 def main() -> None:
-    """Run the command-line application."""
+    """Launch the ETLRelay command-line application."""
     app()
