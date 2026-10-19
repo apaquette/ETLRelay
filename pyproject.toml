@@ -20,6 +20,9 @@ dependencies = [
     "typer>=0.16,<1"
 ]
 
+[project.scripts]
+etlrelay = "etlrelay.cli:main"
+
 [dependency-groups]
 dev = [
     "pytest>9.0.3,<10",
