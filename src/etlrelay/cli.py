@@ -5,7 +5,16 @@ from pathlib import Path
 from typing import Annotated, NoReturn, cast
 
 import typer
+import yaml
 from typer.core import TyperGroup
+
+from etlrelay.config.errors import ConfigurationError
+from etlrelay.config.loader import ConfigLoader
+from etlrelay.default_components import create_default_component_catalog
+from etlrelay.readers.yaml import YamlReader
+from etlrelay.security.path import PathValidationError, PathValidator
+from etlrelay.storage.filesystem import FileSystemError
+from etlrelay.storage.local import LocalFileSystem
 
 _HELP_CONTEXT_SETTINGS = {"help_option_names": ["-h", "--help"]}
 
@@ -49,6 +58,12 @@ def run(
     _not_implemented_yet("run")
 
 
+def _exit_validation_error(message: str) -> NoReturn:
+    """Print a safe validation error and exit with status 3."""
+    typer.echo(message, err=True)
+    raise typer.Exit(code=3)
+
+
 @app.command(context_settings=_HELP_CONTEXT_SETTINGS)
 def validate(
     pipeline: Annotated[
@@ -60,7 +75,63 @@ def validate(
     ],
 ) -> None:
     """Validate a YAML pipeline configuration without executing it."""
-    _not_implemented_yet("validate")
+    config_path = pipeline.expanduser().resolve()
+
+    try:
+        components = create_default_component_catalog()
+        loader = ConfigLoader(
+            LocalFileSystem(
+                path_validator=PathValidator(base_path=config_path.parent),
+            ),
+            YamlReader(),
+            components.config_validator,
+        )
+
+        loader.load(config_path.name)
+
+    except ConfigurationError as error:
+        _exit_validation_error(
+            f"Invalid pipeline configuration '{pipeline}': {error}",
+        )
+
+    except yaml.YAMLError as error:
+        mark = getattr(error, "problem_mark", None)
+
+        if mark is None:
+            detail = "Invalid YAML syntax."
+        else:
+            detail = f"Invalid YAML syntax at line {mark.line + 1}, column {mark.column + 1}."
+
+        _exit_validation_error(
+            f"{detail} Configuration file: '{pipeline}'.",
+        )
+
+    except FileSystemError:
+        if not config_path.exists():
+            message = f"Pipeline configuration file does not exist: {pipeline}"
+        else:
+            message = f"Unable to read pipeline configuration file: {pipeline}"
+
+        _exit_validation_error(message)
+
+    except (OSError, PathValidationError) as error:
+        if isinstance(error, PermissionError):
+            message = f"Permission denied reading pipeline configuration: {pipeline}"
+        elif not config_path.exists():
+            message = f"Pipeline configuration file does not exist: {pipeline}"
+        else:
+            message = f"Unable to read pipeline configuration file: {pipeline}"
+
+        _exit_validation_error(message)
+
+    except Exception:
+        typer.echo(
+            "Unexpected error while validating pipeline configuration.",
+            err=True,
+        )
+        raise typer.Exit(code=1) from None
+
+    typer.echo(f"Pipeline configuration is valid: {pipeline}")
 
 
 @app.command(name="version", context_settings=_HELP_CONTEXT_SETTINGS)
