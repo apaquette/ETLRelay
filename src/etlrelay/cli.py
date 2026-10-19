@@ -14,10 +14,9 @@ from etlrelay.config.loader import ConfigLoader
 from etlrelay.config.pipeline_builder import PipelineBuilder, PipelineBuildError
 from etlrelay.default_components import create_default_component_catalog
 from etlrelay.pipeline import Pipeline
-from etlrelay.readers.yaml import YamlReader
-from etlrelay.security.path import PathValidationError, PathValidator
-from etlrelay.storage.filesystem import FileSystemError
-from etlrelay.storage.local import LocalFileSystem
+from etlrelay.readers import YamlReader
+from etlrelay.security import PathValidationError, PathValidator
+from etlrelay.storage import FileSystemError, LocalFileSystem
 
 _HELP_CONTEXT_SETTINGS = {"help_option_names": ["-h", "--help"]}
 
