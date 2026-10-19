@@ -1,0 +1,499 @@
+"""Functional tests for the installed ETLRelay command-line application."""
+
+from __future__ import annotations
+
+import os
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+from typing import Any
+
+import pytest
+import yaml
+
+_SECRET_SENTINEL = "ETLRELAY_SECRET_SENTINEL_7F31A9"
+_PAYLOAD_SENTINEL = "ETLRELAY_PAYLOAD_SENTINEL_C84D21"
+
+
+def _subprocess_environment(
+    overrides: dict[str, str] | None = None,
+) -> dict[str, str]:
+    """Create an environment isolated from the development checkout."""
+    env = os.environ.copy()
+
+    for name in (
+        "PYTHONHOME",
+        "PYTHONPATH",
+        "PYTHONUSERBASE",
+        "VIRTUAL_ENV",
+        "UV_PROJECT_ENVIRONMENT",
+    ):
+        env.pop(name, None)
+
+    env["PYTHONNOUSERSITE"] = "1"
+
+    if overrides:
+        env.update(overrides)
+
+    return env
+
+
+def _run(
+    command: list[str],
+    *,
+    cwd: Path,
+    env: dict[str, str] | None = None,
+) -> subprocess.CompletedProcess[str]:
+    """Run a command with captured standard output and error."""
+    return subprocess.run(
+        command,
+        cwd=cwd,
+        env=_subprocess_environment(env),
+        capture_output=True,
+        check=False,
+        text=True,
+        timeout=120,
+    )
+
+
+@pytest.fixture(scope="session")
+def installed_cli(
+    tmp_path_factory: pytest.TempPathFactory,
+) -> Path:
+    """Build and install ETLRelay into an isolated virtual environment.
+
+    Returns:
+        Path to the installed ``etlrelay`` console-script executable.
+
+    Raises:
+        AssertionError: If building, installing, or importing the installed
+            package fails.
+    """
+    project_root = Path(__file__).resolve().parents[2]
+    uv = shutil.which("uv")
+    assert uv is not None, "The functional package tests require uv."
+
+    artifact_dir = tmp_path_factory.mktemp("etlrelay-artifacts")
+    outside_checkout = tmp_path_factory.mktemp("etlrelay-install-work")
+    wheel_dir = artifact_dir / "wheel"
+    wheel_dir.mkdir()
+
+    build = _run(
+        [
+            uv,
+            "build",
+            "--wheel",
+            "--out-dir",
+            str(wheel_dir),
+        ],
+        cwd=project_root,
+    )
+    assert build.returncode == 0, (
+        f"Wheel build failed.\nstdout:\n{build.stdout}\nstderr:\n{build.stderr}"
+    )
+
+    wheels = list(wheel_dir.glob("etlrelay-*.whl"))
+    assert len(wheels) == 1, f"Expected one ETLRelay wheel, found {wheels}."
+    wheel = wheels[0]
+
+    requirements_file = artifact_dir / "runtime-requirements.txt"
+    export = _run(
+        [
+            uv,
+            "export",
+            "--no-dev",
+            "--no-emit-project",
+            "--format",
+            "requirements-txt",
+            "--output-file",
+            str(requirements_file),
+        ],
+        cwd=project_root,
+    )
+    assert export.returncode == 0, (
+        f"Exporting locked runtime dependencies failed.\n"
+        f"stdout:\n{export.stdout}\nstderr:\n{export.stderr}"
+    )
+
+    venv_dir = artifact_dir / "venv"
+    create_venv = _run(
+        [
+            uv,
+            "venv",
+            "--python",
+            sys.executable,
+            str(venv_dir),
+        ],
+        cwd=outside_checkout,
+    )
+    assert create_venv.returncode == 0, (
+        f"Creating the test virtual environment failed.\n"
+        f"stdout:\n{create_venv.stdout}\nstderr:\n{create_venv.stderr}"
+    )
+
+    scripts_dir = venv_dir / ("Scripts" if os.name == "nt" else "bin")
+    python = scripts_dir / ("python.exe" if os.name == "nt" else "python")
+    executable = scripts_dir / ("etlrelay.exe" if os.name == "nt" else "etlrelay")
+
+    install_dependencies = _run(
+        [
+            uv,
+            "pip",
+            "sync",
+            "--python",
+            str(python),
+            str(requirements_file),
+        ],
+        cwd=outside_checkout,
+    )
+    assert install_dependencies.returncode == 0, (
+        f"Installing locked runtime dependencies failed.\n"
+        f"stdout:\n{install_dependencies.stdout}\n"
+        f"stderr:\n{install_dependencies.stderr}"
+    )
+
+    install_wheel = _run(
+        [
+            uv,
+            "pip",
+            "install",
+            "--python",
+            str(python),
+            "--no-deps",
+            str(wheel),
+        ],
+        cwd=outside_checkout,
+    )
+    assert install_wheel.returncode == 0, (
+        f"Installing the built ETLRelay wheel failed.\n"
+        f"stdout:\n{install_wheel.stdout}\n"
+        f"stderr:\n{install_wheel.stderr}"
+    )
+    assert executable.is_file(), f"Installed console script was not created: {executable}"
+
+    # Verify that imports resolve from the installed virtual environment,
+    # not from the repository checkout.
+    inspection = _run(
+        [
+            str(python),
+            "-c",
+            "import etlrelay; print(etlrelay.__file__)",
+        ],
+        cwd=outside_checkout,
+    )
+    assert inspection.returncode == 0, (
+        f"Importing the installed package failed.\n"
+        f"stdout:\n{inspection.stdout}\n"
+        f"stderr:\n{inspection.stderr}"
+    )
+
+    package_file = Path(inspection.stdout.strip()).resolve()
+    assert package_file.is_relative_to(venv_dir.resolve()), (
+        f"ETLRelay imported from outside the test environment: {package_file}"
+    )
+    assert not package_file.is_relative_to(project_root.resolve()), (
+        f"ETLRelay unexpectedly imported from the repository: {package_file}"
+    )
+
+    return executable
+
+
+def _write_config(work_dir: Path, config: dict[str, Any]) -> Path:
+    """Write a YAML pipeline configuration into a temporary directory."""
+    config_path = work_dir / "pipeline.yml"
+    config_path.write_text(
+        yaml.safe_dump(config, sort_keys=False),
+        encoding="utf-8",
+    )
+    return config_path
+
+
+def _file_pipeline_config(
+    work_dir: Path,
+    *,
+    source_path: str = "input.csv",
+    sink_path: str = "output.csv",
+    processors: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    """Create a local-file CSV pipeline using the supported YAML schema."""
+    storage = {
+        "type": "local",
+        "base_path": str(work_dir.resolve()),
+    }
+
+    return {
+        "version": 1,
+        "source": {
+            "type": "file",
+            "path": source_path,
+            "format": "csv",
+            "storage": storage,
+        },
+        "processors": [] if processors is None else processors,
+        "sink": {
+            "type": "file",
+            "path": sink_path,
+            "format": "csv",
+            "storage": storage,
+        },
+    }
+
+
+def test_installed_cli_help(installed_cli: Path, tmp_path: Path) -> None:
+    """Show general help successfully through the installed executable."""
+    result = _run([str(installed_cli), "--help"], cwd=tmp_path)
+
+    assert result.returncode == 0
+    assert "Run and validate ETLRelay pipelines" in result.stdout
+    assert "run" in result.stdout
+    assert "validate" in result.stdout
+    assert "version" in result.stdout
+    assert result.stderr == ""
+
+
+def test_installed_cli_command_help(
+    installed_cli: Path,
+    tmp_path: Path,
+) -> None:
+    """Show help for an individual command."""
+    result = _run(
+        [str(installed_cli), "help", "run"],
+        cwd=tmp_path,
+    )
+
+    assert result.returncode == 0
+    assert "PIPELINE" in result.stdout
+    assert "YAML" in result.stdout
+    assert result.stderr == ""
+
+
+def test_installed_cli_version(
+    installed_cli: Path,
+    tmp_path: Path,
+) -> None:
+    """Print installed package version metadata."""
+    result = _run(
+        [str(installed_cli), "version"],
+        cwd=tmp_path,
+    )
+
+    assert result.returncode == 0
+    assert result.stdout.startswith("etlrelay ")
+    assert result.stdout.strip().split(maxsplit=1)[1]
+    assert result.stderr == ""
+
+
+def test_installed_cli_missing_argument_is_usage_error(
+    installed_cli: Path,
+    tmp_path: Path,
+) -> None:
+    """Return the documented usage-error exit code for a missing argument."""
+    result = _run([str(installed_cli), "run"], cwd=tmp_path)
+
+    assert result.returncode == 2
+    assert result.stdout == ""
+    assert "PIPELINE" in result.stderr
+    assert "Usage:" in result.stderr
+
+
+def test_installed_cli_unknown_help_command_is_usage_error(
+    installed_cli: Path,
+    tmp_path: Path,
+) -> None:
+    """Report an unknown help target as a usage error."""
+    result = _run(
+        [str(installed_cli), "help", "unknown-command"],
+        cwd=tmp_path,
+    )
+
+    assert result.returncode == 2
+    assert result.stdout == ""
+    assert "Unknown command" in result.stderr
+
+
+def test_installed_cli_validate_success_does_not_execute_pipeline(
+    installed_cli: Path,
+    tmp_path: Path,
+) -> None:
+    """Validate a pipeline without running its processor or creating output."""
+    (tmp_path / "input.csv").write_text(
+        "id\n1\n",
+        encoding="utf-8",
+    )
+    config = _file_pipeline_config(
+        tmp_path,
+        processors=[
+            {"type": "select_columns", "columns": ["missing_column"]},
+        ],
+    )
+    config_path = _write_config(tmp_path, config)
+    output_path = tmp_path / "output.csv"
+
+    result = _run(
+        [str(installed_cli), "validate", str(config_path)],
+        cwd=tmp_path,
+    )
+
+    assert result.returncode == 0, (result.stdout, result.stderr)
+    assert f"Pipeline configuration is valid: {config_path}" in result.stdout
+    assert result.stderr == ""
+    assert not output_path.exists()
+
+
+def test_installed_cli_validate_invalid_yaml_returns_code_3(
+    installed_cli: Path,
+    tmp_path: Path,
+) -> None:
+    """Report malformed YAML using the validation-error exit code."""
+    config_path = tmp_path / "invalid.yml"
+    config_path.write_text(
+        f"version: [\n# {_SECRET_SENTINEL}\n",
+        encoding="utf-8",
+    )
+
+    result = _run(
+        [str(installed_cli), "validate", str(config_path)],
+        cwd=tmp_path,
+    )
+
+    assert result.returncode == 3
+    assert result.stdout == ""
+    assert "Invalid YAML syntax" in result.stderr
+    assert _SECRET_SENTINEL not in result.stdout + result.stderr
+
+
+def test_installed_cli_validate_invalid_configuration_returns_code_3(
+    installed_cli: Path,
+    tmp_path: Path,
+) -> None:
+    """Return the validation-error exit code for an invalid schema."""
+    config_path = _write_config(
+        tmp_path,
+        {
+            "version": 999,
+            "source": {},
+            "processors": [],
+            "sink": {},
+        },
+    )
+
+    result = _run(
+        [str(installed_cli), "validate", str(config_path)],
+        cwd=tmp_path,
+    )
+
+    assert result.returncode == 3
+    assert result.stdout == ""
+    assert "Invalid pipeline configuration" in result.stderr
+
+
+def test_installed_cli_run_executes_csv_pipeline(
+    installed_cli: Path,
+    tmp_path: Path,
+) -> None:
+    """Execute a CSV pipeline and verify its actual output file."""
+    (tmp_path / "input.csv").write_text(
+        "id,amount,state\n1,10,ready\n2,-2,skip\n",
+        encoding="utf-8",
+    )
+    config = _file_pipeline_config(
+        tmp_path,
+        processors=[
+            {"type": "select_columns", "columns": ["id", "amount"]},
+            {
+                "type": "filter_rows",
+                "column": "amount",
+                "operator": ">",
+                "value": 0,
+            },
+            {"type": "rename_columns", "mapping": {"id": "record_id"}},
+        ],
+    )
+    config_path = _write_config(tmp_path, config)
+    output_path = tmp_path / "output.csv"
+
+    result = _run(
+        [str(installed_cli), "run", str(config_path)],
+        cwd=tmp_path,
+    )
+
+    assert result.returncode == 0, (result.stdout, result.stderr)
+    assert f"Pipeline completed: {config_path}" in result.stdout
+    assert result.stderr == ""
+    assert output_path.read_text(encoding="utf-8") == ('"record_id","amount"\n1,10\n')
+
+
+def test_installed_cli_run_failure_does_not_leak_payload(
+    installed_cli: Path,
+    tmp_path: Path,
+) -> None:
+    """Hide sensitive CSV payload values when runtime processing fails."""
+    (tmp_path / "input.csv").write_text(
+        f"id,payload\n1,{_PAYLOAD_SENTINEL}\n",
+        encoding="utf-8",
+    )
+    config = _file_pipeline_config(
+        tmp_path,
+        processors=[
+            {"type": "select_columns", "columns": ["missing_column"]},
+        ],
+    )
+    config_path = _write_config(tmp_path, config)
+
+    result = _run(
+        [str(installed_cli), "run", str(config_path)],
+        cwd=tmp_path,
+    )
+    terminal_output = result.stdout + result.stderr
+
+    assert result.returncode == 4
+    assert "Pipeline execution failed" in result.stderr
+    assert "Traceback" not in terminal_output
+    assert _PAYLOAD_SENTINEL not in terminal_output
+    assert _SECRET_SENTINEL not in terminal_output
+    assert not (tmp_path / "output.csv").exists()
+
+
+def test_installed_cli_run_does_not_leak_sql_url_or_query_values(
+    installed_cli: Path,
+    tmp_path: Path,
+) -> None:
+    """Hide environment-sourced connection values and SQL payloads on failure."""
+    database_path = tmp_path / f"{_SECRET_SENTINEL}.db"
+    connection_variable = "ETLRELAY_FUNCTIONAL_SOURCE_DATABASE_URL"
+    connection_url = f"sqlite:///{database_path.as_posix()}"
+
+    config = {
+        "version": 1,
+        "source": {
+            "type": "sql",
+            "connection_url_env": connection_variable,
+            "query": (f"SELECT '{_PAYLOAD_SENTINEL}' AS payload FROM missing_table"),
+        },
+        "processors": [],
+        "sink": {
+            "type": "file",
+            "path": "output.csv",
+            "format": "csv",
+            "storage": {
+                "type": "local",
+                "base_path": str(tmp_path.resolve()),
+            },
+        },
+    }
+    config_path = _write_config(tmp_path, config)
+
+    result = _run(
+        [str(installed_cli), "run", str(config_path)],
+        cwd=tmp_path,
+        env={connection_variable: connection_url},
+    )
+    terminal_output = result.stdout + result.stderr
+
+    assert result.returncode == 4
+    assert "Pipeline execution failed" in result.stderr
+    assert _SECRET_SENTINEL not in terminal_output
+    assert _PAYLOAD_SENTINEL not in terminal_output
+    assert connection_url not in terminal_output
+    assert not (tmp_path / "output.csv").exists()
