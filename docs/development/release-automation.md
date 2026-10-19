@@ -36,6 +36,19 @@ In repository settings, protect `main`:
 
 Protect `dev` from accidental deletion and force pushes as appropriate. If you require pull requests into `dev`, also require `CI / quality` there. Configure the GitHub `pypi` environment to allow deployments from `main` only. Keep the production publishing job separate from the build job; only the publishing job receives `id-token: write`.
 
+## CLI release verification (v0.7.0 onward)
+
+Before promoting a CLI release, verify the command boundary from the built package, not only from a repository checkout:
+
+1. Run `uv run mkdocs build --strict` to catch broken navigation, missing pages, and documentation warnings.
+2. Run the functional installed-package tests that build and install the wheel in an isolated environment.
+3. Confirm `etlrelay --help`, `etlrelay help run`, and `etlrelay version` work from outside the repository checkout.
+4. Validate a supported local CSV configuration, run it through `etlrelay run`, and inspect the generated output.
+5. Verify validation does not create output and failures use the documented exit codes without printing sentinel credentials or payload values.
+6. Run the project test suite, Ruff lint/format checks, Pyright, `uv build`, and distribution metadata validation.
+
+Do not mark the release ready if the strict documentation build or clean-install/installed-CLI checks remain unverified. Record any genuine environment-specific limitation explicitly and distinguish it from a product or documentation failure.
+
 ## TestPyPI procedure
 
 1. Merge the release candidate into `dev` and make sure CI passes.

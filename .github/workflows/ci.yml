@@ -33,6 +33,9 @@ jobs:
       - name: Install locked project and development dependencies
         run: uv sync --locked --all-groups
 
+      - name: Build documentation
+        run: uv run mkdocs build --strict
+
       - name: Run tests with branch coverage
         run: >-
           uv run pytest
@@ -51,11 +54,280 @@ jobs:
       - name: Check types
         run: uv run pyright
 
-      - name: Build documentation
-        run: uv run mkdocs build --strict
-
       - name: Build source distribution and wheel
         run: uv build
 
       - name: Validate distribution metadata
         run: uvx --from 'twine>=7,<8' twine check dist/*
+
+      - name: Verify installed CLI release contract
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          fail() {
+            echo "CLI release verification failed: $*" >&2
+            exit 1
+          }
+
+          # Read the package identity from pyproject.toml.
+          # Do not duplicate release metadata in the workflow.
+          metadata="$(uv run python - <<'PY'
+          import re
+          import tomllib
+          from pathlib import Path
+
+          project = tomllib.loads(
+              Path("pyproject.toml").read_text(encoding="utf-8")
+          )["project"]
+
+          name = re.sub(r"[-_.]+", "-", project["name"]).lower()
+          version = project["version"]
+
+          print(name)
+          print(version)
+          PY
+          )"
+
+          mapfile -t package_metadata <<< "$metadata"
+
+          [[ "${#package_metadata[@]}" -eq 2 ]] \
+            || fail "Could not read package name and version from pyproject.toml."
+
+          distribution_name="${package_metadata[0]}"
+          expected_version="${package_metadata[1]}"
+
+          work_dir="${RUNNER_TEMP}/etlrelay-cli-release-smoke"
+          venv_dir="${work_dir}/venv"
+
+          rm -rf "$work_dir"
+          mkdir -p "$work_dir"
+
+          # Install the wheel built by the preceding CI step, matching the
+          # project name and version declared in pyproject.toml.
+          wheel="$(find "${GITHUB_WORKSPACE}/dist" \
+            -maxdepth 1 \
+            -type f \
+            -name "${distribution_name}-${expected_version}-*.whl" \
+            -print -quit)"
+
+          [[ -n "$wheel" ]] \
+            || fail "Could not find the built wheel for ${distribution_name} ${expected_version}."
+
+          uv venv --python 3.12 "$venv_dir"
+
+          uv pip install \
+            --python "${venv_dir}/bin/python" \
+            "$wheel"
+
+          cli="${venv_dir}/bin/etlrelay"
+          python="${venv_dir}/bin/python"
+
+          # Execute outside the checkout and verify package import isolation.
+          cd "$work_dir"
+
+          "$python" - <<'PY'
+          import os
+          import sys
+          from pathlib import Path
+
+          import etlrelay
+
+          package_path = Path(etlrelay.__file__).resolve()
+          venv_path = Path(sys.prefix).resolve()
+          checkout_path = Path(os.environ["GITHUB_WORKSPACE"]).resolve()
+
+          assert package_path.is_relative_to(venv_path), (
+              f"ETLRelay did not load from the test environment: {package_path}"
+          )
+          assert not package_path.is_relative_to(checkout_path), (
+              f"ETLRelay unexpectedly loaded from the repository: {package_path}"
+          )
+
+          print(f"Installed package: {package_path}")
+          PY
+
+          # Root help.
+          "$cli" --help > help.stdout 2> help.stderr
+          grep -Fq "Run and validate ETLRelay pipelines." help.stdout \
+            || fail "Root help omitted the expected description."
+          grep -Fq "run" help.stdout \
+            || fail "Root help omitted the run command."
+          grep -Fq "validate" help.stdout \
+            || fail "Root help omitted the validate command."
+          grep -Fq "version" help.stdout \
+            || fail "Root help omitted the version command."
+          [[ ! -s help.stderr ]] \
+            || fail "Root help wrote unexpected stderr."
+
+          # Command-specific help.
+          "$cli" help run > run-help.stdout 2> run-help.stderr
+          grep -Fq "PIPELINE" run-help.stdout \
+            || fail "Run help omitted its PIPELINE argument."
+          [[ ! -s run-help.stderr ]] \
+            || fail "Run help wrote unexpected stderr."
+
+          # Verify the installed version against project metadata.
+          "$cli" version > version.stdout 2> version.stderr
+          grep -Fxq "etlrelay ${expected_version}" version.stdout \
+            || fail "Version output differs from pyproject.toml."
+          [[ ! -s version.stderr ]] \
+            || fail "Version command wrote unexpected stderr."
+
+          # Missing arguments must return the usage-error exit code.
+          set +e
+          "$cli" run > usage.stdout 2> usage.stderr
+          usage_status=$?
+          set -e
+
+          [[ "$usage_status" -eq 2 ]] \
+            || fail "Missing argument returned ${usage_status}, expected 2."
+          [[ ! -s usage.stdout ]] \
+            || fail "Usage error unexpectedly wrote to stdout."
+          grep -Fq "Usage:" usage.stderr \
+            || fail "Usage error omitted its usage message."
+
+          # Create a local CSV pipeline using supported components.
+          cat > input.csv <<'CSV'
+          id,amount,state
+          1,10,ready
+          2,-2,skip
+          CSV
+
+          cat > pipeline.yml <<'YAML'
+          version: 1
+          source:
+            type: file
+            path: input.csv
+            format: csv
+            storage:
+              type: local
+              base_path: .
+          processors:
+            - type: select_columns
+              columns: [id, amount]
+            - type: filter_rows
+              column: amount
+              operator: ">"
+              value: 0
+            - type: rename_columns
+              mapping:
+                id: record_id
+          sink:
+            type: file
+            path: output.csv
+            format: csv
+            storage:
+              type: local
+              base_path: .
+          YAML
+
+          # Validation must succeed without running the pipeline or
+          # creating its output file.
+          "$cli" validate pipeline.yml \
+            > validate.stdout 2> validate.stderr
+
+          grep -Fq "Pipeline configuration is valid: pipeline.yml" \
+            validate.stdout \
+            || fail "Validation success message is missing."
+          [[ ! -s validate.stderr ]] \
+            || fail "Successful validation wrote unexpected stderr."
+          [[ ! -e output.csv ]] \
+            || fail "Validation created output before execution."
+
+          # Run the pipeline and verify the generated CSV contents.
+          "$cli" run pipeline.yml > run.stdout 2> run.stderr
+
+          grep -Fq "Pipeline completed: pipeline.yml" run.stdout \
+            || fail "Pipeline completion message is missing."
+          [[ ! -s run.stderr ]] \
+            || fail "Successful execution wrote unexpected stderr."
+          [[ -f output.csv ]] \
+            || fail "Pipeline did not create output.csv."
+
+          cat > expected-output.csv <<'CSV'
+          "record_id","amount"
+          1,10
+          CSV
+
+          diff -u expected-output.csv output.csv \
+            || fail "Generated CSV differs from expected output."
+
+          # Invalid YAML must return exit code 3 and must not expose a
+          # sentinel value included in the malformed configuration.
+          secret_sentinel="ETLRELAY_CI_SECRET_SENTINEL_7F31"
+          payload_sentinel="ETLRELAY_CI_PAYLOAD_SENTINEL_C84D"
+
+          printf 'version: [\n# %s\n' "$secret_sentinel" > invalid.yml
+
+          set +e
+          "$cli" validate invalid.yml \
+            > invalid.stdout 2> invalid.stderr
+          validation_status=$?
+          set -e
+
+          [[ "$validation_status" -eq 3 ]] \
+            || fail "Invalid YAML returned ${validation_status}, expected 3."
+          [[ ! -s invalid.stdout ]] \
+            || fail "Validation failure unexpectedly wrote to stdout."
+          grep -Fq "Invalid YAML syntax" invalid.stderr \
+            || fail "Validation failure omitted its diagnostic."
+
+          if grep -Fq "$secret_sentinel" invalid.stdout invalid.stderr; then
+            fail "Validation output exposed the secret sentinel."
+          fi
+
+          # Exercise a local SQLite runtime failure and check that neither
+          # the connection value nor query payload appears in CLI output.
+          cat > sensitive-failure.yml <<YAML
+          version: 1
+          source:
+            type: sql
+            connection_url_env: ETLRELAY_CI_SOURCE_DATABASE_URL
+            query: "SELECT '${payload_sentinel}' AS payload FROM missing_table"
+          processors: []
+          sink:
+            type: file
+            path: sensitive-output.csv
+            format: csv
+            storage:
+              type: local
+              base_path: .
+          YAML
+
+          # SQLite does not use username/password credentials. Include the sentinel
+          # in the database path so the full connection URL is still checked for leaks.
+          sqlite_database="${work_dir}/${secret_sentinel}.db"
+          export ETLRELAY_CI_SOURCE_DATABASE_URL="sqlite:///${sqlite_database}"
+
+          set +e
+          "$cli" run sensitive-failure.yml \
+            > sensitive.stdout 2> sensitive.stderr
+          execution_status=$?
+          set -e
+
+          if [[ "$execution_status" -ne 4 ]]; then
+            # Print diagnostics only after masking both test sentinels.
+            sed \
+              -e "s/${secret_sentinel}/[REDACTED]/g" \
+              -e "s/${payload_sentinel}/[REDACTED]/g" \
+              sensitive.stderr >&2
+
+            fail "Runtime failure returned ${execution_status}, expected 4."
+          fi
+
+          grep -Fq "Pipeline execution failed" sensitive.stderr \
+            || fail "Runtime failure omitted its diagnostic."
+
+          if grep -Fq "$secret_sentinel" sensitive.stdout sensitive.stderr; then
+            fail "Runtime output exposed the connection sentinel."
+          fi
+
+          if grep -Fq "$payload_sentinel" sensitive.stdout sensitive.stderr; then
+            fail "Runtime output exposed the query payload."
+          fi
+
+          [[ ! -e sensitive-output.csv ]] \
+            || fail "Failed pipeline unexpectedly created output."
+
+          echo "Installed ${distribution_name} ${expected_version} CLI checks passed."
