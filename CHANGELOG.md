@@ -4,6 +4,22 @@ Notable changes to ETLRelay are documented here.
 
 This project follows the principles of [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and [Semantic Versioning](https://semver.org/).
 
+
+## [0.7.0] - 2026-10-19
+
+### Added
+
+- Add the `etlrelay` command-line interface with `run`, `validate`, `version`, and `help` commands.
+- Add an installed-package and subprocess test path for the CLI, including local CSV execution and output verification.
+- Add functional and integration coverage for command exit codes, standard streams, validation side effects, runtime failures, and sensitive-output regression checks.
+- Add CLI reference documentation and CLI usage to the getting-started guide.
+
+### Changed
+
+- Refactor CLI command handling into `CliApplication`, with thin Typer command adapters and injected service factories.
+- Share configuration loading and validation behavior between `run` and `validate`.
+- Define CLI exit codes for unexpected errors (`1`), usage errors (`2`), configuration/build failures (`3`), and runtime/cleanup failures (`4`).
+
 ## [0.6.0] - 2026-10-18
 
 ### Added

@@ -1,6 +1,16 @@
 # API Reference
 
-This reference is generated from the public code and its docstrings. The configuration APIs introduced in ETLRelay 0.6.0 are listed separately from the direct runtime component APIs.
+This reference documents ETLRelay's Python API using public classes,
+interfaces, and their docstrings.
+
+Configuration APIs introduced in ETLRelay 0.6.0 are grouped separately
+from the direct runtime component APIs. The command-line interface
+introduced in ETLRelay 0.7.0 is documented in the
+[CLI Reference](cli-reference.md).
+
+The public API may evolve before the 1.0.0 release. Consult the
+configuration and architecture documentation for supported YAML
+properties, component combinations, and implementation boundaries.
 
 ## Configuration loading and validation
 

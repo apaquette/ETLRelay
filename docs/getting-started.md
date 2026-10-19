@@ -1,12 +1,22 @@
 # Getting Started
 
-ETLRelay 0.6.0 supports both direct Python composition and versioned YAML configuration. This guide starts with YAML—the new declarative interface—and then explains where to go for the direct component API.
+ETLRelay 0.7.0 supports an installed command-line interface (CLI), versioned YAML configuration, and direct Python composition. This guide starts with installing the CLI and running a YAML pipeline, then explains the configuration format and direct component API.
 
 ## Requirements
 
 - Python 3.12 or newer.
-- ETLRelay 0.6.0.
+- ETLRelay 0.7.0.
 - A local filesystem directory where the example data and outputs can be stored.
+
+## Install the CLI
+
+Install the released package into the Python environment where you want to run pipelines:
+
+```bash
+python -m pip install etlrelay==0.7.0
+etlrelay --help
+etlrelay version
+```
 
 For the full runnable examples, clone the repository and install the package in an environment using the repository's supported Python setup:
 
@@ -16,7 +26,7 @@ cd ETLRelay
 python -m pip install -e .
 ```
 
-The examples are kept under `examples/configuration/` so that their YAML files, preparation script, and runner can be used together. If you are using the published package rather than a checkout, use the package version and Python environment appropriate to your installation, and obtain the examples from the v0.6.0 repository tag.
+The examples are kept under `examples/configuration/` so that their YAML files, preparation script, and runner can be used together. If you are using the published package rather than a checkout, obtain the examples from the v0.7.0 repository tag.
 
 ## Prepare the demonstration data
 
@@ -32,21 +42,25 @@ The sample input contains `id`, `amount`, and `state`. The YAML processors selec
 
 ## Run a YAML pipeline
 
-The runner loads the YAML document through `ConfigLoader`, validates it using the default component catalog, constructs the pipeline with `PipelineBuilder`, executes it, and closes the shared SQL engine factory in a `finally` block.
+After preparing the demonstration data, run commands from the repository root. The CLI loads and validates the YAML configuration, builds the pipeline with ETLRelay's existing component catalog and `PipelineBuilder`, executes the pipeline, and releases builder-managed resources.
 
-Run a CSV-to-CSV pipeline:
-
-```bash
-python examples/configuration/run.py examples/configuration/csv_to_csv.yaml
-```
-
-Run a CSV-to-Parquet pipeline:
+Validate and execute a CSV-to-CSV pipeline:
 
 ```bash
-python examples/configuration/run.py examples/configuration/csv_to_parquet.yaml
+etlrelay validate examples/configuration/csv_to_csv.yaml
+etlrelay run examples/configuration/csv_to_csv.yaml
 ```
 
-The runner accepts any of the nine YAML examples in `examples/configuration/`: four file-to-file format pairs, two file-to-SQL pairs, two SQL-to-file pairs, and one SQL-to-SQL pair. Outputs are written beneath `examples/configuration/data/`.
+A successful validation does not execute the pipeline or create the sink output. Run the `run` command to perform the data transformation.
+
+Other examples can be run in the same way. For example:
+
+```bash
+etlrelay validate examples/configuration/csv_to_parquet.yaml
+etlrelay run examples/configuration/csv_to_parquet.yaml
+```
+
+The repository contains nine configuration examples under `examples/configuration/`: file-to-file format pairs, file-to-SQL, SQL-to-file, and SQL-to-SQL. Outputs are written beneath `examples/configuration/data/` according to each configuration's storage settings.
 
 For SQL examples, configure the demo database URLs in the process environment:
 
@@ -55,13 +69,16 @@ export ETLRELAY_SOURCE_DATABASE_URL="sqlite:///examples/configuration/data/sourc
 export ETLRELAY_SINK_DATABASE_URL="sqlite:///examples/configuration/data/sink.db"
 ```
 
-Then run, for example:
+Then validate and run a SQL pipeline, for example:
 
 ```bash
-python examples/configuration/run.py examples/configuration/sql_to_sql.yaml
+etlrelay validate examples/configuration/sql_to_sql.yaml
+etlrelay run examples/configuration/sql_to_sql.yaml
 ```
 
-Each SQL configuration references the variable name in its `connection_url_env` field. The YAML file never contains the resolved URL. These demo URLs are local and contain no credentials; do not put credential-bearing connection URLs or passwords into configuration files.
+Each SQL configuration references the variable name in its `connection_url_env` field. The YAML file does not contain the resolved URL. These demo URLs are local and contain no credentials; do not put credential-bearing connection URLs or passwords into configuration files. The destination table must exist before the SQL sink runs; the preparation script creates the demonstration tables.
+
+See the [CLI Reference](cli-reference.md) for all commands, exit codes, and error-output conventions.
 
 ## Understand the YAML pipeline
 
@@ -98,7 +115,7 @@ sink:
     base_path: .
 ```
 
-The `version` property is the configuration schema version, currently integer `1`; it is independent of the Python package version `0.6.0`. A `processors` list is required, but `processors: []` is valid and passes batches through without transformations.
+The `version` property is the configuration schema version, currently integer `1`; it is independent of the Python package version `0.7.0`. A `processors` list is required, but `processors: []` is valid and passes batches through without transformations.
 
 Processor order matters: `select_columns` drops `state`, `filter_rows` removes negative amounts, and `rename_columns` changes the retained `id` field to `record_id`. Formats are explicit; ETLRelay does not infer them from file extensions.
 
@@ -149,6 +166,7 @@ For this direct API example, `data/input.csv` must exist and the output is `data
 
 ## More details
 
+- [CLI Reference](cli-reference.md) — commands, exit codes, output conventions, and automation guidance.
 - [YAML Configuration](configuration.md) — versioned schema, component matrix, secret handling, and errors.
 - [Core Concepts](concepts.md) — batches, schema behavior, empty inputs, and synchronous execution.
 - [API Reference](api-reference.md) — public interfaces and classes.
