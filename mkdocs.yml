@@ -5,6 +5,7 @@ site_url: "https://apaquette.github.io/ETLRelay/"
 nav:
   - Home: index.md
   - Getting Started: getting-started.md
+  - CLI Reference: cli-reference.md
   - Concepts: concepts.md
   - YAML Configuration: configuration.md
   - Security: security.md

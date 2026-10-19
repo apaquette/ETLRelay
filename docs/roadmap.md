@@ -19,9 +19,10 @@ The roadmap is feature-led, not date-led. A version should be released when its 
 | Released | `0.4.0` | Storage contract stabilization |
 | Released | `0.5.0` | SQL source and sink |
 | Released | `0.6.0` | YAML configuration and runtime pipeline construction |
-| Planned | `0.7.0` onward | CLI and v1.0 readiness milestones |
+| Released | `0.7.0` | CLI for validation and execution |
+| Planned | `0.8.0` onward | Security and v1.0 readiness milestones |
 
-The latest released milestone is `0.6.0`. Releases `0.4.0` and `0.5.0` stabilized local filesystem behavior and added SQL source/sink support; `0.6.0` adds versioned YAML loading and validation, explicit component registrations, a shared default component catalog, SQL environment preflight, and configuration-driven pipeline construction. The CLI remains planned for `0.7.0`. Later milestones describe intended scope and may be revised as implementation and testing clarify dependencies.
+The latest released milestone is `0.7.0`. Releases `0.4.0` and `0.5.0` stabilized local filesystem behavior and added SQL source/sink support; `0.6.0` added versioned YAML loading and validation, explicit component registrations, a shared default component catalog, SQL environment preflight, and configuration-driven pipeline construction. `0.7.0` adds the installed CLI, shared command-level configuration handling, documented exit codes, and unit, integration, and installed-package functional tests. Later milestones describe intended scope and may be revised as implementation and testing clarify dependencies.
 
 ## Versioning policy
 
@@ -156,25 +157,26 @@ The shared SQL engine factory is owned by the configuration-building lifecycle. 
 
 **Done when:** A user can define a supported pipeline in YAML, load and validate it, build the same effective pipeline as direct Python composition, execute it, and diagnose configuration/preflight errors without leaking resolved connection URLs. Full regression and release checks pass.
 
-### `0.7.0` — Command-line interface
+### `0.7.0` — Command-line interface (released)
 
-**Goal:** Make the framework practical to run from a shell or automation script.
+**Outcome:** Added an installed command-line interface for validating and executing supported YAML pipelines while reusing the existing ETLRelay configuration and execution APIs.
 
-Initial commands:
+The release includes:
 
-- `etlrelay run pipeline.yaml`
-- `etlrelay validate pipeline.yaml`
-- `etlrelay version`
+- `etlrelay run PIPELINE` to load, build, and execute a configured pipeline.
+- `etlrelay validate PIPELINE` to parse and validate configuration without executing the pipeline.
+- `etlrelay version` to print the installed distribution version.
+- `etlrelay help [COMMAND]`, root help, and command-specific `--help` options.
+- A `CliApplication` class that coordinates command workflows, with thin Typer adapters and injectable service factories.
+- Shared configuration loading and validation behavior between `run` and `validate`.
+- Documented exit codes: `0` for success, `1` for unexpected internal failures, `2` for usage errors, `3` for configuration/build failures, and `4` for runtime execution or cleanup failures.
+- Unit and integration coverage for command outcomes, configuration failures, source/processor/sink errors, and cleanup behavior.
+- Functional subprocess tests for the built and installed package, including local CSV output verification and sensitive-output regression checks.
+- CLI reference documentation, updated getting-started instructions, and release-check documentation.
 
-Scope:
+The CLI delegates configuration parsing and validation to `ConfigLoader`, component resolution and pipeline construction to the existing catalog and `PipelineBuilder`, and orchestration to `Pipeline`. It does not add scheduling, retries, background execution, or external service dependencies to the core CLI test suite.
 
-- Define useful process exit codes.
-- Print actionable validation and execution errors.
-- Keep secrets and sensitive payloads out of terminal output.
-- Keep the CLI thin; pipeline construction and execution logic belong in the underlying library.
-- Test commands without requiring external databases or cloud resources for the unit suite.
-
-**Done when:** A user can validate and run a supported YAML pipeline through the installed CLI.
+**Done when:** A user can install ETLRelay, inspect its CLI help, validate a supported YAML pipeline, and run it end to end from a shell with documented process exit codes and error-output conventions.
 
 ### `0.8.0` — Security, errors, and operational readiness
 
@@ -274,7 +276,7 @@ The `etlrelay` distribution has already been published to PyPI; see the [ETLRela
 | `0.4.0` | Released | Storage contract stabilization | Documented and tested local filesystem behavior; no remote-storage implementation |
 | `0.5.0` | Released | SQL source/sink | Tested SQLite reads/writes and mixed file/SQL pipelines |
 | `0.6.0` | Released | YAML configuration | Versioned schema validation, explicit component catalog, SQL preflight, and runtime pipeline construction |
-| `0.7.0` | Planned | CLI | Validate and run pipelines from a shell |
+| `0.7.0` | Released | CLI | Validate and run pipelines from a shell |
 | `0.8.0` | Planned | Security and operational readiness | Security review, errors/logging, installation and CI gates |
 | `0.9.0` | Planned | Feature-complete beta | Feature freeze, reader/writer naming cleanup, and full API/representation-contract review |
 | `1.0.0rc1` | Planned | Release candidate | Final validation and feedback |
