@@ -10,7 +10,9 @@ from typer.core import TyperGroup
 
 from etlrelay.config.errors import ConfigurationError
 from etlrelay.config.loader import ConfigLoader
+from etlrelay.config.pipeline_builder import PipelineBuilder, PipelineBuildError
 from etlrelay.default_components import create_default_component_catalog
+from etlrelay.pipeline import Pipeline
 from etlrelay.readers.yaml import YamlReader
 from etlrelay.security.path import PathValidationError, PathValidator
 from etlrelay.storage.filesystem import FileSystemError
@@ -25,15 +27,6 @@ app = typer.Typer(
     invoke_without_command=True,
     no_args_is_help=False,
 )
-
-
-def _not_implemented_yet(command: str) -> NoReturn:
-    """Report an unimplemented command and exit with status 1."""
-    typer.echo(
-        f"The '{command}' command is not implemented yet.",
-        err=True,
-    )
-    raise typer.Exit(code=1)
 
 
 @app.callback()
@@ -55,7 +48,128 @@ def run(
     ],
 ) -> None:
     """Execute the pipeline defined by a YAML configuration file."""
-    _not_implemented_yet("run")
+    config_path = pipeline.expanduser().resolve()
+
+    # Load and validate the configuration before constructing any runtime
+    # source, processor, or sink components.
+    try:
+        components = create_default_component_catalog()
+        loader = ConfigLoader(
+            LocalFileSystem(
+                path_validator=PathValidator(base_path=config_path.parent),
+            ),
+            YamlReader(),
+            components.config_validator,
+        )
+        validated_config = loader.load(config_path.name)
+    except ConfigurationError as error:
+        _exit_validation_error(
+            f"Invalid pipeline configuration '{pipeline}': {error}",
+        )
+    except yaml.YAMLError as error:
+        mark = getattr(error, "problem_mark", None)
+        if mark is None:
+            detail = "Invalid YAML syntax."
+        else:
+            detail = f"Invalid YAML syntax at line {mark.line + 1}, column {mark.column + 1}."
+        _exit_validation_error(
+            f"{detail} Configuration file: '{pipeline}'.",
+        )
+    except FileSystemError:
+        if not config_path.exists():
+            message = f"Pipeline configuration file does not exist: {pipeline}"
+        else:
+            message = f"Unable to read pipeline configuration file: {pipeline}"
+        _exit_validation_error(message)
+    except (OSError, PathValidationError) as error:
+        if isinstance(error, PermissionError):
+            message = f"Permission denied reading pipeline configuration: {pipeline}"
+        elif not config_path.exists():
+            message = f"Pipeline configuration file does not exist: {pipeline}"
+        else:
+            message = f"Unable to read pipeline configuration file: {pipeline}"
+        _exit_validation_error(message)
+    except Exception:
+        typer.echo(
+            "Unexpected error while loading pipeline configuration.",
+            err=True,
+        )
+        raise typer.Exit(code=1) from None
+
+    # PipelineBuilder owns the SQL engines shared by the configured
+    # components. Always attempt cleanup after build/execution.
+    builder = PipelineBuilder(
+        source_registry=components.source_registry,
+        sink_registry=components.sink_registry,
+        processor_registry=components.processor_registry,
+        sql_engine_factory=components.sql_engine_factory,
+    )
+
+    execution_pipeline: Pipeline | None = None
+    build_error: PipelineBuildError | None = None
+    unexpected_build_failure = False
+    execution_error: Exception | None = None
+    cleanup_failed = False
+
+    try:
+        try:
+            execution_pipeline = builder.build(validated_config)
+        except PipelineBuildError as error:
+            build_error = error
+        except Exception:
+            unexpected_build_failure = True
+
+        if execution_pipeline is not None:
+            try:
+                execution_pipeline.run()
+            except Exception as error:
+                execution_error = error
+    finally:
+        try:
+            builder.close()
+        except Exception:
+            cleanup_failed = True
+
+    # Report failures after cleanup so a cleanup exception cannot mask the
+    # more informative build or execution failure.
+    if build_error is not None:
+        _exit_validation_error(
+            f"Unable to build pipeline from configuration '{pipeline}': {build_error}",
+        )
+
+    if unexpected_build_failure:
+        typer.echo(
+            "Unexpected error while constructing the pipeline.",
+            err=True,
+        )
+        raise typer.Exit(code=1) from None
+
+    if execution_error is not None:
+        _exit_execution_error(pipeline, execution_error)
+
+    if cleanup_failed:
+        typer.echo(
+            f"Pipeline '{pipeline}' completed, but runtime resource cleanup failed.",
+            err=True,
+        )
+        raise typer.Exit(code=4) from None
+
+    typer.echo(f"Pipeline completed: {pipeline}")
+
+
+def _exit_execution_error(
+    pipeline: Path,
+    error: Exception,
+) -> NoReturn:
+    """Report a safe pipeline execution error and exit with status 4."""
+    typer.echo(
+        f"Pipeline execution failed for '{pipeline}' "
+        f"({type(error).__name__}). "
+        "Check the input data, processor configuration, and output destination. "
+        "Exception details were omitted.",
+        err=True,
+    )
+    raise typer.Exit(code=4) from None
 
 
 def _exit_validation_error(message: str) -> NoReturn:

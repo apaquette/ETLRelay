@@ -313,11 +313,3 @@ def test_validate_unexpected_error_returns_code_1_without_details(
     assert result.exit_code == 1
     assert "Unexpected error while validating pipeline configuration." in result.output
     assert "sensitive internal detail" not in result.output
-
-
-def test_run_reports_that_command_is_not_yet_implemented() -> None:
-    """Report the temporary run-command placeholder."""
-    result = CliRunner().invoke(cli.app, ["run", "pipeline.yml"])
-
-    assert result.exit_code == 1
-    assert "The 'run' command is not implemented yet." in result.output
