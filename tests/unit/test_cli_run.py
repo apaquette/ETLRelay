@@ -2,6 +2,7 @@
 
 from pathlib import Path
 from types import SimpleNamespace
+from typing import NoReturn
 
 import pytest
 import yaml
@@ -438,3 +439,37 @@ def test_run_filesystem_error_for_missing_config_reports_missing_file(
     assert result.exit_code == 3
     assert f"Pipeline configuration file does not exist: {pipeline}" in result.output
     assert "sensitive filesystem detail" not in result.output
+
+
+def test_run_builder_factory_failure_does_not_attempt_cleanup(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """Handle builder construction failure when no builder exists."""
+    pipeline = tmp_path / "pipeline.yml"
+    _write_file_pipeline_config(
+        pipeline,
+        base_path=tmp_path,
+    )
+    (tmp_path / "input.csv").write_text(
+        "id,amount\n1,10\n",
+        encoding="utf-8",
+    )
+
+    def fail_builder_factory(**_kwargs: object) -> NoReturn:
+        raise RuntimeError("sensitive builder initialization detail")
+
+    monkeypatch.setattr(
+        cli,
+        "PipelineBuilder",
+        fail_builder_factory,
+    )
+
+    result = CliRunner().invoke(
+        cli.app,
+        ["run", str(pipeline)],
+    )
+
+    assert result.exit_code == 1
+    assert "Unexpected error while constructing the pipeline." in result.output
+    assert "sensitive builder initialization detail" not in result.output
