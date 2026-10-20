@@ -280,3 +280,92 @@ def test_write_targets_configured_schema() -> None:
     finally:
         event.remove(engine, "connect", attach_archive)
         engine.dispose()
+
+
+def test_write_does_not_execute_sql_embedded_in_table_name(
+    sqlite_engine: Engine,
+) -> None:
+    """Treat SQL-looking table names as identifiers, not SQL statements."""
+    sink = SqlSink(
+        sqlite_engine,
+        "customers; DROP TABLE customers; --",
+    )
+
+    batch = make_batch([{"id": 2, "name": "Alice", "score": 9.5}])
+
+    with pytest.raises(NoSuchTableError):
+        sink.write([batch])
+
+    assert read_customers(sqlite_engine) == [
+        {"id": 1, "name": "Existing", "score": 1.5},
+    ]
+
+
+def test_write_treats_sql_looking_values_as_data(
+    sqlite_engine: Engine,
+) -> None:
+    """Insert SQL-looking strings without interpreting them as SQL."""
+    malicious_looking_value = "Alice'); DROP TABLE customers; --"
+
+    sink = SqlSink(sqlite_engine, "customers")
+
+    sink.write(
+        [
+            make_batch(
+                [
+                    {
+                        "id": 2,
+                        "name": malicious_looking_value,
+                        "score": 9.5,
+                    }
+                ]
+            )
+        ]
+    )
+
+    assert read_customers(sqlite_engine) == [
+        {"id": 1, "name": "Existing", "score": 1.5},
+        {
+            "id": 2,
+            "name": malicious_looking_value,
+            "score": 9.5,
+        },
+    ]
+
+
+def test_write_supports_identifiers_requiring_quoting(
+    sqlite_engine: Engine,
+) -> None:
+    """Write to tables and columns whose identifiers require quoting."""
+    metadata = MetaData()
+
+    records = Table(
+        "customer records",
+        metadata,
+        Column("record id", Integer, primary_key=True),
+        Column("display name", String, nullable=False),
+    )
+
+    metadata.create_all(sqlite_engine)
+
+    sink = SqlSink(sqlite_engine, "customer records")
+
+    sink.write(
+        [
+            make_batch(
+                [
+                    {
+                        "record id": 1,
+                        "display name": "Alice",
+                    }
+                ]
+            )
+        ]
+    )
+
+    with sqlite_engine.connect() as connection:
+        rows = [dict(row) for row in connection.execute(select(records)).mappings()]
+
+    assert rows == [
+        {"record id": 1, "display name": "Alice"},
+    ]
