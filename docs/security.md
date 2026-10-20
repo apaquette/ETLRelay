@@ -36,6 +36,28 @@ Direct Python `SqlSource` and `SqlSink` instances borrow the SQLAlchemy engine s
 
 For YAML-built pipelines, `create_default_component_catalog()` creates or accepts a shared `SqlEngineFactory`, and the `PipelineBuilder` uses it for SQL components. The caller must invoke `builder.close()` after execution to release engines created by this shared factory and discard resolved URLs. Do not close a successful build's engine resources before the pipeline runs.
 
+## Operational logging and error output
+
+ETLRelay uses Python's standard `logging` module for operational diagnostics.
+
+Built-in logging events report execution progress, component lifecycle events,
+batch counts, and resource-management activity without routinely including
+record contents, SQL parameters, connection URLs, or credentials.
+
+The CLI avoids displaying raw third-party exception messages for unexpected
+operational failures where those messages could contain sensitive information.
+The original underlying exceptions remain available to direct Python callers.
+
+These protections apply to ETLRelay-controlled logs and CLI diagnostics.
+Third-party database drivers, SQLAlchemy logging, custom components, and
+application-provided handlers may have different disclosure behavior.
+
+Applications remain responsible for protecting logs, managing credentials,
+and configuring external library logging appropriately.
+
+See [Logging](logging.md) for supported levels, operational events,
+error-reporting behavior, and security limitations.
+
 ## Current limitations
 
 ETLRelay does not provide a full filesystem sandbox, credentials vault, SQL authorization layer, external API security model, or remote-storage security model. Remote storage such as S3 and HDFS remains outside the planned v1.0.0 scope. Additional integrations require their own threat review and tests.
