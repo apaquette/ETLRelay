@@ -1,3 +1,4 @@
+import logging
 from collections.abc import Iterable
 from io import BytesIO
 from pathlib import Path
@@ -188,3 +189,76 @@ class TestFileSink:
         # Opening with "wb" truncates the old file before writing starts.
         # A failed write does not restore the original contents.
         assert output_path.read_bytes() == b"partial"
+
+    def test_write_logs_lifecycle_without_sensitive_values(
+        self,
+        caplog: pytest.LogCaptureFixture,
+    ) -> None:
+        """Log output lifecycle without exposing filenames or record values."""
+        sensitive_path = "private-output.csv"
+
+        stream = BytesIO()
+        storage = Mock(spec=FileSystem)
+        storage.open_write.return_value = stream
+
+        writer = Mock(spec=Writer)
+        sink = FileSink(
+            path=sensitive_path,
+            storage=storage,
+            writer=writer,
+        )
+
+        batches = [Batch(table=pa.table({"name": ["private-customer-value"]}))]
+
+        with caplog.at_level(logging.DEBUG, logger="etlrelay.sinks.file"):
+            sink.write(batches)
+
+        messages = [
+            record.message for record in caplog.records if record.name == "etlrelay.sinks.file"
+        ]
+
+        assert messages == [
+            "File sink write started.",
+            "File sink write completed.",
+        ]
+
+        assert sensitive_path not in caplog.text
+        assert "private-customer-value" not in caplog.text
+        assert stream.closed
+
+        storage.open_write.assert_called_once_with(sensitive_path)
+        writer.write.assert_called_once()
+
+    def test_write_failure_preserves_exception_without_logging_payload(
+        self,
+        caplog: pytest.LogCaptureFixture,
+    ) -> None:
+        """Preserve the writer exception and omit its sensitive message."""
+        error = WriterError("Serialization failed for private-record-value")
+
+        stream = BytesIO()
+        storage = Mock(spec=FileSystem)
+        storage.open_write.return_value = stream
+
+        writer = Mock(spec=Writer)
+        writer.write.side_effect = error
+
+        sink = FileSink(
+            path="output.csv",
+            storage=storage,
+            writer=writer,
+        )
+
+        with caplog.at_level(logging.DEBUG, logger="etlrelay.sinks.file"):
+            with pytest.raises(WriterError) as exc_info:
+                sink.write([])
+
+        assert exc_info.value is error
+
+        messages = [
+            record.message for record in caplog.records if record.name == "etlrelay.sinks.file"
+        ]
+
+        assert messages == ["File sink write started."]
+        assert "private-record-value" not in caplog.text
+        assert stream.closed

@@ -37,6 +37,7 @@ SQLite is the reference SQL integration-test backend. Other SQLAlchemy dialects 
 - [YAML Configuration](configuration.md) — schema version 1, properties, supported combinations, environment variables, and errors.
 - [Core Concepts](concepts.md) — batches, processors, schema behavior, and file formats.
 - [Security](security.md) — path containment, safe YAML parsing, SQL parameterization, and connection-secret handling.
+- [Logging](logging.md) — configure CLI and Python logging, inspect pipeline operations, and understand error-reporting and sensitive-data limitations.
 - [API Reference](api-reference.md) — public classes and methods, generated from Python docstrings.
 - [Configuration Loading Architecture](architecture/configuration-loading.md) — reading, validation, building, and execution boundaries.
 - [Configuration Validation Architecture](architecture/configuration-validation.md) — root and component validation.

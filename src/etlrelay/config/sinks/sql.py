@@ -127,6 +127,15 @@ class SqlSinkConfigValidator:
             if error is not None:
                 errors.append(error)
 
+        connection_reference = mapping["connection_url_env"]
+
+        if (
+            isinstance(connection_reference, str)
+            and connection_reference.strip()
+            and not connection_reference.isidentifier()
+        ):
+            errors.append(f"{path}.connection_url_env must name a valid environment variable.")
+
         if "schema" in mapping:
             errors.extend(self._validate_schema(mapping, path))
 

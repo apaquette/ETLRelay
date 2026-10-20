@@ -6,12 +6,15 @@ resource cleanup. Connection URLs are resolved before engine creation and are
 not included in errors raised by the factory.
 """
 
+import logging
 import os
 from collections.abc import Callable, Mapping
 from typing import Protocol
 
 from sqlalchemy import create_engine
 from sqlalchemy.engine import Engine
+
+logger = logging.getLogger(__name__)
 
 EnvironmentLookup = Callable[[str], str | None]
 """Callable that retrieves an environment variable by name."""
@@ -132,6 +135,10 @@ class SqlEngineFactory:
                 errors.append(f"{path} must reference a non-empty environment-variable name.")
                 continue
 
+            if not variable_name.isidentifier():
+                errors.append(f"{path} must reference a valid environment-variable name.")
+                continue
+
             if variable_name not in values:
                 try:
                     value = self._getenv(variable_name)
@@ -181,6 +188,7 @@ class SqlEngineFactory:
             )
 
         if variable_name in self._engines:
+            logger.debug("SQL engine reused.")
             return self._engines[variable_name]
 
         try:
@@ -193,6 +201,9 @@ class SqlEngineFactory:
             ) from None
 
         self._engines[variable_name] = engine
+
+        logger.debug("SQL engine created.")
+
         return engine
 
     def close(self) -> None:
@@ -217,6 +228,8 @@ class SqlEngineFactory:
                 engine.dispose()
             except Exception:
                 failed = True
+            else:
+                logger.debug("SQL engine disposed.")
 
         if failed:
             raise SqlEngineFactoryError(

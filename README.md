@@ -47,6 +47,31 @@ etlrelay run pipeline.yaml
 
 See the [CLI Reference](https://apaquette.github.io/ETLRelay/0.7.1/cli-reference/) for command syntax, exit codes, and error-output conventions, and [Getting Started](https://apaquette.github.io/ETLRelay/0.7.1/getting-started/) for a complete local CSV example.
 
+
+## Logging
+
+ETLRelay supports configurable operational logging through Python's standard
+`logging` module.
+
+The CLI defaults to `WARNING`. Use `--log-level` to enable additional
+information:
+
+```bash
+etlrelay --log-level info run pipeline.yaml
+etlrelay --log-level debug run pipeline.yaml
+```
+
+Logs are written to stderr, separately from normal command output.
+
+When using ETLRelay as a Python library, logging is controlled by the calling
+application. ETLRelay does not configure the application's root logger.
+
+Operational logs report pipeline progress, component activity, and resource
+lifecycle events without routinely exposing record contents, SQL parameters,
+or database credentials.
+
+See the [Logging documentation](https://apaquette.github.io/ETLRelay/0.8.0/logging/) for supported levels, examples, Python integration, and security limitations.
+
 ## Documentation
 
 See the [ETLRelay documentation](https://apaquette.github.io/ETLRelay/0.7.1) for usage instructions, examples, and API details.

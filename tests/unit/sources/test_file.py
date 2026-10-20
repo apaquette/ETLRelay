@@ -1,3 +1,4 @@
+import logging
 from collections.abc import Generator, Iterable
 from io import BytesIO
 from typing import BinaryIO, cast
@@ -213,3 +214,76 @@ class TestFileSource:
         iterator.close()
 
         assert stream.closed
+
+    def test_read_logs_lifecycle_without_sensitive_values(
+        self,
+        batch: Batch,
+        caplog: pytest.LogCaptureFixture,
+    ) -> None:
+        """Log read lifecycle without exposing filenames or batch data."""
+        sensitive_path = "private-customer-file.csv"
+
+        storage = FakeFileSystem(stream=BytesIO(b"private-record-value"))
+        reader = FakeReader(batch)
+
+        source = FileSource(
+            path=sensitive_path,
+            storage=storage,
+            reader=reader,
+        )
+
+        with caplog.at_level(logging.DEBUG, logger="etlrelay.sources.file"):
+            batches = list(source.read())
+
+        messages = [
+            record.message for record in caplog.records if record.name == "etlrelay.sources.file"
+        ]
+
+        assert messages == [
+            "File source read started.",
+            "File source read completed.",
+        ]
+
+        assert sensitive_path not in caplog.text
+        assert "private-record-value" not in caplog.text
+        assert batches == [batch]
+        assert storage.stream is not None
+        assert storage.stream.closed
+
+    def test_read_failure_does_not_log_completion(
+        self,
+        batch: Batch,
+        caplog: pytest.LogCaptureFixture,
+    ) -> None:
+        """Preserve the original failure without reporting successful completion."""
+        error = RuntimeError("Failed to read private-record-value")
+
+        storage = FakeFileSystem(stream=BytesIO(b"input"))
+        reader = FakeReader(batch, error=error)
+
+        source = FileSource(
+            path="input.csv",
+            storage=storage,
+            reader=reader,
+        )
+
+        with caplog.at_level(logging.DEBUG, logger="etlrelay.sources.file"):
+            iterator = source.read()
+
+            # Constructing the iterator must not start file I/O or logging.
+            assert caplog.records == []
+            assert storage.opened_path is None
+
+            with pytest.raises(RuntimeError) as exc_info:
+                list(iterator)
+
+        assert exc_info.value is error
+
+        messages = [
+            record.message for record in caplog.records if record.name == "etlrelay.sources.file"
+        ]
+
+        assert messages == ["File source read started."]
+        assert "private-record-value" not in caplog.text
+        assert storage.stream is not None
+        assert storage.stream.closed

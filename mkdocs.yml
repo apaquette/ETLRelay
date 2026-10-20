@@ -9,6 +9,7 @@ nav:
   - Concepts: concepts.md
   - YAML Configuration: configuration.md
   - Security: security.md
+  - Logging: logging.md
   - API Reference: api-reference.md
   - Development:
       - Overview: development.md

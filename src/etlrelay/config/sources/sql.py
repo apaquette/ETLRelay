@@ -135,10 +135,19 @@ class SqlSourceConfigValidator:
         if mapping["type"] != "sql":
             errors.append(f"{path}.type must be 'sql'.")
 
-        for key in {"connection_url_env", "query"}:
+        for key in ("connection_url_env", "query"):
             error = non_empty_string_error(mapping[key], f"{path}.{key}")
             if error is not None:
                 errors.append(error)
+
+        connection_reference = mapping["connection_url_env"]
+
+        if (
+            isinstance(connection_reference, str)
+            and connection_reference.strip()
+            and not connection_reference.isidentifier()
+        ):
+            errors.append(f"{path}.connection_url_env must name a valid environment variable.")
 
         if "parameters" in mapping:
             errors.extend(self._validate_parameters(mapping, path))

@@ -5,12 +5,15 @@ by passing data from a source through an ordered sequence of processors
 and delivering compatible output batches to a sink.
 """
 
+import logging
 from collections.abc import Iterable, Sequence
 from itertools import chain
 
 import pyarrow as pa
 
 from etlrelay.core import Batch, Processor, Sink, Source
+
+logger = logging.getLogger(__name__)
 
 
 class Pipeline:
@@ -72,12 +75,19 @@ class Pipeline:
 
         Previously written batches are not rolled back if a later batch fails.
         """
+        logger.info("Pipeline execution started.")
+
         batches = iter(self._process_batches(self.source.read()))
+
         try:
             first_batch = next(batches)
         except StopIteration:
+            logger.info("Pipeline execution completed.")
             return
+
         self.sink.write(chain((first_batch,), batches))
+
+        logger.info("Pipeline execution completed.")
 
     def _process_batches(self, batches: Iterable[Batch]) -> Iterable[Batch]:
         """Process batches sequentially, validate their output schemas, and yield them.
@@ -106,7 +116,7 @@ class Pipeline:
                 propagate to the caller.
         """
         expected_schema: pa.Schema | None = None
-        for batch in batches:
+        for batch_number, batch in enumerate(batches, start=1):
             for processor in self.processors:
                 batch = processor.process(batch)
 
@@ -118,5 +128,10 @@ class Pipeline:
                 raise ValueError(
                     f"Incompatible output schema: expected {expected_schema}, got {actual_schema}"
                 )
+            logger.debug(
+                "Processed batch %d: %d rows.",
+                batch_number,
+                batch.table.num_rows,
+            )
 
             yield batch
