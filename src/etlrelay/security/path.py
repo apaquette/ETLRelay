@@ -22,16 +22,19 @@ class PathValidator:
 
     PathValidator resolves both the configured base directory and candidate
     paths before checking whether the candidate remains within the permitted
-    directory. This prevents path traversal and symlink-based paths from
-    escaping the configured boundary.
+    directory. This rejects path traversal and symlink-based escapes at
+    validation time.
+
+    Validation does not require the target to exist or guarantee that
+    filesystem state remains unchanged after validation.
 
     Args:
         base_path: The directory that candidate paths must remain within.
             If None, the current working directory is used.
 
     Raises:
-        PathValidationError: Raised by validate() when a candidate path is
-            outside the base directory or does not exist.
+        PathValidationError: Raised by validate() when a candidate path
+            resolves outside the permitted base directory.
     """
 
     def __init__(self, base_path: Path | None = None):
