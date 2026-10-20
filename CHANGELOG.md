@@ -4,6 +4,18 @@ Notable changes to ETLRelay are documented here.
 
 This project follows the principles of [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and [Semantic Versioning](https://semver.org/).
 
+## [0.7.1] - 2026-10-20
+
+### Documentation
+
+- Updated `docs/index.md` to reflect the CLI functionality introduced in v0.7.0.
+- Added the CLI Reference to the documentation index, covering command usage, configuration validation, pipeline execution, and exit codes.
+- Removed the outdated statement that a command-line interface remained planned for a later milestone.
+- Clarified the supported scope of the CLI and the existing version 1 YAML configuration format.
+
+### Compatibility
+
+- Documentation-only release. No runtime code, public APIs, CLI behavior, or configuration schema changes.
 
 ## [0.7.0] - 2026-10-19
 

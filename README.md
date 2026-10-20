@@ -30,10 +30,10 @@ pip install etlrelay
 
 ## CLI Quick Start
 
-Install the v0.7.0 package and inspect the available commands:
+Install the v0.7.1 package and inspect the available commands:
 
 ```bash
-python -m pip install etlrelay==0.7.0
+python -m pip install etlrelay==0.7.1
 etlrelay --help
 etlrelay version
 ```
@@ -45,18 +45,18 @@ etlrelay validate pipeline.yaml
 etlrelay run pipeline.yaml
 ```
 
-See the [CLI Reference](https://apaquette.github.io/ETLRelay/0.7.0/cli-reference/) for command syntax, exit codes, and error-output conventions, and [Getting Started](https://apaquette.github.io/ETLRelay/0.7.0/getting-started/) for a complete local CSV example.
+See the [CLI Reference](https://apaquette.github.io/ETLRelay/0.7.1/cli-reference/) for command syntax, exit codes, and error-output conventions, and [Getting Started](https://apaquette.github.io/ETLRelay/0.7.1/getting-started/) for a complete local CSV example.
 
 ## Documentation
 
-See the [ETLRelay documentation](https://apaquette.github.io/ETLRelay/0.7.0) for usage instructions, examples, and API details.
+See the [ETLRelay documentation](https://apaquette.github.io/ETLRelay/0.7.1) for usage instructions, examples, and API details.
 
 
 ## Project Status
 
-**Current release: `0.7.0` — command-line interface**
+**Current release: `0.7.1` — documentation correction**
 
-The release includes the batch model, pipeline, local filesystem access, CSV and Parquet readers/writers, file source and sink, path validation, SQL source/sink implementations, and a versioned YAML configuration path. YAML configuration is loaded and validated separately from runtime component construction; the shared component catalog and `PipelineBuilder` compose supported registrations into an executable pipeline.
+ETLRelay v0.7.1 corrects the documentation to reflect the CLI introduced in v0.7.0. This is a documentation-only release with no runtime code, public API, CLI behavior, or YAML configuration schema changes.
 
 The v0.7.0 release adds the installed `etlrelay` command with `run`, `validate`, `version`, and `help`. CLI command handling is organized in `CliApplication`; the implementation reuses the YAML loader, component catalog, `PipelineBuilder`, and `Pipeline` APIs. Unit, integration, and installed-package functional tests cover command behavior and local CSV execution.
 
@@ -103,16 +103,13 @@ a new storage backend.
 
 ### Planned Capabilities
 
-The following remain possible future work and are not part of the v0.7.0 release contract:
+The following remain possible future work and are not included in the current release scope:
 
 - Additional document and tabular formats, including a JSON configuration reader.
 - Additional built-in data transformation processors.
 - Additional runtime integrations if concrete use cases justify their maintenance cost.
 
-S3, HDFS, and other remote-storage backends are outside the v0.4.0
-milestone and the planned v1.0.0 scope. Additional storage and platform
-integrations may be reviewed after v1.0.0 if concrete requirements justify
-them. No particular backend, implementation, or release date is promised.
+S3, HDFS, and other remote-storage backends are not part of the current implementation or the planned v1.0.0 scope. Additional storage and platform integrations may be reviewed after v1.0.0 if concrete requirements justify them. No particular backend, implementation, or release date is promised.
 
 Features will be added when requirements justify them. The project will
 not introduce scheduling, distributed execution, or other orchestration
@@ -204,7 +201,7 @@ The configuration lifecycle is `ConfigLoader` → `ConfigValidator` → `Pipelin
 
 For SQL configuration, YAML stores an environment-variable name such as `ETLRELAY_SOURCE_DATABASE_URL`, not the resolved connection URL. Missing/empty variables fail before component factories or source/sink I/O. The `PipelineBuilder` owns the lifecycle of engines created by the catalog's shared `SqlEngineFactory`; callers close the builder after execution. Direct Python `SqlSource`/`SqlSink` engine ownership remains unchanged.
 
-See the [YAML Configuration reference](https://apaquette.github.io/ETLRelay/0.7.0/configuration/) for the versioned schema, examples, supported combinations, and validation errors.
+See the [YAML Configuration reference](https://apaquette.github.io/ETLRelay/0.7.1/configuration/) for the versioned schema, examples, supported combinations, and validation errors.
 
 ### Common Data Representation
 
@@ -374,7 +371,6 @@ Configuration uses a safe YAML loader, a strict versioned schema, and explicit c
 
 Further security work will be required as ETLRelay gains more capabilities. Areas for future development include:
 
-* JSON configuration reading, if a concrete use case justifies it
 * Additional storage-specific authentication and access-control capabilities for future integrations
 
 The current path-validation component is a filesystem containment control, not a complete filesystem sandbox or authorization system.
