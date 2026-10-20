@@ -209,3 +209,128 @@ class TestLocalFileSystemErrorPropagation:
 
         with pytest.raises(error_type, match="Filesystem operation failed"):
             open_resource("protected.bin")
+
+
+class TestLocalFileSystemContainment:
+    @pytest.mark.parametrize("operation", ["read", "write"])
+    def test_rejects_relative_path_traversal(
+        self,
+        tmp_path: Path,
+        operation: str,
+    ) -> None:
+        base_path = tmp_path / "base"
+        base_path.mkdir()
+
+        outside_path = tmp_path / "outside.bin"
+        outside_path.write_bytes(b"original")
+
+        filesystem = LocalFileSystem(PathValidator(base_path))
+        open_resource = filesystem.open_read if operation == "read" else filesystem.open_write
+
+        with pytest.raises(PathValidationError):
+            open_resource("../outside.bin")
+
+        assert outside_path.read_bytes() == b"original"
+
+    @pytest.mark.parametrize("operation", ["read", "write"])
+    def test_rejects_symlink_to_file_outside_base(
+        self,
+        tmp_path: Path,
+        operation: str,
+    ) -> None:
+        base_path = tmp_path / "base"
+        base_path.mkdir()
+
+        outside_path = tmp_path / "outside.bin"
+        outside_path.write_bytes(b"original")
+
+        symlink = base_path / "link.bin"
+        symlink.symlink_to(outside_path)
+
+        filesystem = LocalFileSystem(PathValidator(base_path))
+        open_resource = filesystem.open_read if operation == "read" else filesystem.open_write
+
+        with pytest.raises(PathValidationError):
+            open_resource("link.bin")
+
+        assert outside_path.read_bytes() == b"original"
+
+    @pytest.mark.parametrize("operation", ["read", "write"])
+    def test_rejects_symlinked_parent_outside_base(
+        self,
+        tmp_path: Path,
+        operation: str,
+    ) -> None:
+        base_path = tmp_path / "base"
+        outside_dir = tmp_path / "outside"
+
+        base_path.mkdir()
+        outside_dir.mkdir()
+
+        outside_path = outside_dir / "file.bin"
+        outside_path.write_bytes(b"original")
+
+        symlink = base_path / "linked"
+        symlink.symlink_to(outside_dir, target_is_directory=True)
+
+        filesystem = LocalFileSystem(PathValidator(base_path))
+        open_resource = filesystem.open_read if operation == "read" else filesystem.open_write
+
+        with pytest.raises(PathValidationError):
+            open_resource("linked/file.bin")
+
+        assert outside_path.read_bytes() == b"original"
+
+    def test_open_write_rejects_symlink_to_nonexistent_path_outside_base(
+        self,
+        tmp_path: Path,
+    ) -> None:
+        base_path = tmp_path / "base"
+        base_path.mkdir()
+
+        outside_path = tmp_path / "new.bin"
+        symlink = base_path / "link.bin"
+        symlink.symlink_to(outside_path)
+
+        filesystem = LocalFileSystem(PathValidator(base_path))
+
+        with pytest.raises(PathValidationError):
+            filesystem.open_write("link.bin")
+
+        assert not outside_path.exists()
+        assert symlink.is_symlink()
+
+    def test_open_write_allows_symlink_to_file_inside_base(
+        self,
+        tmp_path: Path,
+    ) -> None:
+        target = tmp_path / "target.bin"
+        target.write_bytes(b"original")
+
+        symlink = tmp_path / "link.bin"
+        symlink.symlink_to(target)
+
+        filesystem = LocalFileSystem(PathValidator(tmp_path))
+
+        with filesystem.open_write("link.bin") as stream:
+            stream.write(b"replacement")
+
+        assert target.read_bytes() == b"replacement"
+        assert symlink.is_symlink()
+
+    @pytest.mark.parametrize("operation", ["read", "write"])
+    def test_open_propagates_error_for_directory_path(
+        self,
+        tmp_path: Path,
+        operation: str,
+    ) -> None:
+        directory = tmp_path / "directory"
+        directory.mkdir()
+
+        filesystem = LocalFileSystem(PathValidator(tmp_path))
+        open_resource = filesystem.open_read if operation == "read" else filesystem.open_write
+
+        with pytest.raises(OSError):
+            open_resource("directory")
+
+        assert directory.is_dir()
