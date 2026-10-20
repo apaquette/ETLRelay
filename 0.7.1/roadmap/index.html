@@ -1,0 +1,2052 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="A lightweight, composable Python framework for batch-oriented ETL pipelines.">
+      
+      
+      
+        <link rel="canonical" href="https://apaquette.github.io/ETLRelay/0.7.1/roadmap/">
+      
+      
+        <link rel="prev" href="../development/release-automation/">
+      
+      
+        <link rel="next" href="../architecture/overview/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Roadmap - ETLRelay</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.ec1eaa64.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/_mkdocstrings.css">
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    <body dir="ltr">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#etlrelay-roadmap-010-to-100" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+      </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="ETLRelay" class="md-header__button md-logo" aria-label="ETLRelay" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            ETLRelay
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Roadmap
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="ETLRelay" class="md-nav__button md-logo" aria-label="ETLRelay" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    ETLRelay
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting-started/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../cli-reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CLI Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../concepts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Concepts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../configuration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    YAML Configuration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../security/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Security
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api-reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Development
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Development
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../development/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../development/release-automation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Release automation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Roadmap
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Roadmap
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#purpose" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Purpose
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#current-project-status" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Current project status
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#versioning-policy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Versioning policy
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#completed-early-milestones" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Completed early milestones
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Completed early milestones">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#010-experimental-local-csv-pipeline-released" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.1.0 — Experimental local CSV pipeline (released)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#01x-stabilize-the-first-release-released-patch-line" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.1.x — Stabilize the first release (released patch line)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#feature-roadmap" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Feature roadmap
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Feature roadmap">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#020-batch-contract-and-built-in-processors-released" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.2.0 — Batch contract and built-in processors (released)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#030-parquet-format-support-released" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.3.0 — Parquet format support (released)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#040-storage-contract-stabilization-released" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.4.0 — Storage contract stabilization (released)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#050-sql-source-and-sink-released" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.5.0 — SQL source and sink (released)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#060-declarative-yaml-configuration-released" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.6.0 — Declarative YAML configuration (released)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#070-command-line-interface-released" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.7.0 — Command-line interface (released)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#080-security-errors-and-operational-readiness" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.8.0 — Security, errors, and operational readiness
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#090-feature-complete-beta-and-api-review" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.9.0 — Feature-complete beta and API review
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#100rc1-release-candidate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.0.0rc1 — Release candidate
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#100-stable-initial-release" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.0.0 — Stable initial release
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#potential-post-10-expansions-not-commitments" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Potential post-1.0 expansions (not commitments)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#release-hygiene" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Release hygiene
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#summary-roadmap" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Summary roadmap
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_10" >
+        
+          
+          <label class="md-nav__link" for="__nav_10" id="__nav_10_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_10_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_10">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Architecture
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/overview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/pipeline/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_10_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_10_3" id="__nav_10_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_10_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_10_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Configuration
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/configuration-loading/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Loading
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/configuration-validation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Validation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/component-registry/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Component registry
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/data-representation-contracts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data representation contracts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_10_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_10_4" id="__nav_10_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Processors
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_10_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_10_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Processors
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/select_columns_and_rename_columns/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Column selection and renaming
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/filter_rows_processor/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Row filtering
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/file_source/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    File source
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/file_sink/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    File sink
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/sql_source_and_sink/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SQL source and sink
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/local_filesystem/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Local filesystem
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/path_validator/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Path validator
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/reader_and_writer/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reader and writer
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#purpose" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Purpose
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#current-project-status" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Current project status
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#versioning-policy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Versioning policy
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#completed-early-milestones" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Completed early milestones
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Completed early milestones">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#010-experimental-local-csv-pipeline-released" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.1.0 — Experimental local CSV pipeline (released)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#01x-stabilize-the-first-release-released-patch-line" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.1.x — Stabilize the first release (released patch line)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#feature-roadmap" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Feature roadmap
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Feature roadmap">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#020-batch-contract-and-built-in-processors-released" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.2.0 — Batch contract and built-in processors (released)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#030-parquet-format-support-released" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.3.0 — Parquet format support (released)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#040-storage-contract-stabilization-released" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.4.0 — Storage contract stabilization (released)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#050-sql-source-and-sink-released" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.5.0 — SQL source and sink (released)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#060-declarative-yaml-configuration-released" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.6.0 — Declarative YAML configuration (released)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#070-command-line-interface-released" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.7.0 — Command-line interface (released)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#080-security-errors-and-operational-readiness" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.8.0 — Security, errors, and operational readiness
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#090-feature-complete-beta-and-api-review" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.9.0 — Feature-complete beta and API review
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#100rc1-release-candidate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.0.0rc1 — Release candidate
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#100-stable-initial-release" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.0.0 — Stable initial release
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#potential-post-10-expansions-not-commitments" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Potential post-1.0 expansions (not commitments)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#release-hygiene" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Release hygiene
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#summary-roadmap" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Summary roadmap
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="etlrelay-roadmap-010-to-100">ETLRelay Roadmap: <code>0.1.0</code> to <code>1.0.0</code><a class="headerlink" href="#etlrelay-roadmap-010-to-100" title="Permanent link">&para;</a></h1>
+<h2 id="purpose">Purpose<a class="headerlink" href="#purpose" title="Permanent link">&para;</a></h2>
+<p>This roadmap defines incremental, testable milestones from the current YAML-configurable, batch-oriented ETL implementation to a stable ETLRelay <code>1.0.0</code> release.</p>
+<p>The target for <code>1.0.0</code> is a lightweight, synchronous, batch-oriented ETL framework that can read from local files or SQL, apply a small set of transformations, and write to local files or SQL. File storage and serialization remain separate concerns. YAML configuration and a small CLI make pipelines usable without writing Python for every job.</p>
+<p>The roadmap is feature-led, not date-led. A version should be released when its acceptance criteria are met; the version numbers are proposed milestones, not a promise to publish every milestone on a fixed schedule.</p>
+<h2 id="current-project-status">Current project status<a class="headerlink" href="#current-project-status" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Status</th>
+<th>Version</th>
+<th>Milestone</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Released</td>
+<td><code>0.1.0</code></td>
+<td>Experimental local CSV pipeline</td>
+</tr>
+<tr>
+<td>Released</td>
+<td><code>0.1.x</code></td>
+<td>Stabilization and compatible fixes</td>
+</tr>
+<tr>
+<td>Released</td>
+<td><code>0.2.0</code></td>
+<td>Batch contract and built-in processors</td>
+</tr>
+<tr>
+<td>Released</td>
+<td><code>0.3.0</code></td>
+<td>Parquet format support</td>
+</tr>
+<tr>
+<td>Released</td>
+<td><code>0.4.0</code></td>
+<td>Storage contract stabilization</td>
+</tr>
+<tr>
+<td>Released</td>
+<td><code>0.5.0</code></td>
+<td>SQL source and sink</td>
+</tr>
+<tr>
+<td>Released</td>
+<td><code>0.6.0</code></td>
+<td>YAML configuration and runtime pipeline construction</td>
+</tr>
+<tr>
+<td>Released</td>
+<td><code>0.7.0</code></td>
+<td>CLI for validation and execution</td>
+</tr>
+<tr>
+<td>Planned</td>
+<td><code>0.8.0</code> onward</td>
+<td>Security and v1.0 readiness milestones</td>
+</tr>
+</tbody>
+</table>
+<p>The latest released milestone is <code>0.7.0</code>. Releases <code>0.4.0</code> and <code>0.5.0</code> stabilized local filesystem behavior and added SQL source/sink support; <code>0.6.0</code> added versioned YAML loading and validation, explicit component registrations, a shared default component catalog, SQL environment preflight, and configuration-driven pipeline construction. <code>0.7.0</code> adds the installed CLI, shared command-level configuration handling, documented exit codes, and unit, integration, and installed-package functional tests. Later milestones describe intended scope and may be revised as implementation and testing clarify dependencies.</p>
+<h2 id="versioning-policy">Versioning policy<a class="headerlink" href="#versioning-policy" title="Permanent link">&para;</a></h2>
+<p>ETLRelay is in initial development, so <code>0.y.z</code> is appropriate while the public API is still evolving. Semantic Versioning explicitly says that a <code>0.y.z</code> public API should not yet be considered stable and recommends <code>0.1.0</code> as a reasonable starting point. See <a href="https://semver.org/">Semantic Versioning 2.0.0</a> and the <a href="https://packaging.python.org/en/latest/discussions/versioning/">Python Packaging User Guide's versioning discussion</a>.</p>
+<p>Until <code>1.0.0</code>:</p>
+<ul>
+<li>Use a <strong>patch release</strong> such as <code>0.1.1</code> for compatible fixes to a published release.</li>
+<li>Use a <strong>minor release</strong> such as <code>0.2.0</code> for a coherent feature milestone. Public APIs may still evolve before <code>1.0.0</code>, but document notable breaking changes.</li>
+<li>Never replace or modify an already-published release. Publish a new version instead.</li>
+<li>Use a release candidate such as <code>1.0.0rc1</code> only when the intended <code>1.0.0</code> feature set is complete and the remaining work is validation and defect correction.</li>
+</ul>
+<h2 id="completed-early-milestones">Completed early milestones<a class="headerlink" href="#completed-early-milestones" title="Permanent link">&para;</a></h2>
+<h3 id="010-experimental-local-csv-pipeline-released"><code>0.1.0</code> — Experimental local CSV pipeline (released)<a class="headerlink" href="#010-experimental-local-csv-pipeline-released" title="Permanent link">&para;</a></h3>
+<p><strong>Outcome:</strong> Published the initial experimental local CSV pipeline. This release established the initial file-to-file execution path; it did not promise API stability.</p>
+<p>The original release scope covered:</p>
+<ul>
+<li><code>Batch</code> backed by an Apache Arrow table.</li>
+<li><code>Source</code>, <code>Processor</code>, and <code>Sink</code> protocols.</li>
+<li>Synchronous <code>Pipeline</code> orchestration.</li>
+<li><code>PathValidator</code> for local path containment.</li>
+<li><code>FileSystem</code> protocol and <code>LocalFileSystem</code> implementation.</li>
+<li>Stream-based <code>Reader</code> and <code>Writer</code> protocols.</li>
+<li><code>CsvReader</code> and <code>CsvWriter</code>.</li>
+<li><code>FileSource</code> and <code>FileSink</code> composed from storage and format components.</li>
+<li>Unit, integration, and functional tests for the local CSV path.</li>
+<li>Architecture and usage documentation that matches the actual implementation.</li>
+</ul>
+<p>The original release checks are preserved below as historical reference, not as open tasks for the current milestone.</p>
+<p><strong>Original release checks:</strong></p>
+<ul>
+<li>Full test suite, Ruff lint/format, and configured Pyright checks.</li>
+<li>Successful source distribution and wheel builds.</li>
+<li>Clean-environment installation and import/usage smoke test.</li>
+<li>Accurate README instructions and example.</li>
+<li>Correct project metadata, licence, package contents, and supported Python version.</li>
+<li>Release notes describing pre-<code>1.0.0</code> API evolution.</li>
+<li>Git tag and retained release artifacts.</li>
+</ul>
+<p>For future releases, <code>uv build</code> is the recommended package-build check. The Python Packaging User Guide describes building source and wheel distributions and supports using TestPyPI to rehearse publication: <a href="https://packaging.python.org/en/latest/guides/section-build-and-publish/">Building and Publishing</a>.</p>
+<h3 id="01x-stabilize-the-first-release-released-patch-line"><code>0.1.x</code> — Stabilize the first release (released patch line)<a class="headerlink" href="#01x-stabilize-the-first-release-released-patch-line" title="Permanent link">&para;</a></h3>
+<p><strong>Goal:</strong> Correct defects found during initial use without expanding the feature set unnecessarily.</p>
+<p>Scope:</p>
+<ul>
+<li>Fix defects in the pipeline, batch, path validation, local storage, CSV reading, or CSV writing.</li>
+<li>Improve error messages where they currently obscure the failing operation.</li>
+<li>Correct packaging, installation, documentation, and typing issues.</li>
+</ul>
+<p>Do not use patch releases to sneak in unrelated, large features.</p>
+<h2 id="feature-roadmap">Feature roadmap<a class="headerlink" href="#feature-roadmap" title="Permanent link">&para;</a></h2>
+<h3 id="020-batch-contract-and-built-in-processors-released"><code>0.2.0</code> — Batch contract and built-in processors (released)<a class="headerlink" href="#020-batch-contract-and-built-in-processors-released" title="Permanent link">&para;</a></h3>
+<p><strong>Goal:</strong> Make ETLRelay useful for more than an untransformed file copy.</p>
+<p>Scope:</p>
+<ul>
+<li>Document and test <code>Batch</code> semantics, including schemas, types, zero-row tables, and empty iterables.</li>
+<li>Define what happens when batches in one output stream have incompatible schemas.</li>
+<li>Add a small set of processors, prioritizing:</li>
+<li><code>SelectColumns</code>;</li>
+<li><code>RenameColumns</code>;</li>
+<li><code>FilterRows</code> with a deliberately limited and documented predicate model.</li>
+<li>Verify processor ordering and behavior across multiple batches.</li>
+<li>Keep the processor interface as <code>process(batch) -&gt; Batch</code>.</li>
+</ul>
+<p><strong>Done when:</strong> A tested local CSV pipeline can select, rename, and filter columns/rows while preserving documented schema and empty-batch behavior.</p>
+<p><strong>Not in scope:</strong> A general-purpose expression language, user-supplied code evaluation, or a large processor catalogue.</p>
+<h3 id="030-parquet-format-support-released"><code>0.3.0</code> — Parquet format support (released)<a class="headerlink" href="#030-parquet-format-support-released" title="Permanent link">&para;</a></h3>
+<p><strong>Goal:</strong> Support a second high-value tabular format while retaining the format/storage boundary.</p>
+<p>Scope:</p>
+<ul>
+<li>Implement <code>ParquetReader</code> and <code>ParquetWriter</code> against the existing stream-based reader/writer protocols where the chosen Arrow APIs support that contract.</li>
+<li>Test schema and type preservation, empty data, malformed input, and round trips.</li>
+<li>Verify that the same reader/writer components work with <code>LocalFileSystem</code> without special cases in <code>FileSource</code> or <code>FileSink</code>.</li>
+<li>Document CSV and Parquet behavior, including limitations and format-specific differences.</li>
+</ul>
+<p><strong>Done when:</strong> Local CSV and Parquet sources/sinks work through the same file composition model.</p>
+<h3 id="040-storage-contract-stabilization-released"><code>0.4.0</code> — Storage contract stabilization (released)<a class="headerlink" href="#040-storage-contract-stabilization-released" title="Permanent link">&para;</a></h3>
+<p><strong>Outcome:</strong> Stabilized and documented the <code>FileSystem</code>/<code>LocalFileSystem</code> contract used by the local-file pipelines. The release specifies stream ownership and cleanup, read/write behavior, missing-path handling, path containment, overwrite behavior, and error propagation.</p>
+<p>The release retained local filesystem support only. S3, HDFS, and other remote-storage backends remain outside both the v0.4.0 milestone and the planned v1.0.0 scope. Additional storage/platform integrations may be reviewed after v1.0.0 if concrete requirements justify them; none is promised by this roadmap.</p>
+<p><strong>Done when:</strong> The contract is explicit and tested, <code>LocalFileSystem</code> satisfies it, and existing CSV/Parquet pipelines remain functional.</p>
+<h3 id="050-sql-source-and-sink-released"><code>0.5.0</code> — SQL source and sink (released)<a class="headerlink" href="#050-sql-source-and-sink-released" title="Permanent link">&para;</a></h3>
+<p><strong>Outcome:</strong> Added SQLAlchemy-backed <code>SqlSource</code> and <code>SqlSink</code> as direct implementations of the core source/sink contracts, independent of file storage and reader/writer abstractions.</p>
+<p>The release supports bound query-value parameters, conversion of query results to Arrow-backed batches, and append-only insertion into existing destination tables. SQLite provides repeatable integration coverage for reads, writes, SQL round trips, and mixed file/SQL functional pipelines.</p>
+<p>The caller owns the SQLAlchemy engine. <code>SqlSource</code> closes query results/connections after reading; <code>SqlSink</code> opens one transaction per non-empty batch. Consequently, earlier batches remain committed if a later batch fails. An empty SQL query returns no batches. The sink skips zero-row batches and requires the destination table to exist with compatible columns.</p>
+<p>The SQL API does not implement <code>replace</code>, ORM-model integration, table creation/schema migrations, automatic retries, or pipeline-wide transactions. SQLite is the reference integration backend; support for other SQLAlchemy dialects requires the relevant driver and verification.</p>
+<p><strong>Done when:</strong> SQL input and append-only output compose with ETLRelay pipelines, value parameters are bound, and the behavior and limitations are documented and tested.</p>
+<h3 id="060-declarative-yaml-configuration-released"><code>0.6.0</code> — Declarative YAML configuration (released)<a class="headerlink" href="#060-declarative-yaml-configuration-released" title="Permanent link">&para;</a></h3>
+<p><strong>Outcome:</strong> Added versioned YAML configuration and construction of runtime pipelines from validated mappings while preserving the direct Python APIs.</p>
+<p>The release includes:</p>
+<ul>
+<li><code>KeyValueReader</code> and <code>YamlReader</code> for safe, mapping-shaped YAML documents, including duplicate-key rejection and root mapping/string-key checks.</li>
+<li><code>ConfigLoader</code> to coordinate configuration file access, parsing, and schema validation.</li>
+<li><code>ConfigValidator</code>, <code>ConfigurationError</code>, component-specific validators, and family dispatchers for source, sink, storage, and processor configuration.</li>
+<li><code>ComponentRegistry</code> and <code>ComponentRegistration</code> to associate a supported component name with its validator and runtime factory.</li>
+<li><code>TabularFileFormatRegistry</code> capability checks for CSV and Parquet reading/writing.</li>
+<li><code>ComponentCatalog</code> and <code>create_default_component_catalog()</code> to compose shared registries, validators, factories, and the SQL engine factory.</li>
+<li><code>PipelineBuilder</code> to resolve all component types and preflight SQL environment-variable references before invoking component factories.</li>
+<li>SQL engine caching, credential-aware error redaction, and explicit builder cleanup for configuration-built pipelines.</li>
+<li>End-to-end tests for YAML/direct-Python equivalence, processor order, supported file/SQLite source-sink combinations, and rejection before external I/O or component construction.</li>
+<li>User-facing documentation for schema version 1, supported properties and combinations, environment-variable references, error handling, architecture, and runnable examples.</li>
+</ul>
+<p>Schema version 1 supports file sources/sinks with CSV and Parquet, SQL sources/sinks, local filesystem storage, and the <code>select_columns</code>, <code>rename_columns</code>, and <code>filter_rows</code> processors. It uses explicit registrations only; dynamic plugin loading, arbitrary imports, and <code>eval</code> are not supported. Missing or empty SQL environment variables fail during builder preflight before component factory construction and source/sink I/O.</p>
+<p>The shared SQL engine factory is owned by the configuration-building lifecycle. Callers close the <code>PipelineBuilder</code> after a successfully built pipeline finishes execution. Direct Python SQL components retain their caller-owned engine contract.</p>
+<p><strong>Done when:</strong> A user can define a supported pipeline in YAML, load and validate it, build the same effective pipeline as direct Python composition, execute it, and diagnose configuration/preflight errors without leaking resolved connection URLs. Full regression and release checks pass.</p>
+<h3 id="070-command-line-interface-released"><code>0.7.0</code> — Command-line interface (released)<a class="headerlink" href="#070-command-line-interface-released" title="Permanent link">&para;</a></h3>
+<p><strong>Outcome:</strong> Added an installed command-line interface for validating and executing supported YAML pipelines while reusing the existing ETLRelay configuration and execution APIs.</p>
+<p>The release includes:</p>
+<ul>
+<li><code>etlrelay run PIPELINE</code> to load, build, and execute a configured pipeline.</li>
+<li><code>etlrelay validate PIPELINE</code> to parse and validate configuration without executing the pipeline.</li>
+<li><code>etlrelay version</code> to print the installed distribution version.</li>
+<li><code>etlrelay help [COMMAND]</code>, root help, and command-specific <code>--help</code> options.</li>
+<li>A <code>CliApplication</code> class that coordinates command workflows, with thin Typer adapters and injectable service factories.</li>
+<li>Shared configuration loading and validation behavior between <code>run</code> and <code>validate</code>.</li>
+<li>Documented exit codes: <code>0</code> for success, <code>1</code> for unexpected internal failures, <code>2</code> for usage errors, <code>3</code> for configuration/build failures, and <code>4</code> for runtime execution or cleanup failures.</li>
+<li>Unit and integration coverage for command outcomes, configuration failures, source/processor/sink errors, and cleanup behavior.</li>
+<li>Functional subprocess tests for the built and installed package, including local CSV output verification and sensitive-output regression checks.</li>
+<li>CLI reference documentation, updated getting-started instructions, and release-check documentation.</li>
+</ul>
+<p>The CLI delegates configuration parsing and validation to <code>ConfigLoader</code>, component resolution and pipeline construction to the existing catalog and <code>PipelineBuilder</code>, and orchestration to <code>Pipeline</code>. It does not add scheduling, retries, background execution, or external service dependencies to the core CLI test suite.</p>
+<p><strong>Done when:</strong> A user can install ETLRelay, inspect its CLI help, validate a supported YAML pipeline, and run it end to end from a shell with documented process exit codes and error-output conventions.</p>
+<h3 id="080-security-errors-and-operational-readiness"><code>0.8.0</code> — Security, errors, and operational readiness<a class="headerlink" href="#080-security-errors-and-operational-readiness" title="Permanent link">&para;</a></h3>
+<p><strong>Goal:</strong> Close cross-cutting gaps before the API is frozen.</p>
+<p>Scope:</p>
+<ul>
+<li>Review path containment and local storage behavior, including symlinks and output destinations.</li>
+<li>Review SQL parameterization and identifier validation.</li>
+<li>Validate configuration before side effects occur.</li>
+<li>Establish a small, consistent exception/error-reporting policy without wrapping every error in a generic framework exception.</li>
+<li>Add useful standard-library logging at component boundaries where needed.</li>
+<li>Redact connection secrets, credentials, and sensitive values from errors/logging.</li>
+<li>Document resource/stream ownership, overwrite behavior, empty-batch behavior, and failure propagation.</li>
+<li>Add dependency and package checks to CI.</li>
+<li>Verify the package can be installed and used from its built artifacts, not only from the repository checkout.</li>
+</ul>
+<p><strong>Done when:</strong> Security-relevant behavior is tested at the layer responsible for the risk, and failures are diagnosable without leaking secrets.</p>
+<h3 id="090-feature-complete-beta-and-api-review"><code>0.9.0</code> — Feature-complete beta and API review<a class="headerlink" href="#090-feature-complete-beta-and-api-review" title="Permanent link">&para;</a></h3>
+<p><strong>Goal:</strong> Validate the intended v1.0 feature set and stop adding new features.</p>
+<p>Scope:</p>
+<ul>
+<li>Feature freeze.</li>
+<li>Review public names, constructors, protocol signatures, configuration schema, CLI behavior, and documented exceptions.</li>
+<li>Complete the pre-<code>1.0.0</code> protocol naming cleanup: rename <code>Reader</code> and <code>Writer</code> to <code>TabularReader</code> and <code>TabularWriter</code> to make their <code>Batch</code>-oriented contracts explicit. Update concrete implementations, type annotations, public exports, tests, examples, and documentation consistently.</li>
+<li>Keep <code>KeyValueReader</code> as a separate protocol for mapping-shaped documents. Confirm that configuration loading depends on this abstraction rather than the concrete <code>YamlReader</code>.</li>
+<li>Decide whether <code>KeyValueWriter</code> has a concrete v1.0 use case before adding it; do not introduce it solely for symmetry.</li>
+<li>Document the distinction between a mapping-shaped document and row records. Review possible tabular-to-records and records-to-tabular conversion contracts before the API freeze, but do not add a generic conversion framework without a demonstrated v1.0 use case.</li>
+<li>Test full pipelines across supported combinations: local CSV, local Parquet, and SQL input/output.</li>
+<li>Test empty inputs, empty batches, schema mismatches, malformed data, inaccessible resources, processor failures, sink failures, and stream cleanup.</li>
+<li>Test a clean install on each supported Python version/platform combination the project claims to support.</li>
+<li>Complete README, quick start, examples, API reference, configuration reference, security notes, contribution instructions, and release notes.</li>
+<li>Document unsupported features and known limitations.</li>
+</ul>
+<p><strong>Done when:</strong> No required v1.0 feature remains unimplemented, release-blocking defects are resolved, and the project can maintain a clear public API contract. Reader/writer names clearly identify tabular contracts, the mapping-document contract is separate, and conversion scope is explicitly documented as either required or deferred.</p>
+<h3 id="100rc1-release-candidate"><code>1.0.0rc1</code> — Release candidate<a class="headerlink" href="#100rc1-release-candidate" title="Permanent link">&para;</a></h3>
+<p>Cut a release candidate only after <code>0.9.0</code> has passed the feature-complete criteria. Use release candidates for final packaging validation, integration feedback, and defect correction—not new features. Publish another candidate if fixes materially affect the release, then proceed to <code>1.0.0</code> when the release criteria remain satisfied.</p>
+<h3 id="100-stable-initial-release"><code>1.0.0</code> — Stable initial release<a class="headerlink" href="#100-stable-initial-release" title="Permanent link">&para;</a></h3>
+<p>ETLRelay <code>1.0.0</code> is ready when a user can:</p>
+<ol>
+<li>Install the package using documented instructions.</li>
+<li>Define a supported pipeline in YAML.</li>
+<li>Read data from the local filesystem or a supported SQL source.</li>
+<li>Apply the documented set of built-in transformations.</li>
+<li>Write to a local file or supported SQL sink.</li>
+<li>Run the pipeline through the CLI.</li>
+<li>Diagnose failures using documented errors and logs.</li>
+</ol>
+<p>The stable API, supported Python versions, supported input/output formats, configuration schema, CLI contract, and compatibility policy must be documented. Breaking changes to the public API after <code>1.0.0</code> should follow the project's published versioning policy.</p>
+<h2 id="potential-post-10-expansions-not-commitments">Potential post-1.0 expansions (not commitments)<a class="headerlink" href="#potential-post-10-expansions-not-commitments" title="Permanent link">&para;</a></h2>
+<p>The initial stable release intentionally focuses on config-driven execution of pipelines using local files and SQL. Additional integrations and capabilities may be considered after <code>1.0.0</code>, based on use cases, maintenance cost, compatibility with the existing architecture, and available development effort.</p>
+<p>Potential areas for future review include, but are not limited to:</p>
+<ul>
+<li>Remote and distributed storage, including S3 and HDFS.</li>
+<li>Additional database, data-warehouse, and analytical-platform integrations, potentially including Snowflake and Hive.</li>
+<li>Excel and other file formats.</li>
+<li>Generic API source/sink implementations.</li>
+<li>Scheduling, retries, distributed processing, concurrency, and orchestration services.</li>
+<li>Web UI, job queue, monitoring server, and data catalog/lineage systems.</li>
+<li>Expanded custom-component loading or plugin mechanisms.</li>
+<li>Larger processor libraries or a general-purpose expression language.</li>
+<li>Tabular/record conversion utilities (for example, converting <code>Batch</code> data to a sequence of row mappings and back), if concrete use cases justify their contracts and maintenance cost.</li>
+</ul>
+<p>These examples describe areas that may be evaluated, not features promised for a particular release. After v1.0.0, review candidate enhancements as a separate roadmap decision: identify concrete use cases, define acceptance criteria, estimate implementation and maintenance costs, and determine priority and sequencing. Do not assume that every listed integration will be implemented.</p>
+<h2 id="release-hygiene">Release hygiene<a class="headerlink" href="#release-hygiene" title="Permanent link">&para;</a></h2>
+<p>Before every public release:</p>
+<ul>
+<li>Run the full test, lint, format, and type-check suites.</li>
+<li>Build the wheel and source distribution.</li>
+<li>Install and smoke-test the built package in a clean environment.</li>
+<li>Review the changelog and release notes.</li>
+<li>Ensure the version in package metadata matches the Git tag.</li>
+<li>Test publication through TestPyPI when useful, then publish the actual release artifact.</li>
+</ul>
+<p>The <code>etlrelay</code> distribution has already been published to PyPI; see the <a href="https://pypi.org/project/etlrelay/">ETLRelay project page</a>. Before each release, verify that package metadata, the built wheel and source distribution, the Git tag, and the release notes all identify the intended version. Revisit distribution-name availability only if the project proposes changing its published package name.</p>
+<h2 id="summary-roadmap">Summary roadmap<a class="headerlink" href="#summary-roadmap" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Version</th>
+<th>Status</th>
+<th>Milestone</th>
+<th>Release outcome</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>0.1.0</code></td>
+<td>Released</td>
+<td>Experimental local CSV pipeline</td>
+<td>Initial local CSV pipeline published</td>
+</tr>
+<tr>
+<td><code>0.1.x</code></td>
+<td>Released</td>
+<td>Stabilization</td>
+<td>Compatible fixes and documentation improvements</td>
+</tr>
+<tr>
+<td><code>0.2.0</code></td>
+<td>Released</td>
+<td>Batch contract and processors</td>
+<td>Basic useful transformations</td>
+</tr>
+<tr>
+<td><code>0.3.0</code></td>
+<td>Released</td>
+<td>Parquet</td>
+<td>CSV and Parquet through shared reader/writer interfaces</td>
+</tr>
+<tr>
+<td><code>0.4.0</code></td>
+<td>Released</td>
+<td>Storage contract stabilization</td>
+<td>Documented and tested local filesystem behavior; no remote-storage implementation</td>
+</tr>
+<tr>
+<td><code>0.5.0</code></td>
+<td>Released</td>
+<td>SQL source/sink</td>
+<td>Tested SQLite reads/writes and mixed file/SQL pipelines</td>
+</tr>
+<tr>
+<td><code>0.6.0</code></td>
+<td>Released</td>
+<td>YAML configuration</td>
+<td>Versioned schema validation, explicit component catalog, SQL preflight, and runtime pipeline construction</td>
+</tr>
+<tr>
+<td><code>0.7.0</code></td>
+<td>Released</td>
+<td>CLI</td>
+<td>Validate and run pipelines from a shell</td>
+</tr>
+<tr>
+<td><code>0.8.0</code></td>
+<td>Planned</td>
+<td>Security and operational readiness</td>
+<td>Security review, errors/logging, installation and CI gates</td>
+</tr>
+<tr>
+<td><code>0.9.0</code></td>
+<td>Planned</td>
+<td>Feature-complete beta</td>
+<td>Feature freeze, reader/writer naming cleanup, and full API/representation-contract review</td>
+</tr>
+<tr>
+<td><code>1.0.0rc1</code></td>
+<td>Planned</td>
+<td>Release candidate</td>
+<td>Final validation and feedback</td>
+</tr>
+<tr>
+<td><code>1.0.0</code></td>
+<td>Planned</td>
+<td>Stable release</td>
+<td>Documented, usable, tested config-driven ETL product</td>
+</tr>
+</tbody>
+</table>
+<p>The version numbers and ordering can be adjusted if implementation reveals a dependency or real user requirement that changes priorities. Keep the principle constant: each release should deliver a coherent, tested increment, and the <code>1.0.0</code> milestone should mark API stability rather than feature abundance.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.sections", "navigation.top", "content.code.copy"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "latest", "provider": "mike"}}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>
