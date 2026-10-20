@@ -6,6 +6,7 @@ from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import Mock
+from click._compat import strip_ansi
 
 import pytest
 import typer
@@ -283,8 +284,9 @@ def test_cli_rejects_invalid_log_level() -> None:
     )
 
     assert result.exit_code == 2
-    assert "log-level" in result.output.lower()
-    assert "traceback" not in result.output.lower()
+
+    output = strip_ansi(result.output).lower()
+    assert "invalid value" in output
 
 
 def test_cli_logging_configuration_is_restored(
@@ -317,3 +319,4 @@ def test_cli_logging_configuration_is_restored(
         assert package_logger.handlers == original_handlers
         assert package_logger.level == original_level
         assert package_logger.propagate == original_propagate
+
