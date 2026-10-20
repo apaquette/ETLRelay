@@ -6,10 +6,10 @@ from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import Mock
-from click._compat import strip_ansi
 
 import pytest
 import typer
+from click._compat import strip_ansi
 from typer.testing import CliRunner
 
 import etlrelay.cli as cli
@@ -319,4 +319,3 @@ def test_cli_logging_configuration_is_restored(
         assert package_logger.handlers == original_handlers
         assert package_logger.level == original_level
         assert package_logger.propagate == original_propagate
-
