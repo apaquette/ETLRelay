@@ -10,13 +10,16 @@ Source → Processor(s) → Sink
 
 A source produces batches, processors transform them, and a sink consumes the processed output. For file workflows, storage access is independent of format-specific reading and writing.
 
-## Current release: 0.6.0
+## Current release: 0.7.1
 
-ETLRelay 0.6.0 adds declarative, versioned YAML configuration while preserving direct Python composition. The YAML configuration path loads and validates a mapping-shaped document, resolves explicit built-in component registrations, preflights required SQL connection-variable references, and then builds a runtime pipeline.
+ETLRelay 0.7.1 is a documentation-only patch release that corrects the documentation index to reflect the CLI introduced in v0.7.0. The CLI supports validation and execution of YAML-configured pipelines, building on the declarative configuration support introduced in v0.6.0.
+
+`etlrelay validate PIPELINE` checks configuration and pipeline construction without executing the pipeline; `etlrelay run PIPELINE` executes the configured pipeline. The CLI also provides version reporting and command help, with documented exit codes for usage errors, configuration and construction failures, and runtime failures. Direct Python composition and the existing programmatic APIs remain supported.
 
 Capabilities include:
 
 - Arrow-backed `Batch` data and synchronous pipeline execution.
+- CLI commands for pipeline validation and execution, version reporting, and help.
 - Local filesystem access with path-containment validation.
 - CSV and Parquet file input/output.
 - Built-in column selection, column renaming, and row filtering processors.
@@ -30,6 +33,7 @@ SQLite is the reference SQL integration-test backend. Other SQLAlchemy dialects 
 ## Documentation
 
 - [Getting Started](getting-started.md) — prepare demo data and run YAML- or Python-defined pipelines.
+- [CLI Reference](cli-reference.md) — command usage, validation and execution behavior, and exit codes.
 - [YAML Configuration](configuration.md) — schema version 1, properties, supported combinations, environment variables, and errors.
 - [Core Concepts](concepts.md) — batches, processors, schema behavior, and file formats.
 - [Security](security.md) — path containment, safe YAML parsing, SQL parameterization, and connection-secret handling.
@@ -43,4 +47,4 @@ SQLite is the reference SQL integration-test backend. Other SQLAlchemy dialects 
 
 ## Scope
 
-The v0.6.0 YAML format supports local CSV/Parquet files and SQL sources/sinks, with `select_columns`, `rename_columns`, and `filter_rows` processors. Schema version 1 has a fixed built-in component set. It is not a general dynamic plugin system. A command-line interface remains planned for a later milestone.
+The CLI exposes validation and execution of pipelines defined using the existing version 1 YAML format. Version 0.7.1 does not change CLI behavior or configuration capabilities. The format supports local CSV/Parquet files and SQL sources/sinks, with `select_columns`, `rename_columns`, and `filter_rows` processors. Schema version 1 has a fixed built-in component set; it is not a general dynamic plugin system. Remote storage integrations and additional processor types remain outside this release's scope.
