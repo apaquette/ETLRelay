@@ -5,10 +5,13 @@ resource by combining a storage implementation with a format-specific
 writer.
 """
 
+import logging
 from collections.abc import Iterable
 
 from etlrelay.core import Batch, Writer
 from etlrelay.storage import FileSystem
+
+logger = logging.getLogger(__name__)
 
 
 class FileSink:
@@ -55,5 +58,9 @@ class FileSink:
                 the destination.
             Exception: Any exception raised by the writer is propagated.
         """
+        logger.debug("File sink write started.")
+
         with self.storage.open_write(self.path) as stream:
             self.writer.write(batches, stream)
+
+        logger.debug("File sink write completed.")

@@ -1,14 +1,18 @@
 """Unit tests for the command-line interface."""
 
+import logging
 import tomllib
 from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
+from types import SimpleNamespace
+from unittest.mock import Mock
 
 import pytest
+import typer
 from typer.testing import CliRunner
 
 import etlrelay.cli as cli
-from etlrelay.cli import app
+from etlrelay.cli import CliApplication, app
 
 runner = CliRunner()
 
@@ -129,3 +133,187 @@ def test_main_invokes_app(monkeypatch: pytest.MonkeyPatch) -> None:
     cli.main()
 
     assert invoked
+
+
+def test_execution_and_cleanup_failures_are_reported_without_secrets(
+    caplog: pytest.LogCaptureFixture,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    execution_secret = "private-record-value"
+    cleanup_secret = "database-password"
+
+    pipeline = Mock()
+    pipeline.run.side_effect = RuntimeError(f"Failed processing {execution_secret}")
+
+    builder = Mock()
+    builder.build.return_value = pipeline
+    builder.close.side_effect = RuntimeError(f"Could not close connection using {cleanup_secret}")
+
+    application = CliApplication(
+        component_catalog_factory=Mock(),
+        config_loader_factory=Mock(),
+        pipeline_builder_factory=Mock(return_value=builder),
+        version_provider=Mock(),
+    )
+
+    components = SimpleNamespace(
+        source_registry=Mock(),
+        sink_registry=Mock(),
+        processor_registry=Mock(),
+        sql_engine_factory=Mock(),
+    )
+
+    with caplog.at_level(logging.WARNING, logger="etlrelay.cli"):
+        with pytest.raises(typer.Exit) as exc_info:
+            application._execute_pipeline(
+                pipeline=Path("pipeline.yaml"),
+                components=components,
+                validated_config={},
+            )
+
+    assert exc_info.value.exit_code == 4
+
+    output = capsys.readouterr()
+    diagnostics = output.out + output.err + caplog.text
+
+    assert "Pipeline execution failed" in diagnostics
+    assert "Pipeline resource cleanup failed" in diagnostics
+    assert "RuntimeError" in diagnostics
+
+    assert execution_secret not in diagnostics
+    assert cleanup_secret not in diagnostics
+
+    pipeline.run.assert_called_once_with()
+    builder.close.assert_called_once_with()
+
+
+def test_cli_info_logging_outputs_operational_messages(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Enable informational logging through the root CLI option."""
+    application = Mock()
+
+    def run_pipeline(_pipeline: Path) -> None:
+        logger = logging.getLogger("etlrelay.pipeline")
+        logger.info("Pipeline execution started.")
+
+    application.run_pipeline.side_effect = run_pipeline
+    monkeypatch.setattr(cli, "_create_application", lambda: application)
+
+    result = runner.invoke(
+        app,
+        ["--log-level", "info", "run", "pipeline.yaml"],
+    )
+
+    assert result.exit_code == 0
+    assert "Pipeline execution started." in result.stderr
+    assert "Pipeline execution started." not in result.stdout
+
+    application.run_pipeline.assert_called_once_with(Path("pipeline.yaml"))
+
+
+def test_cli_defaults_to_warning_logging(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Suppress INFO messages while preserving warnings by default."""
+    application = Mock()
+
+    def run_pipeline(_pipeline: Path) -> None:
+        logger = logging.getLogger("etlrelay.pipeline")
+        logger.info("Informational message.")
+        logger.warning("Warning message.")
+
+    application.run_pipeline.side_effect = run_pipeline
+    monkeypatch.setattr(cli, "_create_application", lambda: application)
+
+    result = runner.invoke(app, ["run", "pipeline.yaml"])
+
+    assert result.exit_code == 0
+    assert "Warning message." in result.stderr
+    assert "Informational message." not in result.stderr
+
+
+@pytest.mark.parametrize(
+    ("level", "expected", "suppressed"),
+    [
+        ("debug", "Debug message.", None),
+        ("info", "Info message.", "Debug message."),
+        ("warning", "Warning message.", "Info message."),
+        ("error", "Error message.", "Warning message."),
+        ("critical", "Critical message.", "Error message."),
+    ],
+)
+def test_cli_respects_log_level(
+    monkeypatch: pytest.MonkeyPatch,
+    level: str,
+    expected: str,
+    suppressed: str | None,
+) -> None:
+    """Filter ETLRelay log records according to the configured level."""
+    application = Mock()
+
+    def run_pipeline(_pipeline: Path) -> None:
+        logger = logging.getLogger("etlrelay.pipeline")
+        logger.debug("Debug message.")
+        logger.info("Info message.")
+        logger.warning("Warning message.")
+        logger.error("Error message.")
+        logger.critical("Critical message.")
+
+    application.run_pipeline.side_effect = run_pipeline
+    monkeypatch.setattr(cli, "_create_application", lambda: application)
+
+    result = runner.invoke(
+        app,
+        ["--log-level", level, "run", "pipeline.yaml"],
+    )
+
+    assert result.exit_code == 0
+    assert expected in result.stderr
+
+    if suppressed is not None:
+        assert suppressed not in result.stderr
+
+
+def test_cli_rejects_invalid_log_level() -> None:
+    """Reject unsupported log levels as command-line usage errors."""
+    result = runner.invoke(
+        app,
+        ["--log-level", "verbose", "run", "pipeline.yaml"],
+    )
+
+    assert result.exit_code == 2
+    assert "log-level" in result.output.lower()
+    assert "traceback" not in result.output.lower()
+
+
+def test_cli_logging_configuration_is_restored(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Avoid leaking CLI logging configuration into subsequent invocations."""
+    package_logger = logging.getLogger("etlrelay")
+
+    original_handlers = list(package_logger.handlers)
+    original_level = package_logger.level
+    original_propagate = package_logger.propagate
+
+    application = Mock()
+
+    def run_pipeline(_pipeline: Path) -> None:
+        logging.getLogger("etlrelay.pipeline").info("Pipeline execution started.")
+
+    application.run_pipeline.side_effect = run_pipeline
+    monkeypatch.setattr(cli, "_create_application", lambda: application)
+
+    for _ in range(2):
+        result = runner.invoke(
+            app,
+            ["--log-level", "info", "run", "pipeline.yaml"],
+        )
+
+        assert result.exit_code == 0
+        assert result.stderr.count("Pipeline execution started.") == 1
+
+        assert package_logger.handlers == original_handlers
+        assert package_logger.level == original_level
+        assert package_logger.propagate == original_propagate

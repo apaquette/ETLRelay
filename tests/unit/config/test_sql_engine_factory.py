@@ -1,5 +1,6 @@
 """Unit tests for SQLAlchemy engine construction and ownership."""
 
+import logging
 from collections.abc import Mapping
 from typing import cast
 from unittest.mock import Mock, call
@@ -366,3 +367,110 @@ def test_close_attempts_all_disposals_and_suppresses_driver_errors() -> None:
     second_engine.dispose.assert_called_once_with()
     with pytest.raises(SqlEngineFactoryError, match="preflight must succeed"):
         factory.create("FIRST_URL")
+
+
+def test_preflight_rejects_literal_connection_url_without_exposing_credentials() -> None:
+    secret_url = "postgresql://user:secret-password@db.example/records"
+
+    getenv = Mock()
+    engine_creator = Mock()
+
+    factory = SqlEngineFactory(
+        getenv=getenv,
+        engine_creator=engine_creator,
+    )
+
+    with pytest.raises(SqlEngineFactoryError) as exc_info:
+        factory.preflight(
+            {
+                "source.connection_url_env": secret_url,
+            }
+        )
+
+    message = str(exc_info.value)
+
+    assert "source.connection_url_env" in message
+    assert "valid environment-variable name" in message
+    assert secret_url not in message
+    assert "secret-password" not in message
+
+    getenv.assert_not_called()
+    engine_creator.assert_not_called()
+
+
+def test_engine_lifecycle_emits_debug_events(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Log engine creation, reuse, and successful disposal."""
+    secret_url = "postgresql://user:private-password@db.example/records"
+
+    engine = make_engine()
+    engine_creator = Mock(return_value=engine)
+
+    factory = SqlEngineFactory(
+        getenv=lambda _name: secret_url,
+        engine_creator=engine_creator,
+    )
+
+    factory.preflight({"source.connection_url_env": "DATABASE_URL"})
+
+    with caplog.at_level(
+        logging.DEBUG,
+        logger="etlrelay.config.sql_engine_factory",
+    ):
+        first_engine = factory.create("DATABASE_URL")
+        second_engine = factory.create("DATABASE_URL")
+        factory.close()
+
+    messages = [
+        record.message
+        for record in caplog.records
+        if record.name == "etlrelay.config.sql_engine_factory"
+    ]
+
+    assert messages == [
+        "SQL engine created.",
+        "SQL engine reused.",
+        "SQL engine disposed.",
+    ]
+
+    assert first_engine is second_engine is engine
+
+    engine_creator.assert_called_once_with(secret_url)
+    engine.dispose.assert_called_once_with()
+
+    assert secret_url not in caplog.text
+    assert "private-password" not in caplog.text
+
+
+def test_engine_creation_failure_does_not_log_credentials(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Do not disclose connection URLs or report successful creation."""
+    secret_url = "postgresql://user:private-password@db.example/records"
+
+    engine_creator = Mock(side_effect=RuntimeError(f"Database connection failed for {secret_url}"))
+
+    factory = SqlEngineFactory(
+        getenv=lambda _name: secret_url,
+        engine_creator=engine_creator,
+    )
+
+    factory.preflight({"source.connection_url_env": "DATABASE_URL"})
+
+    with caplog.at_level(
+        logging.DEBUG,
+        logger="etlrelay.config.sql_engine_factory",
+    ):
+        with pytest.raises(SqlEngineFactoryError) as exc_info:
+            factory.create("DATABASE_URL")
+
+    assert "DATABASE_URL" in str(exc_info.value)
+    assert secret_url not in str(exc_info.value)
+
+    assert not any(record.message == "SQL engine created." for record in caplog.records)
+
+    assert secret_url not in caplog.text
+    assert "private-password" not in caplog.text
+
+    engine_creator.assert_called_once_with(secret_url)

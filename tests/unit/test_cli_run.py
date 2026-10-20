@@ -3,6 +3,7 @@
 from pathlib import Path
 from types import SimpleNamespace
 from typing import NoReturn
+from unittest.mock import Mock
 
 import pytest
 import yaml
@@ -473,3 +474,197 @@ def test_run_builder_factory_failure_does_not_attempt_cleanup(
     assert result.exit_code == 1
     assert "Unexpected error while constructing the pipeline." in result.output
     assert "sensitive builder initialization detail" not in result.output
+
+
+@pytest.mark.parametrize("level", ["warning", "debug"])
+def test_unexpected_loading_failure_logs_safe_diagnostic(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    level: str,
+) -> None:
+    """Report the failing stage without exposing exception contents."""
+    secret = "private-configuration-password"
+    pipeline = tmp_path / "pipeline.yml"
+
+    _patch_run_loader_failure(
+        monkeypatch,
+        RuntimeError(f"Failed to load configuration: {secret}"),
+    )
+
+    result = runner.invoke(
+        cli.app,
+        ["--log-level", level, "run", str(pipeline)],
+    )
+
+    assert result.exit_code == 1
+
+    assert "Unexpected error while loading pipeline configuration." in result.stderr
+    assert "Configuration loading failed unexpectedly (RuntimeError)." in result.stderr
+
+    assert secret not in result.output
+    assert "Traceback" not in result.output
+
+
+@pytest.mark.parametrize("level", ["warning", "debug"])
+def test_unexpected_construction_failure_logs_safe_diagnostic(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    level: str,
+) -> None:
+    """Report construction failures safely and preserve resource cleanup."""
+    secret = "private-database-credential"
+    pipeline = tmp_path / "pipeline.yml"
+
+    builder = Mock()
+    builder.build.side_effect = RuntimeError(f"Could not initialize database: {secret}")
+
+    _patch_run_dependencies(monkeypatch, builder)
+
+    result = runner.invoke(
+        cli.app,
+        ["--log-level", level, "run", str(pipeline)],
+    )
+
+    assert result.exit_code == 1
+
+    assert "Unexpected error while constructing the pipeline." in result.stderr
+    assert "Pipeline construction failed unexpectedly (RuntimeError)." in result.stderr
+
+    assert secret not in result.output
+    assert "Traceback" not in result.output
+
+    builder.close.assert_called_once_with()
+
+
+def test_validate_rejects_literal_sql_urls_without_exposing_credentials(
+    tmp_path: Path,
+) -> None:
+    """Reject connection URLs supplied where environment names are required."""
+    source_url = "postgresql://source:source-secret@db.example/source"
+    sink_url = "postgresql://sink:sink-secret@db.example/sink"
+
+    config = {
+        "version": 1,
+        "source": {
+            "type": "sql",
+            "connection_url_env": source_url,
+            "query": "SELECT 1",
+        },
+        "processors": [],
+        "sink": {
+            "type": "sql",
+            "connection_url_env": sink_url,
+            "table_name": "records",
+        },
+    }
+
+    pipeline = tmp_path / "pipeline.yml"
+    pipeline.write_text(
+        yaml.safe_dump(config, sort_keys=False),
+        encoding="utf-8",
+    )
+
+    result = runner.invoke(
+        cli.app,
+        ["--log-level", "debug", "validate", str(pipeline)],
+    )
+
+    run_result = runner.invoke(
+        cli.app,
+        ["--log-level", "debug", "run", str(pipeline)],
+    )
+
+    assert result.exit_code == 3
+
+    assert "source.connection_url_env" in result.stderr
+    assert "sink.connection_url_env" in result.stderr
+
+    assert source_url not in result.output
+    assert sink_url not in result.output
+    assert "source-secret" not in result.output
+    assert "sink-secret" not in result.output
+
+    assert run_result.exit_code == 3
+    assert source_url not in run_result.output
+    assert sink_url not in run_result.output
+    assert "source-secret" not in run_result.output
+    assert "sink-secret" not in run_result.output
+
+
+def test_execution_and_cleanup_failures_preserve_primary_error(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """Report both failures safely while preserving execution precedence."""
+    execution_secret = "private-record-value"
+    cleanup_secret = "private-database-password"
+
+    pipeline_path = tmp_path / "pipeline.yml"
+
+    execution_pipeline = Mock()
+    execution_pipeline.run.side_effect = RuntimeError(f"Processing failed for {execution_secret}")
+
+    builder = Mock()
+    builder.build.return_value = execution_pipeline
+    builder.close.side_effect = RuntimeError(f"Cleanup failed with {cleanup_secret}")
+
+    _patch_run_dependencies(monkeypatch, builder)
+
+    result = runner.invoke(
+        cli.app,
+        ["--log-level", "debug", "run", str(pipeline_path)],
+    )
+
+    assert result.exit_code == 4
+
+    assert "Pipeline execution failed" in result.stderr
+    assert "Pipeline resource cleanup failed" in result.stderr
+    assert "RuntimeError" in result.stderr
+
+    assert execution_secret not in result.output
+    assert cleanup_secret not in result.output
+
+    assert "Pipeline completed:" not in result.output
+
+    execution_pipeline.run.assert_called_once_with()
+    builder.close.assert_called_once_with()
+
+
+def test_debug_logging_does_not_expose_pipeline_data(
+    tmp_path: Path,
+) -> None:
+    """Expose operational progress without logging record contents."""
+    secret = "private-customer-record-value"
+
+    (tmp_path / "input.csv").write_text(
+        f"id,name\n1,{secret}\n",
+        encoding="utf-8",
+    )
+
+    pipeline = tmp_path / "pipeline.yml"
+
+    _write_file_pipeline_config(
+        pipeline,
+        base_path=tmp_path,
+    )
+
+    result = runner.invoke(
+        cli.app,
+        ["--log-level", "debug", "run", str(pipeline)],
+    )
+
+    assert result.exit_code == 0, (result.output, result.exception)
+
+    assert "Pipeline execution started." in result.stderr
+    assert "Pipeline execution completed." in result.stderr
+
+    assert "File source read started." in result.stderr
+    assert "File sink write completed." in result.stderr
+
+    assert secret not in result.stdout
+    assert secret not in result.stderr
+
+    assert "Pipeline completed:" in result.stdout
+
+    # Data must still be written correctly despite not appearing in logs.
+    assert secret in (tmp_path / "output.csv").read_text(encoding="utf-8")

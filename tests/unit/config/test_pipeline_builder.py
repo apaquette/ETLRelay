@@ -1,5 +1,6 @@
 """Unit tests for constructing Pipeline objects from validated v1 config."""
 
+import logging
 from collections.abc import Callable, Mapping
 from typing import Any, cast
 from unittest.mock import Mock
@@ -575,3 +576,164 @@ def test_close_wraps_sql_engine_factory_error(
 
     with pytest.raises(PipelineBuildError, match="engine cleanup failed"):
         builder.close()
+
+
+def test_build_logs_successful_construction(
+    builder: PipelineBuilder,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Log successful component resolution and pipeline construction."""
+    with caplog.at_level(
+        logging.DEBUG,
+        logger="etlrelay.config.pipeline_builder",
+    ):
+        pipeline = builder.build(valid_config())
+
+    messages = [
+        record.message
+        for record in caplog.records
+        if record.name == "etlrelay.config.pipeline_builder"
+    ]
+
+    assert isinstance(pipeline, Pipeline)
+
+    assert messages == [
+        "Pipeline components resolved.",
+        "Pipeline construction completed.",
+    ]
+
+
+def test_build_logs_successful_sql_preflight(
+    factories: dict[str, Mock],
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Report SQL preflight only after it succeeds."""
+    sql_engine_factory = Mock()
+
+    builder = builder_for_factories(
+        factories,
+        sql_engine_factory=sql_engine_factory,
+    )
+
+    config = valid_config()
+    config["source"] = {
+        "type": "sql",
+        "connection_url_env": "SOURCE_DATABASE_URL",
+        "query": "SELECT 1",
+    }
+
+    with caplog.at_level(
+        logging.DEBUG,
+        logger="etlrelay.config.pipeline_builder",
+    ):
+        pipeline = builder.build(config)
+
+    messages = [
+        record.message
+        for record in caplog.records
+        if record.name == "etlrelay.config.pipeline_builder"
+    ]
+
+    assert isinstance(pipeline, Pipeline)
+
+    assert messages == [
+        "Pipeline components resolved.",
+        "SQL connection preflight completed.",
+        "Pipeline construction completed.",
+    ]
+
+    sql_engine_factory.preflight.assert_called_once_with(
+        {"source.connection_url_env": "SOURCE_DATABASE_URL"}
+    )
+
+
+def test_build_does_not_log_success_after_failed_preflight(
+    factories: dict[str, Mock],
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Preserve preflight errors without reporting successful construction."""
+    secret = "private-connection-password"
+
+    sql_engine_factory = Mock()
+    sql_engine_factory.preflight.side_effect = SqlEngineFactoryError(
+        "SQL connection preflight failed."
+    )
+
+    builder = builder_for_factories(
+        factories,
+        sql_engine_factory=sql_engine_factory,
+    )
+
+    config = valid_config()
+    config["sink"] = {
+        "type": "sql",
+        "connection_url_env": "SINK_DATABASE_URL",
+        "table_name": "records",
+    }
+
+    with caplog.at_level(
+        logging.DEBUG,
+        logger="etlrelay.config.pipeline_builder",
+    ):
+        with pytest.raises(PipelineBuildError):
+            builder.build(config)
+
+    messages = [
+        record.message
+        for record in caplog.records
+        if record.name == "etlrelay.config.pipeline_builder"
+    ]
+
+    assert messages == ["Pipeline components resolved."]
+    assert secret not in caplog.text
+
+    for factory in factories.values():
+        factory.build.assert_not_called()
+
+
+def test_construction_cleanup_failure_is_logged_without_replacing_primary_error(
+    factories: dict[str, Mock],
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Preserve the construction failure and safely report failed cleanup."""
+    construction_error = RuntimeError("Original construction failure")
+    secret = "private-cleanup-credential"
+
+    cleanup_error = RuntimeError(f"Could not dispose database connection: {secret}")
+
+    config = valid_config()
+    config["source"] = {
+        "type": "sql",
+        "connection_url_env": "SOURCE_DATABASE_URL",
+        "query": "SELECT 1",
+    }
+
+    factories["source_sql"].build.side_effect = construction_error
+
+    sql_engine_factory = Mock()
+    sql_engine_factory.close.side_effect = cleanup_error
+
+    builder = builder_for_factories(
+        factories,
+        sql_engine_factory=sql_engine_factory,
+    )
+
+    with caplog.at_level(
+        logging.WARNING,
+        logger="etlrelay.config.pipeline_builder",
+    ):
+        with pytest.raises(RuntimeError) as exc_info:
+            builder.build(config)
+
+    assert exc_info.value is construction_error
+
+    messages = [
+        record.message
+        for record in caplog.records
+        if record.name == "etlrelay.config.pipeline_builder"
+    ]
+
+    assert messages == ["SQL resource cleanup failed during pipeline construction (RuntimeError)."]
+
+    assert secret not in caplog.text
+    sql_engine_factory.close.assert_called_once_with()

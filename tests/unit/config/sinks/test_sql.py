@@ -91,3 +91,23 @@ def test_rejects_non_string_property_keys(validator: SqlSinkConfigValidator) -> 
 
     assert errors
     assert all(isinstance(error, str) for error in errors)
+
+
+def test_rejects_connection_url_as_environment_reference(
+    validator: SqlSinkConfigValidator,
+) -> None:
+    """Reject literal connection URLs without exposing credentials."""
+    secret_url = "postgresql://user:secret-password@db.example/records"
+
+    config = valid_sink()
+    config["connection_url_env"] = secret_url
+
+    errors = validator.validate(config, "sink")
+
+    assert any(
+        "sink.connection_url_env" in error and "valid environment variable" in error
+        for error in errors
+    )
+
+    assert secret_url not in str(errors)
+    assert "secret-password" not in str(errors)

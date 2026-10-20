@@ -1,3 +1,4 @@
+import logging
 from collections.abc import Callable, Iterable
 from typing import Any
 
@@ -414,3 +415,166 @@ class TestPipeline:
 
         expected_schema = pa.schema([id_field])
         assert all(batch.table.schema.equals(expected_schema) for batch in sink.batches)
+
+    def test_pipeline_logs_execution_lifecycle(
+        self,
+        caplog: pytest.LogCaptureFixture,
+    ) -> None:
+        """Log pipeline start and successful completion at INFO."""
+        source = StubSource([make_batch(10)])
+        sink = CollectingSink()
+        pipeline = Pipeline(source, [], sink)
+
+        with caplog.at_level(
+            logging.INFO,
+            logger="etlrelay.pipeline.pipeline",
+        ):
+            pipeline.run()
+
+        messages = [
+            record.message
+            for record in caplog.records
+            if record.name == "etlrelay.pipeline.pipeline" and record.levelno == logging.INFO
+        ]
+
+        assert messages == [
+            "Pipeline execution started.",
+            "Pipeline execution completed.",
+        ]
+
+        assert sink.write_calls == 1
+        assert len(sink.batches) == 1
+
+    def test_empty_pipeline_logs_successful_completion(
+        self,
+        caplog: pytest.LogCaptureFixture,
+    ) -> None:
+        """Treat an empty source as a successful pipeline execution."""
+        source = StubSource([])
+        sink = CollectingSink()
+        pipeline = Pipeline(source, [], sink)
+
+        with caplog.at_level(
+            logging.INFO,
+            logger="etlrelay.pipeline.pipeline",
+        ):
+            pipeline.run()
+
+        messages = [
+            record.message
+            for record in caplog.records
+            if record.name == "etlrelay.pipeline.pipeline" and record.levelno == logging.INFO
+        ]
+
+        assert messages == [
+            "Pipeline execution started.",
+            "Pipeline execution completed.",
+        ]
+
+        assert sink.write_calls == 0
+
+    def test_pipeline_logs_batch_progress_at_debug(
+        self,
+        caplog: pytest.LogCaptureFixture,
+    ) -> None:
+        """Log processed batch counts without exposing record values."""
+        secret = "private-customer-information"
+
+        first_batch = Batch(table=pa.table({"value": [secret]}))
+        second_batch = Batch(table=pa.table({"value": [secret, "another-value"]}))
+
+        source = StubSource([first_batch, second_batch])
+        sink = CollectingSink()
+        pipeline = Pipeline(source, [], sink)
+
+        with caplog.at_level(
+            logging.DEBUG,
+            logger="etlrelay.pipeline.pipeline",
+        ):
+            pipeline.run()
+
+        debug_messages = [
+            record.message
+            for record in caplog.records
+            if record.name == "etlrelay.pipeline.pipeline" and record.levelno == logging.DEBUG
+        ]
+
+        assert debug_messages == [
+            "Processed batch 1: 1 rows.",
+            "Processed batch 2: 2 rows.",
+        ]
+
+        assert secret not in caplog.text
+        assert "another-value" not in caplog.text
+
+        assert len(sink.batches) == 2
+
+    def test_pipeline_failure_preserves_exception_without_logging_payload(
+        self,
+        caplog: pytest.LogCaptureFixture,
+    ) -> None:
+        """Preserve the original error without logging its sensitive message."""
+        secret = "private-source-value"
+        original_error = RuntimeError(f"Source failed: {secret}")
+
+        def failing_batches() -> Iterable[Batch]:
+            yield make_batch(10)
+            raise original_error
+
+        source = StubSource(failing_batches())
+        sink = CollectingSink()
+        pipeline = Pipeline(source, [], sink)
+
+        with caplog.at_level(
+            logging.DEBUG,
+            logger="etlrelay.pipeline.pipeline",
+        ):
+            with pytest.raises(RuntimeError) as exc_info:
+                pipeline.run()
+
+        assert exc_info.value is original_error
+
+        messages = [
+            record.message
+            for record in caplog.records
+            if record.name == "etlrelay.pipeline.pipeline"
+        ]
+
+        assert "Pipeline execution started." in messages
+        assert "Processed batch 1: 1 rows." in messages
+        assert "Pipeline execution completed." not in messages
+
+        assert secret not in caplog.text
+        assert sink.write_calls == 1
+
+    def test_sink_failure_does_not_log_successful_completion(
+        self,
+        caplog: pytest.LogCaptureFixture,
+    ) -> None:
+        """Do not report completion when the sink fails."""
+        original_error = RuntimeError("Sink failed")
+
+        class FailingSink:
+            def write(self, batches: Iterable[Batch]) -> None:
+                list(batches)
+                raise original_error
+
+        source = StubSource([make_batch(10)])
+        pipeline = Pipeline(source, [], FailingSink())
+
+        with caplog.at_level(
+            logging.INFO,
+            logger="etlrelay.pipeline.pipeline",
+        ):
+            with pytest.raises(RuntimeError) as exc_info:
+                pipeline.run()
+
+        assert exc_info.value is original_error
+
+        messages = [
+            record.message
+            for record in caplog.records
+            if record.name == "etlrelay.pipeline.pipeline"
+        ]
+
+        assert messages == ["Pipeline execution started."]

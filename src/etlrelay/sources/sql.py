@@ -1,5 +1,6 @@
 """SQL-backed data source."""
 
+import logging
 from collections import Counter
 from collections.abc import Iterable, Mapping, Sequence
 from typing import Any
@@ -9,6 +10,8 @@ from sqlalchemy import text
 from sqlalchemy.engine import Connection, Engine
 
 from etlrelay.core import Batch
+
+logger = logging.getLogger(__name__)
 
 
 class SqlSource:
@@ -58,9 +61,17 @@ class SqlSource:
             rows = self._fetch_rows(connection)
 
         if not rows:
+            logger.debug("SQL source read completed (0 rows).")
             return []
 
-        return [self._rows_to_batch(rows)]
+        batch = self._rows_to_batch(rows)
+
+        logger.debug(
+            "SQL source read completed (%d rows).",
+            len(rows),
+        )
+
+        return [batch]
 
     def _fetch_rows(
         self,
