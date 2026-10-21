@@ -5,7 +5,7 @@ Notable changes to ETLRelay are documented here.
 This project follows the principles of [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and [Semantic Versioning](https://semver.org/).
 
 
-## [0.9.0] - YYYY-MM-DD
+## [0.9.0] - 2026-10-21
 
 ### Changed
 
@@ -18,6 +18,11 @@ This project follows the principles of [Keep a Changelog](https://keepachangelog
   Applications must update imported class names and type annotations.
 - Retained `KeyValueReader` as the separate contract for mapping-shaped
   documents. Configuration loading continues to depend on this abstraction.
+- Update the locked SQLAlchemy dependency from 2.1.3 to 2.1.5.
+- Update Ruff to 0.17.1 and mkdocstrings to 1.0.7, allowing
+  mkdocstrings 1.x in the documentation dependency constraints.
+- Update GitHub Actions dependencies for environment setup, artifact
+  downloads, and GitHub Pages configuration, artifact upload, and deployment.
 
 ### Fixed
 
@@ -48,9 +53,9 @@ This project follows the principles of [Keep a Changelog](https://keepachangelog
 
 ### Documentation
 
-- Complete a self-contained YAML/Python quick start with explicit published versus
-  candidate installation instructions and bounded CPython requirements.
-- Add v0.9.0 migration guidance and draft release notes; retain schema version 1
+- Complete a self-contained YAML/Python quick start with version-pinned
+  release installation instructions and bounded CPython requirements.
+- Add v0.9.0 migration guidance and release notes; retain schema version 1
   and document removed protocol names, corrected failures, and dependency changes.
 - Verify all maintained Python/YAML examples and the quick-start code against a
   built, installed candidate outside the checkout using the existing CLI fixture.
@@ -58,6 +63,9 @@ This project follows the principles of [Keep a Changelog](https://keepachangelog
   demo outputs, SQL reset instructions, and troubleshooting guidance.
 - Align API, architecture, configuration, logging, security, and release docs;
   consolidate duplicate release instructions into the existing canonical page.
+
+- Finalize v0.9.0 metadata, release checklist, readiness evidence, and focused
+  beta feedback/defect triage guidance using the existing release workflow.
 
 ### Scope Decisions
 

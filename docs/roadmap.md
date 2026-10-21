@@ -21,11 +21,11 @@ The roadmap is feature-led, not date-led. A version should be released when its 
 | Released | `0.6.0` | YAML configuration and runtime pipeline construction |
 | Released | `0.7.0` | CLI for validation and execution |
 | Released | `0.8.0` | Security, errors, and operational readiness |
-| In progress | `0.9.0` | Feature-complete beta and API review |
+| Released | `0.9.0` | Feature-complete beta and API review |
 
-The latest released milestone is `0.8.0`. It strengthens path validation, configuration preflight, controlled logging and diagnostics, resource cleanup, dependency auditing, distribution verification, and installed-wheel compatibility checks.
+The current milestone is `0.9.0` — the feature-complete beta. It freezes the intended v1.0 feature set, completes tabular protocol naming and API review, and verifies supported pipelines, failures, documentation, and both distribution artifacts.
 
-Development is now focused on `0.9.0`: freezing the intended v1.0 feature set, completing the protocol naming cleanup, reviewing public contracts, and verifying supported workflows and environments.
+Development now focuses on bounded beta feedback, defect correction, and final release-candidate validation. New features remain deferred. See the [beta readiness record](development/beta-readiness.md) for evidence and publication checks.
 
 The [v1.0 Feature Scope and Support Policy](development/v1-scope.md) defines the frozen feature boundary, release support matrix, deferred capabilities, and required readiness work.
 
@@ -201,9 +201,11 @@ Scope:
 
 **Done when:** Security-relevant behavior is tested at the layer responsible for the risk, and failures are diagnosable without leaking secrets.
 
-### `0.9.0` — Feature-complete beta and API review
+### `0.9.0` — Feature-complete beta and API review (released)
 
-**Goal:** Validate the intended v1.0 feature set and stop adding new features.
+**Outcome:** Froze the feature set, renamed the tabular protocols without legacy aliases, retained the separate mapping-document contract, and completed the API, pipeline, failure, packaging, and documentation reviews. `KeyValueWriter` and generic record conversion are deferred. The [readiness record](development/beta-readiness.md) collects review outcomes and the focused feedback process.
+
+The following scope is retained as the milestone's acceptance record.
 
 Scope:
 
@@ -283,7 +285,7 @@ The `etlrelay` distribution has already been published to PyPI; see the [ETLRela
 | `0.6.0` | Released | YAML configuration | Versioned schema validation, explicit component catalog, SQL preflight, and runtime pipeline construction |
 | `0.7.0` | Released | CLI | Validate and run pipelines from a shell |
 | `0.8.0` | Released | Security and operational readiness | Hardened controls, controlled diagnostics, cleanup, dependency/package checks, and installed-wheel compatibility verification |
-| `0.9.0` | In progress | Feature-complete beta | Feature freeze, reader/writer naming cleanup, and full API/representation-contract review |
+| `0.9.0` | Released | Feature-complete beta | Feature freeze, reader/writer naming cleanup, and full API/representation-contract review |
 | `1.0.0rc1` | Planned | Release candidate | Final validation and feedback |
 | `1.0.0` | Planned | Stable release | Documented, usable, tested config-driven ETL product |
 

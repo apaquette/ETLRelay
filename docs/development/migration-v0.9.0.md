@@ -1,9 +1,7 @@
 # Migration to v0.9.0
 
-This page describes the unreleased v0.9.0 candidate relative to v0.8.0.
-Install an archive built from the candidate commit when checking the changes.
-A version number alone does not identify development builds while package
-metadata remains `0.8.0`.
+This page describes changes from v0.8.0 to v0.9.0. Install
+`etlrelay==0.9.0` before updating and testing the Python imports below.
 
 ## Rename the tabular protocols
 

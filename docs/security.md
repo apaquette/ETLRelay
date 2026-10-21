@@ -1,6 +1,6 @@
 # Security
 
-ETLRelay v0.8.0 strengthens the security and operational contracts established in earlier releases.
+ETLRelay v0.9.0 strengthens the security and operational contracts established in earlier releases.
 
 The release includes regression-tested controls for local path containment, safe YAML configuration, SQL parameter handling, connection-secret references, error reporting, operational logging, and resource cleanup. Its CI workflow also checks dependencies and verifies built distribution artifacts.
 
@@ -237,7 +237,7 @@ Pipeline execution is not atomic. A later validation or execution failure does n
 
 ## Dependency and distribution integrity
 
-The v0.8.0 CI workflow includes:
+The v0.9.0 CI workflow includes:
 
 - Lockfile consistency verification.
 - Dependency vulnerability auditing.
@@ -254,7 +254,7 @@ Applications deploying ETLRelay remain responsible for ongoing dependency mainte
 
 ## Current limitations and deferred risks
 
-ETLRelay v0.8.0 does not provide:
+ETLRelay v0.9.0 does not provide:
 
 - Operating-system-level filesystem sandboxing or elimination of path-validation races.
 - A mechanism for safely executing arbitrary untrusted SQL or Python components.

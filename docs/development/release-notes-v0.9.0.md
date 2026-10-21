@@ -1,8 +1,6 @@
-# ETLRelay v0.9.0 — Draft Release Notes
+# ETLRelay v0.9.0 — Release Notes
 
-**Unreleased draft.** Finalize the package version, release date, release-check
-results, and beta sign-off before publication. The current development metadata
-still identifies local builds as `0.8.0`; this is not a published v0.9.0 release.
+Release date: **2026-10-21**.
 
 ETLRelay v0.9.0 freezes the intended v1.0 feature set and reviews its public API,
 component interactions, failure behavior, documentation, and package installation.
@@ -48,6 +46,11 @@ SQL, the existing processors, YAML configuration, and the CLI.
   troubleshooting, security limits, and migration requirements.
 - Record the exact support matrix and the frozen v1.0 boundary.
 
+### Dependencies and Tooling
+
+- Refresh dependency and release tooling, including SQLAlchemy,
+  Ruff, mkdocstrings, and GitHub Actions dependencies.
+
 ## Migration
 
 Update imports and annotations from `Reader`/`Writer` to
@@ -77,4 +80,5 @@ retries, distributed execution, schema reconciliation, SQL table creation/upsert
 The [scope policy](v1-scope.md), [API review](api-review.md),
 [pipeline coverage](pipeline-coverage.md), [failure matrix](failure-matrix.md),
 and [packaging verification](packaging-verification.md) provide supporting detail.
-The beta release ticket owns final release-blocker review and feedback sign-off.
+See [Beta readiness and feedback](beta-readiness.md) for the review decision,
+verification evidence, remaining publication gates, and reporting criteria.

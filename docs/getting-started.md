@@ -1,8 +1,8 @@
 # Getting Started
 
-This guide covers the v0.9.0 development candidate. The latest published release
-is v0.8.0; v0.9.0 has not been published. CLI commands and YAML schema version 1
-remain unchanged, while the protocol-name migration requires the candidate.
+This guide covers ETLRelay v0.9.0. CLI commands and YAML schema version 1
+remain unchanged; see the [migration guide](development/migration-v0.9.0.md)
+when updating Python protocol imports from v0.8.0.
 
 ## Install in a clean environment
 
@@ -15,26 +15,21 @@ python -m venv .venv
 On Linux/macOS, run `source .venv/bin/activate`. On Windows PowerShell, run
 `.venv\Scripts\Activate.ps1`. Run the remaining commands in that environment.
 
-For the published release:
+Install the release and inspect its commands:
 
 ```bash
-python -m pip install etlrelay==0.8.0
-```
-
-For this candidate, build from the `dev` checkout with `uv build`, then install
-the resulting wheel by its absolute path in your clean environment:
-
-```bash
-python -m pip install /absolute/path/to/ETLRelay/dist/etlrelay-0.8.0-py3-none-any.whl
+python -m pip install etlrelay==0.9.0
 etlrelay --help
 etlrelay version
 ```
 
-The development checkout currently retains `project.version = "0.8.0"`.
-Consequently, a locally built candidate reports `0.8.0`; it is identified by its
-source commit and is different from the published package. Install the local
-archive explicitly. The beta release ticket will assign the release version
-before publishing; do not overwrite an existing PyPI release.
+`etlrelay version` reports `etlrelay 0.9.0`. To verify a local release build
+before publication, run `uv build` in the checkout and install its archive in
+the clean environment instead:
+
+```bash
+python -m pip install /absolute/path/to/ETLRelay/dist/etlrelay-0.9.0-py3-none-any.whl
+```
 
 ## Run a self-contained CSV pipeline
 
@@ -138,7 +133,7 @@ batch. Neither path provides pipeline-wide rollback.
 
 ## Run the repository examples
 
-Obtain the `examples/` directory from the same `dev` commit as your candidate.
+Obtain the `examples/` directory from the `v0.9.0` release tag.
 A published package should instead use examples from its matching release tag.
 Examples are repository files, not a guaranteed wheel payload.
 

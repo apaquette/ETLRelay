@@ -39,9 +39,11 @@ case. It is removed from runtime metadata and the lockfile. `packaging` is an
 explicit CI-tool dependency for standards-aware requirement comparison, not a
 new runtime dependency. Remaining locked package versions are unchanged.
 
-Package metadata still declares version `0.8.0` and CPython `>=3.12,<3.15`.
-The local archives are development verification artifacts; they do not replace
-the published v0.8.0 files. Release versioning remains part of beta preparation.
+At the packaging-review baseline, metadata declared `0.8.0` and CPython
+`>=3.12,<3.15`; those verification archives did not replace the published files.
+Beta preparation sets version `0.9.0` without changing the supported Python range.
+See the [final readiness record](beta-readiness.md) for release-build results and
+integrated CI requirements.
 
 The archive checker verifies the 64 source Python modules, distribution name,
 version, Python requirement, runtime requirements, licence/notice inclusion,

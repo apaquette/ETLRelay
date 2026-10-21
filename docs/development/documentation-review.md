@@ -7,7 +7,7 @@ Reviewed baseline: `dev` commit `493008769ae5ca60daf4b2454c35d635e1793c5b`.
 
 | Area | Documentation and verification |
 | --- | --- |
-| Installation and quick start | README and `getting-started.md` distinguish published v0.8.0 from the unreleased candidate, document fresh environments, and provide self-contained CSV/YAML/Python code. |
+| Installation and quick start | README and `getting-started.md` document fresh environments and provide self-contained CSV/YAML/Python code. Beta preparation updates installation to v0.9.0. |
 | Python and YAML examples | `examples/README.md` and `examples/configuration/README.md` document inputs, expected outputs, SQL variable setup on POSIX/PowerShell, and reset/append behavior. |
 | Public API and architecture | Generated API targets resolve, `ComponentFactory` is included, canonical imports are documented, stale component-module names and release-specific wording are corrected. |
 | Configuration and CLI | Schema version 1 remains unchanged. References document required/optional properties, supported types, invalid document errors, exit codes, process-relative paths, and validation versus build preflight. |
@@ -15,8 +15,8 @@ Reviewed baseline: `dev` commit `493008769ae5ca60daf4b2454c35d635e1793c5b`.
 | Security and logging | Existing security boundaries remain explicit. Logging includes the controlled Parquet finalization warning and does not promise universal third-party redaction. |
 | Extension and contribution | Development instructions show direct structural-protocol composition and point to an executable application-defined processor. Default CLI registration remains fixed; arbitrary plugin loading is unsupported. |
 | Development and release | Existing MkDocs/CI tools remain canonical. Root release instructions link to the maintained procedure instead of repeating stale setup-bundle instructions. |
-| Migration and draft release | `migration-v0.9.0.md`, `release-notes-v0.9.0.md`, and the changelog cover removed protocol names, retained module paths, corrected exceptions/exit codes, and the Polars dependency removal. |
-| Limitations and deferred work | The scope policy and release draft retain the local-file/SQLite boundary and explicitly defer remote storage, document writing, record conversion, and execution/orchestration expansion. |
+| Migration and release | `migration-v0.9.0.md`, `release-notes-v0.9.0.md`, and the changelog cover removed protocol names, retained module paths, corrected exceptions/exit codes, and the Polars dependency removal. |
+| Limitations and deferred work | The scope policy and release notes retain the local-file/SQLite boundary and explicitly defer remote storage, document writing, record conversion, and execution/orchestration expansion. |
 
 ## Executable documentation checks
 
@@ -65,8 +65,10 @@ Linux / CPython 3.12.14 with locked dependencies:
 - Both new installed-candidate documentation tests: passed.
 - Ruff lint and formatting, Pyright, strict MkDocs build, and diff checks: passed.
 
-Documentation acceptance criteria are satisfied locally. Integration and required
-CI checks remain necessary. The v0.9.0 beta ticket must assign the release version,
-finalize the changelog date and release text, confirm integrated packaging results,
-review release blockers, and gather feedback. No package or documentation has
-been published by this review.
+The integrated documentation commit `1b0993b1b5bc012754c5c3960c6b79f21d36f189`
+passed [CI run 39642253494](https://github.com/apaquette/ETLRelay/actions/runs/39642253494),
+including all five compatibility combinations. The beta readiness ticket assigns
+v0.9.0 metadata, finalizes release-facing documentation, and records the final
+review and publication gates in [Beta readiness and feedback](beta-readiness.md).
+The candidate test names above describe the documentation review baseline;
+the shipped installation guide now targets `etlrelay==0.9.0`.
