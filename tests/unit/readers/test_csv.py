@@ -35,13 +35,15 @@ class TestCsvReader:
 
         assert batches == []
 
-    def test_reader_raises_error_for_malformed_csv(self):
-        stream = BytesIO(b"name,age\nAlice,30,extra\n")
+    @pytest.mark.parametrize("content", [b"", b"name,age\nAlice,30,extra\n"])
+    def test_reader_raises_error_for_malformed_csv(self, content: bytes):
+        stream = BytesIO(content)
 
         reader = CsvReader()
 
         with pytest.raises(pa.ArrowInvalid):
             list(reader.read(stream))
+        assert not stream.closed
 
 
 def test_csv_reader_does_not_close_caller_owned_stream() -> None:

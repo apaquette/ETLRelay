@@ -2,7 +2,9 @@
 
 from unittest.mock import MagicMock, patch
 
+import pyarrow as pa
 import pytest
+from sqlalchemy.exc import OperationalError
 
 from etlrelay.core import Batch
 from etlrelay.sources.sql import SqlSource
@@ -128,3 +130,40 @@ class TestSqlSource:
 
         result.close.assert_called_once_with()
         assert connection_context.__exit__.call_args.args[0] is RuntimeError
+
+    def test_connection_failure_propagates_without_disposing_borrowed_engine(
+        self,
+        sqlalchemy_mocks,
+    ) -> None:
+        engine, connection, connection_context = sqlalchemy_mocks
+        failure = OperationalError(None, None, OSError("connection refused"))
+        engine.connect.side_effect = failure
+
+        with pytest.raises(OperationalError) as caught:
+            SqlSource(engine, "SELECT id FROM records").read()
+
+        assert caught.value is failure
+        connection.execute.assert_not_called()
+        connection_context.__exit__.assert_not_called()
+        engine.dispose.assert_not_called()
+
+    def test_arrow_conversion_failure_occurs_after_sql_resources_are_closed(
+        self,
+        sqlalchemy_mocks,
+    ) -> None:
+        engine, connection, connection_context = sqlalchemy_mocks
+        result = self.make_result(["id"], [{"id": object()}])
+        connection.execute.return_value = result
+        failure = pa.ArrowInvalid("unrepresentable SQL value")
+
+        def fail_conversion(_rows):
+            result.close.assert_called_once_with()
+            connection_context.__exit__.assert_called_once_with(None, None, None)
+            raise failure
+
+        with patch.object(SqlSource, "_rows_to_batch", side_effect=fail_conversion):
+            with pytest.raises(pa.ArrowInvalid) as caught:
+                SqlSource(engine, "SELECT id FROM records").read()
+
+        assert caught.value is failure
+        engine.dispose.assert_not_called()

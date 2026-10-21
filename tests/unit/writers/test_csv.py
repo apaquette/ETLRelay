@@ -1,6 +1,7 @@
 from io import BytesIO
 
 import pyarrow as pa
+import pytest
 
 from etlrelay.core import Batch, TabularWriter
 from etlrelay.writers import CsvWriter
@@ -95,3 +96,18 @@ def test_csv_writer_does_not_close_caller_owned_stream() -> None:
 
     stream.close()
     assert stream.closed
+
+
+def test_csv_writer_preserves_write_failure_and_borrowed_stream() -> None:
+    failure = OSError("simulated write failure")
+
+    class FailingStream(BytesIO):
+        def write(self, data):
+            raise failure
+
+    stream = FailingStream()
+    with pytest.raises(OSError) as caught:
+        CsvWriter().write([Batch(pa.table({"id": [1]}))], stream)
+
+    assert caught.value is failure
+    assert not stream.closed

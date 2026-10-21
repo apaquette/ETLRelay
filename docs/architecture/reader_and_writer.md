@@ -119,6 +119,10 @@ A zero-row batch with named columns produces a CSV header without data rows.
 
 An entirely empty iterable produces no serialized content.
 
+On input, a header-only CSV produces no batches. A zero-byte CSV file is
+invalid and raises `pyarrow.ArrowInvalid`; it is not treated as a successful
+empty source.
+
 ### Parquet
 
 Parquet preserves structured schema information, including Arrow data types.
@@ -134,6 +138,17 @@ no data rows.
 
 An entirely empty iterable cannot establish an output schema and raises
 `WriterError`.
+
+After batch serialization or upstream iteration fails, `ParquetWriter` still
+attempts to finalize its native writer. The original failure takes precedence
+if finalization also fails. A secondary finalization failure is logged using
+only its exception type. If serialization otherwise succeeds, a finalization
+failure propagates to the caller.
+
+The supplied stream remains caller-owned on both paths. Successfully finalized
+partial output can contain earlier batches; if finalization fails, the output
+may be unreadable. Neither outcome constitutes a successful pipeline run or
+provides rollback.
 
 ### Pipeline validation
 

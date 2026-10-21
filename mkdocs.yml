@@ -16,6 +16,7 @@ nav:
       - v1.0 scope: development/v1-scope.md
       - API review: development/api-review.md
       - Pipeline coverage: development/pipeline-coverage.md
+      - Failure matrix: development/failure-matrix.md
       - Release automation: development/release-automation.md
   - Roadmap: roadmap.md
   - Architecture:

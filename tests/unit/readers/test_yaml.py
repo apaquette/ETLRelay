@@ -41,22 +41,28 @@ def test_yaml_reader_requires_a_root_mapping() -> None:
     reader = YamlReader()
 
     for document in (b"null", b"42", b"- first\n- second\n", b"plain scalar"):
+        stream = BytesIO(document)
         with pytest.raises(ValueError, match=r"(?i)(root|mapping)"):
-            reader.read(BytesIO(document))
+            reader.read(stream)
+        assert not stream.closed
 
 
 def test_yaml_reader_rejects_non_string_root_keys() -> None:
     reader = YamlReader()
+    stream = BytesIO(b"1: numeric key\n")
 
     with pytest.raises(ValueError, match=r"(?i)(key|string)"):
-        reader.read(BytesIO(b"1: numeric key\n"))
+        reader.read(stream)
+    assert not stream.closed
 
 
 def test_yaml_reader_rejects_malformed_yaml() -> None:
     reader = YamlReader()
+    stream = BytesIO(b"version: [1\nsource: {")
 
     with pytest.raises(yaml.YAMLError):
-        reader.read(BytesIO(b"version: [1\nsource: {"))
+        reader.read(stream)
+    assert not stream.closed
 
 
 def test_yaml_reader_uses_safe_loading_and_rejects_python_object_tags() -> None:
@@ -77,9 +83,11 @@ def test_yaml_reader_uses_safe_loading_and_rejects_python_object_tags() -> None:
 )
 def test_yaml_reader_rejects_duplicate_mapping_keys(document: bytes) -> None:
     reader = YamlReader()
+    stream = BytesIO(document)
 
     with pytest.raises(yaml.YAMLError, match=r"(?i)duplicate|already defined|found.*key"):
-        reader.read(BytesIO(document))
+        reader.read(stream)
+    assert not stream.closed
 
 
 def test_yaml_reader_rejects_multiple_documents() -> None:
@@ -88,6 +96,7 @@ def test_yaml_reader_rejects_multiple_documents() -> None:
 
     with pytest.raises(yaml.YAMLError):
         reader.read(stream)
+    assert not stream.closed
 
 
 def test_yaml_reader_does_not_close_the_caller_owned_stream() -> None:

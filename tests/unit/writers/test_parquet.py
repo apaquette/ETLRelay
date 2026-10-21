@@ -1,3 +1,5 @@
+import logging
+from collections.abc import Iterator
 from datetime import UTC, datetime
 from io import BytesIO
 
@@ -156,17 +158,22 @@ class TestParquetWriter:
             writer.write(batches, stream)
 
     def test_writer_propagates_io_errors(self):
+        failure = OSError("Simulated write failure")
+
         class FailingStream(BytesIO):
             def write(self, data):
-                raise OSError("Simulated write failure")
+                raise failure
 
         table = pa.table({"id": [1, 2, 3]})
         stream = FailingStream()
 
         writer = ParquetWriter()
 
-        with pytest.raises(OSError):
+        with pytest.raises(OSError) as caught:
             writer.write(iter([Batch(table=table)]), stream)
+
+        assert caught.value is failure
+        assert not stream.closed
 
     def test_writer_does_not_close_caller_owned_stream(self):
         table = pa.table({"id": [1, 2, 3]})
@@ -225,3 +232,42 @@ def test_parquet_writer_accepts_metadata_only_schema_differences() -> None:
 
     assert result.column("id").to_pylist() == [1, 2]
     assert result.schema.equals(first_schema)
+
+
+@pytest.mark.parametrize("upstream_fails", [True, False])
+def test_parquet_writer_handles_footer_failure_without_masking_primary_error(
+    caplog: pytest.LogCaptureFixture,
+    upstream_fails: bool,
+) -> None:
+    """Finalizing partial output must not mask the upstream execution error."""
+    primary = RuntimeError("SECRET_PROCESSOR_FAILURE")
+    secondary = OSError("SECRET_FOOTER_FAILURE")
+
+    class FooterFailureStream(BytesIO):
+        fail = False
+
+        def write(self, data):
+            if self.fail:
+                raise secondary
+            return super().write(data)
+
+    stream = FooterFailureStream()
+
+    def batches() -> Iterator[Batch]:
+        yield Batch(pa.table({"id": [1]}))
+        stream.fail = True
+        if upstream_fails:
+            raise primary
+
+    with caplog.at_level(logging.WARNING, logger="etlrelay.writers.parquet"):
+        with pytest.raises(RuntimeError if upstream_fails else OSError) as caught:
+            ParquetWriter().write(batches(), stream)
+
+    assert caught.value is (primary if upstream_fails else secondary)
+    assert not stream.closed
+    if upstream_fails:
+        assert "Parquet writer cleanup failed (OSError)." in caplog.text
+    else:
+        assert "Parquet writer cleanup failed" not in caplog.text
+    assert "SECRET_PROCESSOR_FAILURE" not in caplog.text
+    assert "SECRET_FOOTER_FAILURE" not in caplog.text

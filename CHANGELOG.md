@@ -18,6 +18,9 @@ This project follows the principles of [Keep a Changelog](https://keepachangelog
 
 ### Fixed
 
+- Preserve the original serialization or upstream batch failure when Parquet
+  finalization also fails; log secondary cleanup failures without their messages.
+  Finalization-only failures continue to propagate.
 - Report invalid YAML document shapes as configuration failures (CLI exit code
   `3`) through `YamlDocumentError`, a backward-compatible `ValueError` subclass.
 - Reject ambiguous requested columns in `SelectColumns` with `ValueError`.
@@ -27,6 +30,9 @@ This project follows the principles of [Keep a Changelog](https://keepachangelog
 
 ### Testing
 
+- Audit the failure and cleanup matrix; cover borrowed streams after failures,
+  processor failures before and during output, SQL connection/conversion failures,
+  malformed SQL connection check-in, and controlled CLI connection diagnostics.
 - Verify processed Parquet-to-SQLite and SQLite-to-Parquet pipelines through
   the built and installed CLI, reusing the existing isolated-wheel fixture.
 - Strengthen schema assertions for the existing YAML source/sink matrix and
