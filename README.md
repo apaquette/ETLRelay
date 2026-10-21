@@ -28,6 +28,31 @@ Install ETLRelay from PyPI:
 pip install etlrelay
 ```
 
+### Supported Python Versions and Platforms
+
+ETLRelay supports CPython 3.12, 3.13, and 3.14.
+
+The following configurations are verified in CI:
+
+| Platform | Python | Verification |
+|---|---|---|
+| Ubuntu | 3.12 | Full test suite, quality checks, and installed-wheel smoke test |
+| Ubuntu | 3.13 | Installed-wheel smoke test |
+| Ubuntu | 3.14 | Installed-wheel smoke test |
+| macOS | 3.12 | Installed-wheel smoke test |
+| Windows | 3.12 | Installed-wheel smoke test |
+
+Compatibility testing installs the built wheel into a clean virtual
+environment outside the source checkout. It verifies package imports,
+dependency consistency, CLI operation, configuration validation, and
+a minimal CSV ETL pipeline.
+
+Other operating-system and Python-version combinations may work but
+are not independently verified by CI.
+
+Python 3.15 is not currently supported because ETLRelay's pinned
+PyArrow major version does not provide Python 3.15 support.
+
 ## CLI Quick Start
 
 Install the v0.7.1 package and inspect the available commands:
