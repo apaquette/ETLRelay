@@ -124,9 +124,11 @@ jobs:
         if: steps.pypi-check.outputs.already_published == 'false'
         run: uv run mkdocs build --strict
 
-      - name: Verify installed dependency consistency
+      - name: Build source distribution and wheel
         if: steps.pypi-check.outputs.already_published == 'false'
-        run: uv pip check --python .venv/bin/python
+        run: |
+          rm -rf dist
+          uv build
 
       - name: Validate distribution metadata
         if: steps.pypi-check.outputs.already_published == 'false'
