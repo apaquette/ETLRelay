@@ -1,0 +1,2024 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="A lightweight, composable Python framework for batch-oriented ETL pipelines.">
+      
+      
+      
+        <link rel="canonical" href="https://apaquette.github.io/ETLRelay/0.9.0/architecture/sql_source_and_sink/">
+      
+      
+        <link rel="prev" href="../file_sink/">
+      
+      
+        <link rel="next" href="../local_filesystem/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>SQL source and sink - ETLRelay</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/_mkdocstrings.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    <body dir="ltr">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#sql-source-and-sink" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+      </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="ETLRelay" class="md-header__button md-logo" aria-label="ETLRelay" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            ETLRelay
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              SQL source and sink
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="ETLRelay" class="md-nav__button md-logo" aria-label="ETLRelay" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    ETLRelay
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../cli-reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CLI Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Concepts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../configuration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    YAML Configuration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../security/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Security
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../logging/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Logging
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api-reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_9" >
+        
+          
+          <label class="md-nav__link" for="__nav_9" id="__nav_9_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Development
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_9_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_9">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Development
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/migration-v0.9.0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Migration to v0.9.0
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/release-notes-v0.9.0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    v0.9.0 release notes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/v1-scope/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    v1.0 scope
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/api-review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API review
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/pipeline-coverage/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pipeline coverage
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/failure-matrix/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Failure matrix
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/packaging-verification/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Packaging verification
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/documentation-review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Documentation review
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/beta-readiness/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Beta readiness and feedback
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/release-automation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Release automation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../roadmap/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Roadmap
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_11" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_11" id="__nav_11_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_11_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_11">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Architecture
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../overview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pipeline/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_11_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_11_3" id="__nav_11_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_11_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_11_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Configuration
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../configuration-loading/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Loading
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../configuration-validation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Validation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../component-registry/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Component registry
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../data-representation-contracts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data representation contracts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_11_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_11_4" id="__nav_11_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Processors
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_11_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_11_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Processors
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../select_columns_and_rename_columns/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Column selection and renaming
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../filter_rows_processor/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Row filtering
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../file_source/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    File source
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../file_sink/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    File sink
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SQL source and sink
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SQL source and sink
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#purpose" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Purpose
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#public-api" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Public API
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Public API">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#sqlsource" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SqlSource
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sqlsink" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SqlSink
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#resource-ownership-and-cleanup" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Resource ownership and cleanup
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#database-support" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Database support
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#query-values-and-identifiers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Query values and identifiers
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#empty-data-behavior" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Empty-data behavior
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#append-and-transaction-boundaries" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Append and transaction boundaries
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#limitations-and-out-of-scope-behavior" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Limitations and out-of-scope behavior
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sql-components-in-yaml-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SQL components in YAML configuration
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#class-diagram-direct-sql-api-and-configuration-managed-engines" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Class diagram: direct SQL API and configuration-managed engines
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../local_filesystem/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Local filesystem
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../path_validator/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Path validator
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reader_and_writer/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reader and writer
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#purpose" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Purpose
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#public-api" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Public API
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Public API">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#sqlsource" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SqlSource
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sqlsink" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SqlSink
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#resource-ownership-and-cleanup" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Resource ownership and cleanup
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#database-support" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Database support
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#query-values-and-identifiers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Query values and identifiers
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#empty-data-behavior" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Empty-data behavior
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#append-and-transaction-boundaries" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Append and transaction boundaries
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#limitations-and-out-of-scope-behavior" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Limitations and out-of-scope behavior
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sql-components-in-yaml-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SQL components in YAML configuration
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#class-diagram-direct-sql-api-and-configuration-managed-engines" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Class diagram: direct SQL API and configuration-managed engines
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="sql-source-and-sink">SQL Source and Sink<a class="headerlink" href="#sql-source-and-sink" title="Permanent link">&para;</a></h1>
+<h2 id="purpose">Purpose<a class="headerlink" href="#purpose" title="Permanent link">&para;</a></h2>
+<p><code>SqlSource</code> and <code>SqlSink</code> connect database I/O to ETLRelay's existing <code>Source</code> and <code>Sink</code> contracts. They are separate from <code>FileSource</code>, <code>FileSink</code>, the filesystem protocol, and file-format readers/writers. SQL components exchange the same Arrow-backed <code>Batch</code> representation used by the rest of the pipeline.</p>
+<pre class="mermaid"><code>flowchart LR
+    DB[(SQL database)] --&gt; SqlSource[SqlSource]
+    SqlSource --&gt; Batch[Batch]
+    Batch --&gt; Pipeline["Processor(s) / Pipeline"]
+    Pipeline --&gt; SqlSink[SqlSink]
+    SqlSink --&gt; DB2[(SQL database table)]</code></pre>
+<p>A SQL engine is created and owned by the caller. ETLRelay borrows the engine to obtain connections and transactions; it does not dispose the caller's engine.</p>
+<h2 id="public-api">Public API<a class="headerlink" href="#public-api" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><span class="n">SqlSource</span><span class="p">(</span>
+    <span class="n">engine</span><span class="p">,</span>
+    <span class="n">query</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">parameters</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">SqlSink</span><span class="p">(</span>
+    <span class="n">engine</span><span class="p">,</span>
+    <span class="n">table_name</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">schema</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span>
+</code></pre></div>
+<p>See the <a href="../../api-reference/">API Reference</a> for the generated public signatures and parameter types.</p>
+<h3 id="sqlsource"><code>SqlSource</code><a class="headerlink" href="#sqlsource" title="Permanent link">&para;</a></h3>
+<p><code>SqlSource</code> executes a caller-provided SQL text query through SQLAlchemy. Optional <code>parameters</code> supplies a mapping of parameter names to values, bound through SQLAlchemy rather than interpolated into the query string.</p>
+<p>For a query that returns rows, <code>SqlSource.read()</code> converts the result into one <code>Batch</code>. All rows are materialized before the connection is closed; the source is therefore batch-oriented, not a streaming or paginated database reader. A query returning no rows produces an empty iterable, not a zero-row batch. Duplicate result-column names are rejected because conversion through row mappings would otherwise make the result ambiguous. Arrow itself can represent duplicate field names.</p>
+<p>Use named bind parameters for values:</p>
+<div class="highlight"><pre><span></span><code><span class="n">source</span> <span class="o">=</span> <span class="n">SqlSource</span><span class="p">(</span>
+    <span class="n">engine</span><span class="p">,</span>
+    <span class="s2">"SELECT id, amount FROM orders WHERE status = :status ORDER BY id"</span><span class="p">,</span>
+    <span class="n">parameters</span><span class="o">=</span><span class="p">{</span><span class="s2">"status"</span><span class="p">:</span> <span class="s2">"ready"</span><span class="p">},</span>
+<span class="p">)</span>
+</code></pre></div>
+<p>Do not build value predicates using f-strings or string concatenation. Binding protects the value boundary; it does not bind SQL syntax such as a table name, column name, operator, or sort direction.</p>
+<p><code>SqlSource</code> closes its SQLAlchemy result after retrieving rows, including
+when result validation or iteration fails. Its connection is also released
+on success or failure.</p>
+<p>Arrow conversion occurs after the query result has been materialized.
+The caller's engine remains open and is never disposed by <code>SqlSource</code>.</p>
+<h3 id="sqlsink"><code>SqlSink</code><a class="headerlink" href="#sqlsink" title="Permanent link">&para;</a></h3>
+<p><code>SqlSink</code> reflects a destination table that must already exist and inserts incoming rows into it. Its supported behavior is <strong>append only</strong>. It does not create a table, replace a table, update or upsert existing rows, delete rows, or migrate a schema.</p>
+<p>The names supplied by <code>table_name</code> and optional <code>schema</code> are passed to SQLAlchemy's table-reflection/insert APIs. SQLAlchemy handles dialect-specific identifier quoting for those table operations. These values are identifiers, not query-value parameters. For identifiers that originate from outside the application, validate or allowlist them before constructing the component.</p>
+<p>Each incoming batch must have unique column names, and every batch column must match a column in the reflected destination table. Unknown target columns and duplicate batch column names raise <code>ValueError</code>. Destination columns omitted from a batch must be nullable, have a database default, or otherwise be satisfied by the database; database constraint violations propagate from SQLAlchemy/the driver.</p>
+<div class="highlight"><pre><span></span><code><span class="n">sink</span> <span class="o">=</span> <span class="n">SqlSink</span><span class="p">(</span><span class="n">engine</span><span class="p">,</span> <span class="s2">"processed_orders"</span><span class="p">)</span>
+<span class="n">sink</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">batches</span><span class="p">)</span>
+</code></pre></div>
+<p>The call above illustrates the API shape only; it assumes that <code>processed_orders</code> already exists and that each batch has compatible destination columns.</p>
+<h2 id="resource-ownership-and-cleanup">Resource ownership and cleanup<a class="headerlink" href="#resource-ownership-and-cleanup" title="Permanent link">&para;</a></h2>
+<p>The application creates the engine and remains responsible for its lifecycle, including <code>engine.dispose()</code> when the application no longer needs it.</p>
+<ul>
+<li><code>SqlSource</code> obtains a connection for the query and closes the result and connection when reading completes or raises.</li>
+<li><code>SqlSink</code> opens a transaction for each non-empty batch using SQLAlchemy's transaction context. The context commits on success and rolls back the current batch on an exception.</li>
+<li>ETLRelay does not close or dispose the engine passed to either component.</li>
+</ul>
+<p>A typical application can share one engine between a source and a sink, including components in one pipeline, then dispose it once the pipeline and any verification queries are complete.</p>
+<p><code>SqlSource</code> explicitly closes its SQLAlchemy result after row retrieval,
+including when result validation or iteration fails. Its connection is
+released on successful completion and failure.</p>
+<p><code>SqlSink</code> releases its per-batch transaction resources when the
+transaction context exits.</p>
+<p>Neither component disposes a caller-supplied <code>Engine</code>.</p>
+<p>A configured pipeline instead uses the shared SQL engine factory.
+<code>PipelineBuilder.close()</code> is responsible for releasing the engines
+owned by that factory after the pipeline has finished.</p>
+<h2 id="database-support">Database support<a class="headerlink" href="#database-support" title="Permanent link">&para;</a></h2>
+<p>The API accepts a SQLAlchemy <code>Engine</code>, so the actual connection URL, dialect, and DBAPI driver determine which database can be connected to. SQLite is the reference backend used by the automated integration tests because it is self-contained and repeatable.</p>
+<p>The project does not currently promise equal behavior or continuous integration coverage for every SQLAlchemy dialect. A database other than SQLite needs its appropriate SQLAlchemy dialect/driver and should be verified against the queries, column types, constraints, and transaction behavior used by an application. Connection URLs may contain credentials in real deployments; examples in this documentation deliberately use in-memory SQLite and contain no credentials.</p>
+<h2 id="query-values-and-identifiers">Query values and identifiers<a class="headerlink" href="#query-values-and-identifiers" title="Permanent link">&para;</a></h2>
+<p>SQL parameters are for <strong>values</strong>, not identifiers. Use <code>:parameter_name</code> markers and the <code>parameters</code> mapping with <code>SqlSource</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="n">SqlSource</span><span class="p">(</span>
+    <span class="n">engine</span><span class="p">,</span>
+    <span class="s2">"SELECT id FROM orders WHERE customer_id = :customer_id"</span><span class="p">,</span>
+    <span class="n">parameters</span><span class="o">=</span><span class="p">{</span><span class="s2">"customer_id"</span><span class="p">:</span> <span class="mi">42</span><span class="p">},</span>
+<span class="p">)</span>
+</code></pre></div>
+<p>Do not interpolate untrusted values into SQL text. If a query needs a dynamic table name, column name, or sort order, bind parameters cannot provide it. Prefer fixed query text; otherwise construct the identifier from a trusted allowlist and use the appropriate database/dialect-aware SQLAlchemy API. <code>SqlSource</code> accepts caller-authored SQL text and is not a SQL parser, query-policy engine, or authorization boundary.</p>
+<p><code>SqlSink</code> receives its destination table and optional schema separately and delegates table reflection/insert statement construction to SQLAlchemy. Do not treat this as validation of an arbitrary source query or as permission to pass uncontrolled identifiers into SQL text.</p>
+<h2 id="empty-data-behavior">Empty-data behavior<a class="headerlink" href="#empty-data-behavior" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Input condition</th>
+<th><code>SqlSource</code></th>
+<th><code>SqlSink</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Query returns no rows</td>
+<td>Returns no batches</td>
+<td>Not applicable</td>
+</tr>
+<tr>
+<td>Source yields no batches</td>
+<td>The pipeline does not invoke the sink</td>
+<td>An empty iterable performs no inserts</td>
+</tr>
+<tr>
+<td>Batch has zero rows but a schema</td>
+<td>Query results do not generate this shape for an empty query</td>
+<td>Skips the zero-row batch without inserting rows</td>
+</tr>
+<tr>
+<td>Non-empty result/batch</td>
+<td>Returns one result batch</td>
+<td>Inserts the batch rows if validation succeeds</td>
+</tr>
+</tbody>
+</table>
+<p>An empty iterable and a zero-row batch are distinct in the core pipeline. SQL source queries with no rows produce the former; a sink may also receive an explicitly constructed zero-row batch from another source.</p>
+<h2 id="append-and-transaction-boundaries">Append and transaction boundaries<a class="headerlink" href="#append-and-transaction-boundaries" title="Permanent link">&para;</a></h2>
+<p><code>SqlSink</code> opens a separate transaction for every non-empty batch. Each batch is atomic within its own transaction, subject to the database and driver. A successful batch is committed before the next batch's transaction is started.</p>
+<p>Consequently, if a pipeline writes several batches and a later batch fails, earlier successfully committed batches remain in the destination. ETLRelay does not provide one transaction across an entire pipeline or a whole iterable of batches. A retry performed by an application may append rows again unless the application has separately designed an idempotency strategy; ETLRelay does not retry automatically.</p>
+<p>A successful batch commit is reported only after the transaction context
+exits successfully. Errors during execution or commit propagate to the
+caller without a successful-commit event.</p>
+<p>Zero-row batches are skipped before table reflection, column validation,
+or transaction creation. When <code>SqlSink</code> is called directly, an empty batch
+therefore does not establish or validate the destination schema.</p>
+<p>Pipeline-level schema validation remains separate and includes zero-row
+batches.</p>
+<p>A SQL sink batch is considered successfully committed only after
+SQLAlchemy's transaction context exits successfully.</p>
+<p>Commit-related errors propagate to the caller. ETLRelay does not emit a
+successful batch-commit event for a transaction whose commit fails.</p>
+<p>Zero-row batches are skipped before table reflection, column validation,
+or transaction creation.</p>
+<p>When <code>SqlSink</code> is called directly, a zero-row batch therefore does not
+validate the destination table or establish a destination schema.</p>
+<p>When called through <code>Pipeline</code>, zero-row batches still participate in
+the pipeline's separate output-schema compatibility checks.</p>
+<h2 id="limitations-and-out-of-scope-behavior">Limitations and out-of-scope behavior<a class="headerlink" href="#limitations-and-out-of-scope-behavior" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>No replace mode:</strong> writes append rows only. There is no <code>replace</code> argument or table truncation behavior.</li>
+<li><strong>No table creation or schema migration:</strong> the destination table must pre-exist with a compatible schema.</li>
+<li><strong>No ORM integration:</strong> SQLAlchemy ORM models and sessions are not part of these component contracts.</li>
+<li><strong>No automatic retries:</strong> connection, query, constraint, and write failures propagate to the caller.</li>
+<li><strong>No pipeline-wide transaction:</strong> transactions are scoped to individual non-empty sink batches.</li>
+<li><strong>No database-specific bulk strategy or pagination guarantee:</strong> a non-empty source query is materialized as one batch, so large query results may require significant memory.</li>
+<li><strong>No universal dialect guarantee:</strong> SQLite is the continuously exercised integration backend; other configured SQLAlchemy dialects need application-level verification.</li>
+<li><strong>No automatic credential management or authorization layer:</strong> the caller is responsible for configuring connections, managing secrets, and limiting database permissions.</li>
+</ul>
+<p>These limits are deliberate. Additional write modes, ORM support, migrations, retries, pagination, and broader database integration should be introduced only with explicit requirements and corresponding tests.</p>
+<h2 id="sql-components-in-yaml-configuration">SQL components in YAML configuration<a class="headerlink" href="#sql-components-in-yaml-configuration" title="Permanent link">&para;</a></h2>
+<p>ETLRelay supports SQL sources and sinks through schema-version-1 YAML
+configuration and through direct Python construction.</p>
+<p>In YAML, SQL components use environment-variable references rather than
+literal connection URLs. <code>PipelineBuilder</code> resolves the configured
+component registrations and preflights required connection-variable
+references before invoking component factories.</p>
+<p>The v0.9.0 release retains these configuration properties and documents
+their validation, error-reporting, and resource-lifecycle contracts.</p>
+<p>Unlike the direct Python API, the configuration builder does not receive an <code>Engine</code> argument. It receives the name of an environment variable containing the SQLAlchemy connection URL. <code>PipelineBuilder</code> first resolves all component registrations and calls the shared <code>SqlEngineFactory.preflight()</code> for the referenced variable names. If a variable is missing or empty, building fails before SQL component factories, engine creation, or configured source/sink I/O.</p>
+<p>After preflight succeeds, the SQL factory creates engines on demand and caches them by environment-variable name. A single <code>SqlEngineFactory</code> is shared by the catalog's SQL source and sink factories. The caller must call <code>PipelineBuilder.close()</code> after the configured pipeline completes to dispose of these factory-owned engines and clear the resolved URLs.</p>
+<p>This is separate from direct Python usage: a caller that constructs <code>SqlSource(engine, ...)</code> or <code>SqlSink(engine, ...)</code> continues to own and dispose of that supplied engine. The configuration lifecycle does not change the direct API contract.</p>
+<p>See <a href="../../configuration/">YAML Configuration</a> for environment-variable setup, redaction behavior, supported combinations, and complete runnable examples.</p>
+<h2 id="class-diagram-direct-sql-api-and-configuration-managed-engines">Class diagram: direct SQL API and configuration-managed engines<a class="headerlink" href="#class-diagram-direct-sql-api-and-configuration-managed-engines" title="Permanent link">&para;</a></h2>
+<p>The diagram below summarizes the principal types and dependencies described on this page. Existing flow, sequence, and data-flow diagrams remain part of this document.</p>
+<pre class="mermaid"><code>classDiagram
+    direction TB
+
+    class Source {
+        &lt;&lt;protocol&gt;&gt;
+        +read() Iterable~Batch~
+    }
+    class Sink {
+        &lt;&lt;protocol&gt;&gt;
+        +write(batches) None
+    }
+    class SqlSource {
+        -engine: Engine
+        -query: str
+        -parameters
+        +read() Iterable~Batch~
+    }
+    class SqlSink {
+        -engine: Engine
+        -table_name: str
+        -schema: str
+        +write(batches) None
+    }
+    class Engine {
+        &lt;&lt;SQLAlchemy&gt;&gt;
+    }
+    class SqlEngineProvider {
+        &lt;&lt;protocol&gt;&gt;
+        +create(variable_name) Engine
+    }
+    class SqlEngineFactory {
+        -resolved_urls
+        -engines
+        +preflight(references) None
+        +create(variable_name) Engine
+        +close() None
+    }
+    class SqlSourceConfigFactory {
+        +build(config) SqlSource
+    }
+    class SqlSinkConfigFactory {
+        +build(config) SqlSink
+    }
+    class PipelineBuilder {
+        +build(config) Pipeline
+        +close() None
+    }
+
+    Source &lt;|.. SqlSource
+    Sink &lt;|.. SqlSink
+    SqlSource --&gt; Engine : borrows direct API engine
+    SqlSink --&gt; Engine : borrows direct API engine
+    SqlEngineProvider &lt;|.. SqlEngineFactory
+    SqlSourceConfigFactory --&gt; SqlEngineProvider : obtains engine
+    SqlSinkConfigFactory --&gt; SqlEngineProvider : obtains engine
+    PipelineBuilder --&gt; SqlEngineFactory : preflight and lifecycle</code></pre>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.sections", "navigation.top", "content.code.copy"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "latest", "provider": "mike"}}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>

@@ -1,0 +1,1925 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="A lightweight, composable Python framework for batch-oriented ETL pipelines.">
+      
+      
+      
+        <link rel="canonical" href="https://apaquette.github.io/ETLRelay/0.9.0/architecture/configuration-validation/">
+      
+      
+        <link rel="prev" href="../configuration-loading/">
+      
+      
+        <link rel="next" href="../component-registry/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Validation - ETLRelay</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/_mkdocstrings.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    <body dir="ltr">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#configuration-validation-architecture" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+      </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="ETLRelay" class="md-header__button md-logo" aria-label="ETLRelay" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            ETLRelay
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Validation
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="ETLRelay" class="md-nav__button md-logo" aria-label="ETLRelay" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    ETLRelay
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../cli-reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CLI Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Concepts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../configuration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    YAML Configuration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../security/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Security
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../logging/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Logging
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api-reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_9" >
+        
+          
+          <label class="md-nav__link" for="__nav_9" id="__nav_9_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Development
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_9_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_9">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Development
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/migration-v0.9.0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Migration to v0.9.0
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/release-notes-v0.9.0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    v0.9.0 release notes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/v1-scope/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    v1.0 scope
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/api-review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API review
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/pipeline-coverage/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pipeline coverage
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/failure-matrix/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Failure matrix
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/packaging-verification/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Packaging verification
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/documentation-review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Documentation review
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/beta-readiness/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Beta readiness and feedback
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/release-automation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Release automation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../roadmap/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Roadmap
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_11" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_11" id="__nav_11_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_11_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_11">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Architecture
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../overview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pipeline/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_11_3" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_11_3" id="__nav_11_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_11_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_11_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Configuration
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../configuration-loading/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Loading
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Validation
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Validation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#purpose" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Purpose
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#validation-layers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Validation layers
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#root-schema-validator" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Root schema validator
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#validator-contract" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Validator contract
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#dispatch-and-leaf-validators" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Dispatch and leaf validators
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#processor-sequence-validation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Processor sequence validation
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#schema-validation-versus-runtime-validation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Schema validation versus runtime validation
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#representative-errors" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Representative errors
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#test-responsibilities" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Test responsibilities
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#class-diagram-schema-validation-and-component-dispatch" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Class diagram: schema validation and component dispatch
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../component-registry/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Component registry
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../data-representation-contracts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data representation contracts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_11_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_11_4" id="__nav_11_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Processors
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_11_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_11_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Processors
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../select_columns_and_rename_columns/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Column selection and renaming
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../filter_rows_processor/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Row filtering
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../file_source/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    File source
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../file_sink/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    File sink
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../sql_source_and_sink/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SQL source and sink
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../local_filesystem/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Local filesystem
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../path_validator/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Path validator
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reader_and_writer/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reader and writer
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#purpose" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Purpose
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#validation-layers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Validation layers
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#root-schema-validator" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Root schema validator
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#validator-contract" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Validator contract
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#dispatch-and-leaf-validators" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Dispatch and leaf validators
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#processor-sequence-validation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Processor sequence validation
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#schema-validation-versus-runtime-validation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Schema validation versus runtime validation
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#representative-errors" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Representative errors
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#test-responsibilities" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Test responsibilities
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#class-diagram-schema-validation-and-component-dispatch" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Class diagram: schema validation and component dispatch
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="configuration-validation-architecture">Configuration Validation Architecture<a class="headerlink" href="#configuration-validation-architecture" title="Permanent link">&para;</a></h1>
+<h2 id="purpose">Purpose<a class="headerlink" href="#purpose" title="Permanent link">&para;</a></h2>
+<p>ETLRelay validates schema-version-1 configuration before runtime
+components are constructed.</p>
+<p>Validation uses explicit component registrations and component-specific
+validators. It does not use dynamic component discovery, arbitrary Python
+imports, or Python expression evaluation.</p>
+<p>ETLRelay retains the version-1 configuration schema while
+strengthening SQL connection-reference validation and documenting the
+limits of configuration preflight.</p>
+<p>See <a href="../../configuration/">YAML Configuration</a> for the supported
+component and property contract.</p>
+<h2 id="validation-layers">Validation layers<a class="headerlink" href="#validation-layers" title="Permanent link">&para;</a></h2>
+<pre class="mermaid"><code>flowchart TD
+    A[Mapping from KeyValueReader] --&gt; B[ConfigValidator]
+    B --&gt; C[Root fields and schema version]
+    C --&gt; D[SourceConfigValidator]
+    C --&gt; E[ProcessorSequenceConfigValidator]
+    C --&gt; F[SinkConfigValidator]
+    D --&gt; G[ComponentConfigDispatcher]
+    F --&gt; H[ComponentConfigDispatcher]
+    E --&gt; I[Validate list and each indexed processor]
+    G --&gt; J[Registered source validator]
+    H --&gt; K[Registered sink validator]
+    I --&gt; L[ProcessorConfigValidator]
+    J --&gt; M[Aggregate error strings]
+    K --&gt; M
+    L --&gt; M
+    C --&gt; M
+    M --&gt; N{Any errors?}
+    N --&gt;|yes| O[ConfigurationError]
+    N --&gt;|no| P[Validation succeeds]</code></pre>
+<h2 id="root-schema-validator">Root schema validator<a class="headerlink" href="#root-schema-validator" title="Permanent link">&para;</a></h2>
+<p><code>ConfigValidator</code> accepts an object so it can defensively validate calls made outside the usual loader. It requires a mapping with string keys, rejects unknown top-level fields, requires <code>version</code>, <code>source</code>, <code>processors</code>, and <code>sink</code>, and requires the actual integer <code>1</code> for <code>version</code>—a Boolean is not accepted even though <code>bool</code> is an <code>int</code> subclass in Python.</p>
+<p>When the root object cannot safely be interpreted as a string-keyed mapping, the validator raises <code>ConfigurationError</code> before delegating to section validators. Otherwise it checks root fields and delegates each present section to the injected source, processor-sequence, and sink validators. Errors are aggregated into one <code>ConfigurationError</code> rather than raising for each ordinary invalid property.</p>
+<h2 id="validator-contract">Validator contract<a class="headerlink" href="#validator-contract" title="Permanent link">&para;</a></h2>
+<p><code>ComponentConfigValidator</code> is a <code>Protocol</code> exposing <code>validate(config: object, path: str) -&gt; list[str]</code>. Concrete component validators return path-qualified error strings. An empty list indicates that no validation errors were found; a normal schema failure is not represented by an exception at the leaf-validator level.</p>
+<p>This shared protocol applies to source/sink/storage dispatch and individual processors. The processor-sequence validator uses the same protocol to validate each list element.</p>
+<h2 id="dispatch-and-leaf-validators">Dispatch and leaf validators<a class="headerlink" href="#dispatch-and-leaf-validators" title="Permanent link">&para;</a></h2>
+<p><code>ComponentConfigDispatcher</code> is the common dispatcher used by <code>SourceConfigValidator</code>, <code>SinkConfigValidator</code>, <code>StorageConfigValidator</code>, and <code>ProcessorConfigValidator</code>. It validates that the component configuration is a mapping with string keys, checks that <code>type</code> is a non-empty string, looks up the registration in its registry, and delegates to the registered validator. Invalid or unregistered types return path-specific validation messages. Validation does not invoke component factories.</p>
+<p>Leaf validators own their own property rules:</p>
+<ul>
+<li>File source: required <code>path</code>, <code>format</code>, and nested <code>storage</code>; the format registry must support reading.</li>
+<li>File sink: required <code>path</code>, <code>format</code>, and nested <code>storage</code>; the format registry must support writing.</li>
+<li>SQL source: <code>connection_url_env</code> must be a valid environment-variable
+  identifier; <code>query</code> must be a nonempty string. Optional <code>parameters</code>
+  must map string keys to supported scalar values or <code>None</code>.</li>
+<li>SQL sink: <code>connection_url_env</code> must be a valid environment-variable
+  identifier; <code>table_name</code> must be a nonempty string. Optional <code>schema</code>
+  must be a nonempty string.</li>
+<li>Local storage: <code>type: local</code>; optional <code>base_path</code> must be a non-empty string when present.</li>
+<li><code>select_columns</code>: required list of unique strings.</li>
+<li><code>rename_columns</code>: required mapping with string keys and values; data-dependent source/final-name constraints remain at processing time.</li>
+<li><code>filter_rows</code>: required non-empty column name, one of six supported comparison operators, and a string/integer/float/Boolean value (no <code>null</code>).</li>
+</ul>
+<p>File source/sink validators share the storage validator and tabular file-format registry. They do not open data files. Format validation checks registry capabilities without constructing readers or writers.</p>
+<h2 id="processor-sequence-validation">Processor sequence validation<a class="headerlink" href="#processor-sequence-validation" title="Permanent link">&para;</a></h2>
+<p><code>ProcessorSequenceConfigValidator</code> requires a list and accepts an empty list. It visits each element in order and delegates to the processor dispatcher using paths such as <code>processors[0]</code> and <code>processors[1]</code>. Errors from an invalid element do not stop later elements from being validated. A missing root <code>processors</code> property is a root-level error; it is not equivalent to an empty list.</p>
+<h2 id="schema-validation-versus-runtime-validation">Schema validation versus runtime validation<a class="headerlink" href="#schema-validation-versus-runtime-validation" title="Permanent link">&para;</a></h2>
+<p>Configuration validation can check that a column list contains unique strings, but it cannot establish whether the source data contains those column names. It can check that a SQL query string and scalar parameters have supported types, but it does not execute the query. It can check a table-name string, but it does not connect to a database or verify that the destination table exists. Similarly, local path syntax/containment validation does not prove that the data file exists or is accessible.</p>
+<p>Environment-variable names are part of the configuration and can be checked for shape during schema validation. Whether a connection-variable name resolves to a non-empty value is checked by <code>PipelineBuilder</code>'s SQL preflight, before component factory construction and source/sink I/O.</p>
+<p>The SQL configuration validators check the syntax of
+<code>connection_url_env</code>, not the contents of the referenced environment
+variable.</p>
+<p><code>PipelineBuilder</code> checks required variable presence and nonempty values
+during preflight before invoking component factories.</p>
+<p>Neither stage guarantees that the resolved connection URL is valid,
+that a database can be reached, or that the database account has
+permission to execute the configured operations.</p>
+<p>Actual query execution, destination column compatibility, and database
+constraints remain runtime responsibilities.</p>
+<h2 id="representative-errors">Representative errors<a class="headerlink" href="#representative-errors" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Invalid configuration</th>
+<th>Example diagnostic</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Unsupported version</td>
+<td><code>version must be the integer 1.</code></td>
+</tr>
+<tr>
+<td>Unknown field</td>
+<td><code>source.fomrat is not a supported field.</code></td>
+</tr>
+<tr>
+<td>Missing discriminator</td>
+<td><code>source.type is required.</code></td>
+</tr>
+<tr>
+<td>Unsupported format</td>
+<td><code>sink.format 'xlsx' is not supported for writing.</code></td>
+</tr>
+<tr>
+<td>Invalid processor operator</td>
+<td><code>processors[0].operator must be one of '==', '!=', '&lt;', '&lt;=', '&gt;', '&gt;='.</code></td>
+</tr>
+</tbody>
+</table>
+<p>Component validators aggregate ordinary validation errors as lists. <code>ConfigValidator</code> raises <code>ConfigurationError</code> with collected errors. Exact exception rendering depends on the exception's implemented string representation; the messages above illustrate the underlying validation diagnostics.</p>
+<h2 id="test-responsibilities">Test responsibilities<a class="headerlink" href="#test-responsibilities" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Leaf-validator unit tests use plain values and do not open files or connect to databases.</li>
+<li>Dispatcher tests use fake/mocked registrations and assert the correct validator receives the original configuration and exact path.</li>
+<li>Processor-sequence tests cover empty lists, non-lists, ordered indexed paths, and aggregation across multiple invalid entries.</li>
+<li>Root-validator tests cover string-keyed mappings, required/unknown fields, strict integer version handling, delegation order, and aggregated errors.</li>
+<li>Integration/functional tests exercise the actual default catalog and YAML loader; pipeline-builder tests separately verify preflight and no component construction on early failure.</li>
+</ul>
+<p>See <a href="../configuration-loading/">Configuration Loading Architecture</a> and <a href="../component-registry/">Component Registry Architecture</a>.</p>
+<h2 id="class-diagram-schema-validation-and-component-dispatch">Class diagram: schema validation and component dispatch<a class="headerlink" href="#class-diagram-schema-validation-and-component-dispatch" title="Permanent link">&para;</a></h2>
+<p>The diagram below summarizes the principal types and dependencies described on this page. Existing flow, sequence, and data-flow diagrams remain part of this document.</p>
+<pre class="mermaid"><code>classDiagram
+    direction TB
+
+    class ComponentConfigValidator {
+        &lt;&lt;protocol&gt;&gt;
+        +validate(config, path) list~str~
+    }
+    class ConfigValidator {
+        -source_validator: ComponentConfigValidator
+        -processor_validator: ComponentConfigValidator
+        -sink_validator: ComponentConfigValidator
+        +validate(config) None
+    }
+    class ComponentConfigDispatcher {
+        -registry
+        -component_kind
+        +validate(config, path) list~str~
+    }
+    class SourceConfigValidator
+    class SinkConfigValidator
+    class StorageConfigValidator
+    class ProcessorConfigValidator
+    class ProcessorSequenceConfigValidator {
+        -processor_validator: ComponentConfigValidator
+        +validate(config, path) list~str~
+    }
+    class FileSourceConfigValidator
+    class SqlSourceConfigValidator
+    class FileSinkConfigValidator
+    class SqlSinkConfigValidator
+    class LocalFileSystemConfigValidator
+    class SelectColumnsConfigValidator
+    class RenameColumnsConfigValidator
+    class FilterRowsConfigValidator
+    class ConfigurationError
+
+    ComponentConfigValidator &lt;|.. ComponentConfigDispatcher
+    ComponentConfigDispatcher &lt;|-- SourceConfigValidator
+    ComponentConfigDispatcher &lt;|-- SinkConfigValidator
+    ComponentConfigDispatcher &lt;|-- StorageConfigValidator
+    ComponentConfigDispatcher &lt;|-- ProcessorConfigValidator
+    ComponentConfigValidator &lt;|.. ProcessorSequenceConfigValidator
+    ComponentConfigValidator &lt;|.. FileSourceConfigValidator
+    ComponentConfigValidator &lt;|.. SqlSourceConfigValidator
+    ComponentConfigValidator &lt;|.. FileSinkConfigValidator
+    ComponentConfigValidator &lt;|.. SqlSinkConfigValidator
+    ComponentConfigValidator &lt;|.. LocalFileSystemConfigValidator
+    ComponentConfigValidator &lt;|.. SelectColumnsConfigValidator
+    ComponentConfigValidator &lt;|.. RenameColumnsConfigValidator
+    ComponentConfigValidator &lt;|.. FilterRowsConfigValidator
+    ConfigValidator --&gt; ComponentConfigValidator : delegates by section
+    ConfigValidator ..&gt; ConfigurationError : raises aggregated errors
+    SourceConfigValidator ..&gt; FileSourceConfigValidator : dispatches type
+    SourceConfigValidator ..&gt; SqlSourceConfigValidator : dispatches type
+    SinkConfigValidator ..&gt; FileSinkConfigValidator : dispatches type
+    SinkConfigValidator ..&gt; SqlSinkConfigValidator : dispatches type
+    StorageConfigValidator ..&gt; LocalFileSystemConfigValidator : dispatches type
+    ProcessorSequenceConfigValidator --&gt; ProcessorConfigValidator : validates each entry</code></pre>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.sections", "navigation.top", "content.code.copy"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "latest", "provider": "mike"}}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>
