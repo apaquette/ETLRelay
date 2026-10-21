@@ -176,3 +176,51 @@ class TestParquetWriter:
         writer.write(iter([Batch(table=table)]), stream)
 
         assert not stream.closed
+
+def test_parquet_writer_accepts_metadata_only_schema_differences() -> None:
+    """Accept batches whose schemas differ only in Arrow metadata."""
+    first_schema = pa.schema(
+        [
+            pa.field(
+                "id",
+                pa.int64(),
+                metadata={b"origin": b"first"},
+            )
+        ],
+        metadata={b"version": b"1"},
+    )
+
+    second_schema = pa.schema(
+        [
+            pa.field(
+                "id",
+                pa.int64(),
+                metadata={b"origin": b"second"},
+            )
+        ],
+        metadata={b"version": b"2"},
+    )
+
+    first_batch = Batch(
+        table=pa.Table.from_pylist(
+            [{"id": 1}],
+            schema=first_schema,
+        )
+    )
+
+    second_batch = Batch(
+        table=pa.Table.from_pylist(
+            [{"id": 2}],
+            schema=second_schema,
+        )
+    )
+
+    stream = BytesIO()
+
+    writer = ParquetWriter()
+    writer.write([first_batch, second_batch], stream)
+
+    result = pa_parquet.read_table(BytesIO(stream.getvalue()))
+
+    assert result.column("id").to_pylist() == [1, 2]
+    assert result.schema.equals(first_schema)

@@ -287,3 +287,45 @@ class TestFileSource:
         assert "private-record-value" not in caplog.text
         assert storage.stream is not None
         assert storage.stream.closed
+
+
+def test_file_source_closes_stream_when_reader_fails_after_first_batch(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Close the source stream when a reader fails after yielding data."""
+    batch = Batch(table=pa.table({"id": [1]}))
+
+    source_stream = BytesIO(b"input")
+    storage = FakeFileSystem(stream=source_stream)
+
+    failure = RuntimeError("Reader failed after first batch")
+
+    class FailingReader:
+        def read(self, stream: BinaryIO) -> Iterable[Batch]:
+            assert stream is source_stream
+            yield batch
+            raise failure
+
+    source = FileSource(
+        path="input.csv",
+        storage=storage,
+        reader=FailingReader(),
+    )
+
+    iterator = iter(source.read())
+
+    with caplog.at_level(
+        logging.DEBUG,
+        logger="etlrelay.sources.file",
+    ):
+        assert next(iterator) is batch
+        assert not source_stream.closed
+
+        with pytest.raises(RuntimeError) as exc_info:
+            next(iterator)
+
+    assert exc_info.value is failure
+    assert source_stream.closed
+
+    assert "File source read started." in caplog.text
+    assert "File source read completed." not in caplog.text

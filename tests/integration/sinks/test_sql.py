@@ -436,3 +436,47 @@ def test_write_logs_only_successfully_committed_batches(
         {"id": 1, "name": "Existing", "score": 1.5},
         {"id": 2, "name": "Committed", "score": 2.0},
     ]
+
+
+def test_sql_sink_rolls_back_failed_batch_but_preserves_prior_commit() -> None:
+    """Rollback applies to the failed batch, not earlier committed batches."""
+    engine = create_engine("sqlite+pysqlite:///:memory:")
+
+    try:
+        with engine.begin() as connection:
+            connection.execute(
+                text("CREATE TABLE records (id INTEGER PRIMARY KEY, name TEXT NOT NULL)")
+            )
+
+        first_batch = Batch(
+            table=pa.table(
+                {
+                    "id": [1],
+                    "name": ["first"],
+                }
+            )
+        )
+
+        failing_batch = Batch(
+            table=pa.table(
+                {
+                    "id": [2, 1],
+                    "name": ["second", "duplicate"],
+                }
+            )
+        )
+
+        sink = SqlSink(engine, "records")
+
+        with pytest.raises(IntegrityError):
+            sink.write([first_batch, failing_batch])
+
+        # The borrowed engine is still usable after the failure.
+        with engine.connect() as connection:
+            rows = connection.execute(text("SELECT id, name FROM records ORDER BY id")).all()
+
+        assert rows == [(1, "first")]
+
+    finally:
+        # The test owns the engine and is responsible for disposing of it.
+        engine.dispose()

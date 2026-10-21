@@ -262,3 +262,38 @@ class TestFileSink:
         assert messages == ["File sink write started."]
         assert "private-record-value" not in caplog.text
         assert stream.closed
+
+
+def test_file_sink_leaves_empty_output_when_writer_fails_before_writing(
+    tmp_path: Path,
+) -> None:
+    """An existing output is truncated even if serialization never starts."""
+    output_path = tmp_path / "output.bin"
+    output_path.write_bytes(b"original content")
+
+    storage = LocalFileSystem(
+        path_validator=PathValidator(base_path=tmp_path),
+    )
+
+    failure = WriterError("Serialization failed before writing")
+
+    writer = Mock(spec=Writer)
+    writer.write.side_effect = failure
+
+    sink = FileSink(
+        path="output.bin",
+        storage=storage,
+        writer=writer,
+    )
+
+    with pytest.raises(WriterError) as exc_info:
+        sink.write(iter([]))
+
+    assert exc_info.value is failure
+
+    # Opening the destination in "wb" mode truncates it immediately.
+    # The failed writer cannot restore the original contents.
+    assert output_path.exists()
+    assert output_path.read_bytes() == b""
+
+    writer.write.assert_called_once()

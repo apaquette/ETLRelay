@@ -42,3 +42,34 @@ class TestCsvReader:
 
         with pytest.raises(pa.ArrowInvalid):
             list(reader.read(stream))
+
+
+def test_csv_reader_does_not_close_caller_owned_stream() -> None:
+    """Parsing CSV data must not close the supplied binary stream."""
+    stream = BytesIO(b"id,name\n1,Alice\n")
+
+    reader = CsvReader()
+    batches = list(reader.read(stream))
+
+    assert len(batches) == 1
+    assert not stream.closed
+
+    # The caller retains control over the stream.
+    stream.seek(0)
+    assert stream.read() == b"id,name\n1,Alice\n"
+
+    stream.close()
+    assert stream.closed
+
+
+def test_csv_reader_preserves_stream_ownership_after_parse_failure() -> None:
+    """A parsing failure does not transfer stream ownership to CsvReader."""
+    stream = BytesIO(b"name,age\nAlice,30,unexpected\n")
+    reader = CsvReader()
+
+    with pytest.raises(pa.ArrowInvalid):
+        list(reader.read(stream))
+
+    assert not stream.closed
+
+    stream.close()

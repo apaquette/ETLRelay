@@ -1,12 +1,20 @@
 import logging
-from collections.abc import Callable, Iterable
+from collections.abc import Callable, Iterable, Iterator
+from io import BytesIO
+from pathlib import Path
 from typing import Any
+from unittest.mock import Mock
 
 import pyarrow as pa
 import pytest
 
 from etlrelay.core import Batch
 from etlrelay.pipeline import Pipeline
+from etlrelay.security import PathValidator
+from etlrelay.sinks import FileSink
+from etlrelay.sources.file import FileSource
+from etlrelay.storage import LocalFileSystem
+from etlrelay.writers import CsvWriter
 
 
 def make_batch(value: int) -> Batch:
@@ -578,3 +586,340 @@ class TestPipeline:
         ]
 
         assert messages == ["Pipeline execution started."]
+
+
+@pytest.mark.parametrize("sink_fails", [False, True])
+def test_pipeline_closes_file_source_when_sink_stops_early(
+    sink_fails: bool,
+) -> None:
+    """Close the active source when a sink stops consuming batches."""
+    batch = Batch(table=pa.table({"id": [1, 2]}))
+
+    stream = BytesIO(b"unused")
+
+    storage = Mock()
+    storage.open_read.return_value = stream
+
+    reader = Mock()
+    reader.read.return_value = iter([batch, batch])
+
+    source = FileSource(
+        path="input.csv",
+        storage=storage,
+        reader=reader,
+    )
+
+    class EarlyStopSink:
+        def __init__(self) -> None:
+            self.batches: Iterable[Batch] | None = None
+
+        def write(self, batches: Iterable[Batch]) -> None:
+            # Retain the iterable so garbage collection cannot hide
+            # a missing explicit close.
+            self.batches = batches
+
+            # Consume only the first batch.
+            next(iter(batches))
+
+            if sink_fails:
+                raise RuntimeError("Sink failed")
+
+    sink = EarlyStopSink()
+    pipeline = Pipeline(source, [], sink)
+
+    if sink_fails:
+        with pytest.raises(RuntimeError, match="Sink failed"):
+            pipeline.run()
+    else:
+        pipeline.run()
+
+    assert sink.batches is not None
+    assert stream.closed
+
+    storage.open_read.assert_called_once_with("input.csv")
+
+
+def test_pipeline_preserves_sink_failure_when_source_cleanup_fails(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Preserve the sink error when iterator cleanup also fails."""
+    batch = Batch(table=pa.table({"id": [1]}))
+
+    sink_error = RuntimeError("primary-sink-failure")
+    cleanup_error = RuntimeError("secret-cleanup-failure")
+
+    class FailingSourceIterator:
+        def __init__(self) -> None:
+            self.closed = False
+            self.yielded = False
+
+        def __iter__(self):
+            return self
+
+        def __next__(self) -> Batch:
+            if self.yielded:
+                raise StopIteration
+
+            self.yielded = True
+            return batch
+
+        def close(self) -> None:
+            self.closed = True
+            raise cleanup_error
+
+    source_iterator = FailingSourceIterator()
+
+    source = Mock()
+    source.read.return_value = source_iterator
+
+    sink = Mock()
+    sink.write.side_effect = sink_error
+
+    pipeline = Pipeline(source, [], sink)
+
+    with caplog.at_level(
+        logging.WARNING,
+        logger="etlrelay.pipeline.pipeline",
+    ):
+        with pytest.raises(RuntimeError) as exc_info:
+            pipeline.run()
+
+    assert exc_info.value is sink_error
+    assert source_iterator.closed
+
+    assert "Pipeline iterator cleanup failed (RuntimeError)." in caplog.text
+    assert "secret-cleanup-failure" not in caplog.text
+    assert "primary-sink-failure" not in caplog.text
+
+
+def test_pipeline_propagates_source_cleanup_failure_after_success(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Propagate a cleanup failure when pipeline execution succeeds."""
+    batch = Batch(table=pa.table({"id": [1]}))
+    cleanup_error = RuntimeError("secret-cleanup-failure")
+
+    class FailingCloseIterator:
+        def __init__(self) -> None:
+            self._batches = iter([batch, batch])
+            self.closed = False
+
+        def __iter__(self) -> Iterator[Batch]:
+            return self
+
+        def __next__(self) -> Batch:
+            return next(self._batches)
+
+        def close(self) -> None:
+            self.closed = True
+            raise cleanup_error
+
+    source_iterator = FailingCloseIterator()
+
+    source = Mock()
+    source.read.return_value = source_iterator
+
+    sink = Mock()
+
+    pipeline = Pipeline(source, [], sink)
+
+    with caplog.at_level(
+        logging.DEBUG,
+        logger="etlrelay.pipeline.pipeline",
+    ):
+        with pytest.raises(RuntimeError) as exc_info:
+            pipeline.run()
+
+    assert exc_info.value is cleanup_error
+    assert source_iterator.closed
+
+    sink.write.assert_called_once()
+
+    assert "Pipeline iterator cleanup failed (RuntimeError)." in caplog.text
+    assert "secret-cleanup-failure" not in caplog.text
+    assert "Pipeline execution completed." not in caplog.text
+
+
+def test_pipeline_attempts_all_iterator_cleanup_after_failure(
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Attempt every cleanup and preserve the first cleanup exception."""
+    batch = Batch(table=pa.table({"id": [1]}))
+
+    processing_error = RuntimeError("secret-processing-cleanup")
+    source_error = RuntimeError("secret-source-cleanup")
+
+    class FailingCloseIterator:
+        def __init__(self, error: RuntimeError) -> None:
+            self._batches = iter([batch])
+            self.error = error
+            self.close_calls = 0
+
+        def __iter__(self) -> Iterator[Batch]:
+            return self
+
+        def __next__(self) -> Batch:
+            return next(self._batches)
+
+        def close(self) -> None:
+            self.close_calls += 1
+            raise self.error
+
+    source_iterator = FailingCloseIterator(source_error)
+    processing_iterator = FailingCloseIterator(processing_error)
+
+    source = Mock()
+    source.read.return_value = source_iterator
+
+    sink = Mock()
+    pipeline = Pipeline(source, [], sink)
+
+    monkeypatch.setattr(
+        pipeline,
+        "_process_batches",
+        lambda _: processing_iterator,
+    )
+
+    with caplog.at_level(
+        logging.DEBUG,
+        logger="etlrelay.pipeline.pipeline",
+    ):
+        with pytest.raises(RuntimeError) as exc_info:
+            pipeline.run()
+
+    # Cleanup occurs in reverse order.
+    # The first cleanup exception takes precedence.
+    assert exc_info.value is processing_error
+
+    # A failure closing the processing iterator must not prevent
+    # the source iterator from being closed.
+    assert processing_iterator.close_calls == 1
+    assert source_iterator.close_calls == 1
+
+    warnings = [
+        record.getMessage()
+        for record in caplog.records
+        if record.levelno == logging.WARNING and record.name == "etlrelay.pipeline.pipeline"
+    ]
+
+    assert warnings == [
+        "Pipeline iterator cleanup failed (RuntimeError).",
+        "Pipeline iterator cleanup failed (RuntimeError).",
+    ]
+
+    assert "secret-processing-cleanup" not in caplog.text
+    assert "secret-source-cleanup" not in caplog.text
+    assert "Pipeline execution completed." not in caplog.text
+
+
+def test_empty_pipeline_preserves_existing_file(
+    tmp_path: Path,
+) -> None:
+    """Do not open or truncate a destination when no batches are produced."""
+    output_path = tmp_path / "output.csv"
+    original_content = b"existing output must remain unchanged"
+    output_path.write_bytes(original_content)
+
+    storage = LocalFileSystem(
+        path_validator=PathValidator(base_path=tmp_path),
+    )
+
+    sink = FileSink(
+        path="output.csv",
+        storage=storage,
+        writer=CsvWriter(),
+    )
+
+    pipeline = Pipeline(
+        source=StubSource([]),
+        processors=[],
+        sink=sink,
+    )
+
+    pipeline.run()
+
+    assert output_path.read_bytes() == original_content
+
+
+def test_zero_row_first_batch_establishes_output_schema() -> None:
+    """Validate later batches against a schema established by zero rows."""
+    expected_schema = pa.schema([pa.field("id", pa.int64(), nullable=False)])
+
+    incompatible_schema = pa.schema([pa.field("id", pa.string(), nullable=False)])
+
+    first_batch = Batch(table=pa.Table.from_pylist([], schema=expected_schema))
+
+    second_batch = Batch(
+        table=pa.Table.from_pylist(
+            [{"id": "2"}],
+            schema=incompatible_schema,
+        )
+    )
+
+    sink = CollectingSink()
+
+    pipeline = Pipeline(
+        source=StubSource([first_batch, second_batch]),
+        processors=[],
+        sink=sink,
+    )
+
+    with pytest.raises(
+        ValueError,
+        match="Incompatible output schema",
+    ):
+        pipeline.run()
+
+    assert sink.write_calls == 1
+
+    assert len(sink.batches) == 1
+    assert sink.batches[0] is first_batch
+    assert sink.batches[0].table.num_rows == 0
+
+def test_schema_failure_preserves_partially_written_file(
+    tmp_path: Path,
+) -> None:
+    """A later schema failure does not roll back earlier file output."""
+    first_batch = Batch(
+        table=pa.table({
+            "id": pa.array([1], type=pa.int64()),
+        })
+    )
+
+    incompatible_batch = Batch(
+        table=pa.table({
+            "id": pa.array(["two"], type=pa.string()),
+        })
+    )
+
+    output_path = tmp_path / "output.csv"
+    output_path.write_bytes(b"previous content")
+
+    sink = FileSink(
+        path="output.csv",
+        storage=LocalFileSystem(
+            path_validator=PathValidator(base_path=tmp_path),
+        ),
+        writer=CsvWriter(),
+    )
+
+    pipeline = Pipeline(
+        source=StubSource([first_batch, incompatible_batch]),
+        processors=[],
+        sink=sink,
+    )
+
+    with pytest.raises(
+        ValueError,
+        match="Incompatible output schema",
+    ):
+        pipeline.run()
+
+    content = output_path.read_text(encoding="utf-8")
+
+    assert '"id"' in content
+    assert "1" in content
+    assert "two" not in content
+
+    assert "previous content" not in content
