@@ -5,7 +5,7 @@ import pyarrow as pa
 import pyarrow.parquet as pa_parquet
 import pytest
 
-from etlrelay.core import Batch, Writer
+from etlrelay.core import Batch, TabularWriter
 from etlrelay.core.writer import WriterError
 from etlrelay.writers import ParquetWriter
 
@@ -14,7 +14,7 @@ class TestParquetWriter:
     def test_writer_satisfies_protocol(self):
         writer = ParquetWriter()
 
-        assert isinstance(writer, Writer)
+        assert isinstance(writer, TabularWriter)
 
     def test_writer_serializes_multiple_batches_to_parquet(self):
         batches = iter(

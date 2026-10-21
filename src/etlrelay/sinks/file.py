@@ -8,7 +8,7 @@ writer.
 import logging
 from collections.abc import Iterable
 
-from etlrelay.core import Batch, Writer
+from etlrelay.core import Batch, TabularWriter
 from etlrelay.storage import FileSystem
 
 logger = logging.getLogger(__name__)
@@ -29,9 +29,9 @@ class FileSink:
 
     path: str
     storage: FileSystem
-    writer: Writer
+    writer: TabularWriter
 
-    def __init__(self, path: str, storage: FileSystem, writer: Writer):
+    def __init__(self, path: str, storage: FileSystem, writer: TabularWriter):
         """Initialize the file sink with its destination and dependencies.
 
         Args:

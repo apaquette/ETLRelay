@@ -8,7 +8,7 @@ from unittest.mock import Mock
 import pyarrow as pa
 import pytest
 
-from etlrelay.core import Batch, Sink, Writer, WriterError
+from etlrelay.core import Batch, Sink, TabularWriter, WriterError
 from etlrelay.security import PathValidator
 from etlrelay.sinks import FileSink
 from etlrelay.storage import FileSystem, LocalFileSystem
@@ -17,7 +17,7 @@ from etlrelay.storage import FileSystem, LocalFileSystem
 class TestFileSink:
     def test_file_sink_satisfies_protocol(self):
         storage = Mock(spec=FileSystem)
-        writer = Mock(spec=Writer)
+        writer = Mock(spec=TabularWriter)
 
         sink = FileSink(
             path="output.csv",
@@ -32,7 +32,7 @@ class TestFileSink:
         storage = Mock(spec=FileSystem)
         storage.open_write.return_value = stream
 
-        writer = Mock(spec=Writer)
+        writer = Mock(spec=TabularWriter)
         received_batches = []
 
         def capture_write(batches, output_stream):
@@ -78,7 +78,7 @@ class TestFileSink:
         storage = Mock(spec=FileSystem)
         storage.open_write.return_value = stream
 
-        writer = Mock(spec=Writer)
+        writer = Mock(spec=TabularWriter)
         received_batches = []
 
         writer.write.side_effect = lambda batches, output_stream: received_batches.extend(batches)
@@ -100,7 +100,7 @@ class TestFileSink:
         storage = Mock(spec=FileSystem)
         storage.open_write.return_value = stream
 
-        writer = Mock(spec=Writer)
+        writer = Mock(spec=TabularWriter)
         writer.write.side_effect = WriterError("Serialization failed")
 
         sink = FileSink(
@@ -120,7 +120,7 @@ class TestFileSink:
         storage = Mock(spec=FileSystem)
         storage.open_write.side_effect = OSError("Cannot open destination")
 
-        writer = Mock(spec=Writer)
+        writer = Mock(spec=TabularWriter)
 
         sink = FileSink(
             path="output.csv",
@@ -138,7 +138,7 @@ class TestFileSink:
         storage = Mock(spec=FileSystem)
         storage.open_write.return_value = stream
 
-        writer = Mock(spec=Writer)
+        writer = Mock(spec=TabularWriter)
         writer.write.side_effect = RuntimeError("Unexpected failure")
 
         sink = FileSink(
@@ -161,7 +161,7 @@ class TestFileSink:
 
         storage = LocalFileSystem(path_validator=PathValidator(base_path=tmp_path))
 
-        writer = Mock(spec=Writer)
+        writer = Mock(spec=TabularWriter)
         opened_streams: list[BinaryIO] = []
 
         def write_partial_then_fail(
@@ -201,7 +201,7 @@ class TestFileSink:
         storage = Mock(spec=FileSystem)
         storage.open_write.return_value = stream
 
-        writer = Mock(spec=Writer)
+        writer = Mock(spec=TabularWriter)
         sink = FileSink(
             path=sensitive_path,
             storage=storage,
@@ -240,7 +240,7 @@ class TestFileSink:
         storage = Mock(spec=FileSystem)
         storage.open_write.return_value = stream
 
-        writer = Mock(spec=Writer)
+        writer = Mock(spec=TabularWriter)
         writer.write.side_effect = error
 
         sink = FileSink(
@@ -277,7 +277,7 @@ def test_file_sink_leaves_empty_output_when_writer_fails_before_writing(
 
     failure = WriterError("Serialization failed before writing")
 
-    writer = Mock(spec=Writer)
+    writer = Mock(spec=TabularWriter)
     writer.write.side_effect = failure
 
     sink = FileSink(

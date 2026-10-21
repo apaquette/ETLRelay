@@ -5,7 +5,7 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 import pytest
 
-from etlrelay.core import Reader
+from etlrelay.core import TabularReader
 from etlrelay.readers import ParquetReader
 
 
@@ -21,7 +21,7 @@ class TestParquetReader:
     def test_reader_meets_protocol(self):
         reader = ParquetReader()
 
-        assert isinstance(reader, Reader)
+        assert isinstance(reader, TabularReader)
 
     def test_reader_can_read_valid_parquet_data(self):
         table = pa.table(

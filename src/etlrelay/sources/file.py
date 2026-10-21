@@ -7,7 +7,7 @@ filesystem abstraction and a reader implementation.
 import logging
 from collections.abc import Iterable
 
-from etlrelay.core import Batch, Reader
+from etlrelay.core import Batch, TabularReader
 from etlrelay.storage import FileSystem
 
 logger = logging.getLogger(__name__)
@@ -24,9 +24,9 @@ class FileSource:
 
     path: str
     storage: FileSystem
-    reader: Reader
+    reader: TabularReader
 
-    def __init__(self, path: str, storage: FileSystem, reader: Reader):
+    def __init__(self, path: str, storage: FileSystem, reader: TabularReader):
         """Initialize the file source.
 
         Args:

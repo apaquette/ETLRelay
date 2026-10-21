@@ -2,7 +2,7 @@ from io import BytesIO
 
 import pyarrow as pa
 
-from etlrelay.core import Batch, Writer
+from etlrelay.core import Batch, TabularWriter
 from etlrelay.writers import CsvWriter
 
 
@@ -10,7 +10,7 @@ class TestCsvWriter:
     def test_writer_satisfies_protocol(self):
         writer = CsvWriter()
 
-        assert isinstance(writer, Writer)
+        assert isinstance(writer, TabularWriter)
 
     def test_writer_serializes_multiple_batches_to_csv(self):
         batches = iter(

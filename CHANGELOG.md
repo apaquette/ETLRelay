@@ -4,6 +4,26 @@ Notable changes to ETLRelay are documented here.
 
 This project follows the principles of [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and [Semantic Versioning](https://semver.org/).
 
+
+## [0.9.0] - YYYY-MM-DD
+
+### Changed
+
+- Renamed the public `Reader` and `Writer` protocols to `TabularReader`
+  and `TabularWriter`, with corresponding module and import updates.
+  The former protocol names and module paths are removed without
+  compatibility aliases. Applications must update their imports and
+  type annotations.
+- Retained `KeyValueReader` as the separate contract for mapping-shaped
+  documents. Configuration loading continues to depend on this abstraction.
+
+### Scope Decisions
+
+- Deferred `KeyValueWriter` because the v1.0 feature set does not require
+  mapping-document serialization.
+- Deferred public tabular/row-record conversion utilities pending a
+  concrete use case and defined conversion semantics.
+
 ## [0.8.0] - 2026-10-20
 
 ### Security

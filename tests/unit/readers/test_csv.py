@@ -3,7 +3,7 @@ from io import BytesIO
 import pyarrow as pa
 import pytest
 
-from etlrelay.core import Reader
+from etlrelay.core import TabularReader
 from etlrelay.readers import CsvReader
 
 
@@ -11,7 +11,7 @@ class TestCsvReader:
     def test_reader_meets_protocol(self):
         reader = CsvReader()
 
-        assert isinstance(reader, Reader)
+        assert isinstance(reader, TabularReader)
 
     def test_reader_can_read_valid_csv_data(self):
         csv_content = b"name,age\nAlice,30\nBob,25"
