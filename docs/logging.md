@@ -199,6 +199,22 @@ These events do not include resolved connection URLs or credentials.
 
 ETLRelay distinguishes operational logging from exception handling.
 
+## Exception precedence and cleanup logging
+
+ETLRelay distinguishes an operation's primary failure from secondary failures encountered while releasing resources.
+
+When `Pipeline.run()` terminates, it attempts to close the active processing iterator and underlying source iterator when they expose callable `close()` methods.
+
+If pipeline execution raises an exception, that exception remains primary even when iterator cleanup also fails. Secondary cleanup failures are reported using controlled warning messages that identify the exception type without including the original exception message.
+
+If execution otherwise succeeds but iterator cleanup fails, the first cleanup exception propagates after cleanup has been attempted for the remaining closeable iterators.
+
+Successful pipeline completion is not logged when required cleanup fails.
+
+SQL sink batch-commit messages are emitted only after the corresponding transaction context has exited successfully. A failed commit must not be reported as successful.
+
+These logging behaviors do not replace Python exception handling. Direct Python callers may still receive underlying exceptions containing information from external libraries. ETLRelay does not attempt to sanitize arbitrary third-party exceptions observed by calling applications.
+
 ### Python API
 
 ETLRelay generally propagates underlying exceptions to Python callers rather than wrapping every failure in a generic framework exception.
