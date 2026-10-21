@@ -20,9 +20,14 @@ The roadmap is feature-led, not date-led. A version should be released when its 
 | Released | `0.5.0` | SQL source and sink |
 | Released | `0.6.0` | YAML configuration and runtime pipeline construction |
 | Released | `0.7.0` | CLI for validation and execution |
-| Planned | `0.8.0` onward | Security and v1.0 readiness milestones |
+| Released | `0.8.0` | Security, errors, and operational readiness |
+| In progress | `0.9.0` | Feature-complete beta and API review |
 
-The latest released milestone is `0.7.0`. Releases `0.4.0` and `0.5.0` stabilized local filesystem behavior and added SQL source/sink support; `0.6.0` added versioned YAML loading and validation, explicit component registrations, a shared default component catalog, SQL environment preflight, and configuration-driven pipeline construction. `0.7.0` adds the installed CLI, shared command-level configuration handling, documented exit codes, and unit, integration, and installed-package functional tests. Later milestones describe intended scope and may be revised as implementation and testing clarify dependencies.
+The latest released milestone is `0.8.0`. It strengthens path validation, configuration preflight, controlled logging and diagnostics, resource cleanup, dependency auditing, distribution verification, and installed-wheel compatibility checks.
+
+Development is now focused on `0.9.0`: freezing the intended v1.0 feature set, completing the protocol naming cleanup, reviewing public contracts, and verifying supported workflows and environments.
+
+The [v1.0 Feature Scope and Support Policy](development/v1-scope.md) defines the frozen feature boundary, release support matrix, deferred capabilities, and required readiness work.
 
 ## Versioning policy
 
@@ -277,8 +282,8 @@ The `etlrelay` distribution has already been published to PyPI; see the [ETLRela
 | `0.5.0` | Released | SQL source/sink | Tested SQLite reads/writes and mixed file/SQL pipelines |
 | `0.6.0` | Released | YAML configuration | Versioned schema validation, explicit component catalog, SQL preflight, and runtime pipeline construction |
 | `0.7.0` | Released | CLI | Validate and run pipelines from a shell |
-| `0.8.0` | Planned | Security and operational readiness | Security review, errors/logging, installation and CI gates |
-| `0.9.0` | Planned | Feature-complete beta | Feature freeze, reader/writer naming cleanup, and full API/representation-contract review |
+| `0.8.0` | Released | Security and operational readiness | Hardened controls, controlled diagnostics, cleanup, dependency/package checks, and installed-wheel compatibility verification |
+| `0.9.0` | In progress | Feature-complete beta | Feature freeze, reader/writer naming cleanup, and full API/representation-contract review |
 | `1.0.0rc1` | Planned | Release candidate | Final validation and feedback |
 | `1.0.0` | Planned | Stable release | Documented, usable, tested config-driven ETL product |
 

@@ -185,19 +185,15 @@ tests exercise component composition and complete pipeline workflows.
 | `PipelineBuilder` | Builds runtime pipelines from validated configuration mappings   |
 
 
-### Planned Capabilities
+### v1.0 Scope and Feature Freeze
 
-The following remain possible future work and are not included in the current release scope:
+The intended v1.0 feature set is frozen: synchronous pipelines using local CSV/Parquet files or SQL, the existing built-in processors, YAML configuration, and CLI execution.
 
-- Additional document and tabular formats, including a JSON configuration reader.
-- Additional built-in data transformation processors.
-- Additional runtime integrations if concrete use cases justify their maintenance cost.
+Development during v0.9.0 focuses on correctness, security, compatibility, public API review, testing, documentation, and release readiness.
 
-S3, HDFS, and other remote-storage backends are not part of the current implementation or the planned v1.0.0 scope. Additional storage and platform integrations may be reviewed after v1.0.0 if concrete requirements justify them. No particular backend, implementation, or release date is promised.
+S3, HDFS, additional formats and processors, dynamic plugin loading, scheduling, retries, and distributed execution are deferred. Future consideration does not promise implementation or a release date.
 
-Features will be added when requirements justify them. The project will
-not introduce scheduling, distributed execution, or other orchestration
-infrastructure merely to anticipate future needs.
+See the [v1.0 Feature Scope and Support Policy](docs/development/v1-scope.md) for the feature inventory, exact support matrix, operational boundaries, and required readiness work.
 
 
 ## Operational Contracts
