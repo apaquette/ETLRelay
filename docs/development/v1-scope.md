@@ -1,17 +1,17 @@
 # v1.0 Feature Scope and Support Policy
 
-This document defines the feature boundary for ETLRelay v0.9.0 and v1.0.0.
+This document defines ETLRelay v1.0.0 support and the feature boundary verified during v0.9.0.
 
-The v0.9.0 feature-complete beta implements the intended v1.0 feature set. The
-review began from v0.8.0; completed reviews and verification are collected in the
-[beta readiness record](beta-readiness.md). Final publication checks remain
-separate from feature implementation.
+The v1.0.0 release retains the reviewed v0.9.0 runtime feature set. See the
+[compatibility policy](../compatibility.md) for the stable contract and the
+[v1.0.0 readiness record](release-v1.0.0.md) for final verification/publication gates.
+External beta feedback is optional and does not block release.
 
 ## Feature Freeze
 
 The v1.0 feature set is frozen.
 
-Changes during v0.9.0 and subsequent release-candidate work must address:
+Changes during v1.0.0 release preparation must address:
 
 - Correctness.
 - Security.
@@ -137,6 +137,6 @@ supported-environment regression remains a required fix under the feature freeze
 
 ## Completion Rule
 
-v0.9.0 is feature-complete when all required work above is finished, release-blocking defects are resolved, and support claims match verification evidence.
+v1.0.0 is ready when its supported contract and compatibility policy are documented, release-blocking defects are resolved, and the final release checks pass across the declared support matrix. Publication follows the existing workflow.
 
 Deferred capabilities do not block v0.9.0, a release candidate, or v1.0.0.

@@ -1,292 +1,276 @@
-# ETLRelay Roadmap: `0.1.0` to `1.0.0`
-
-## Purpose
-
-This roadmap defines incremental, testable milestones from the current YAML-configurable, batch-oriented ETL implementation to a stable ETLRelay `1.0.0` release.
-
-The target for `1.0.0` is a lightweight, synchronous, batch-oriented ETL framework that can read from local files or SQL, apply a small set of transformations, and write to local files or SQL. File storage and serialization remain separate concerns. YAML configuration and a small CLI make pipelines usable without writing Python for every job.
-
-The roadmap is feature-led, not date-led. A version should be released when its acceptance criteria are met; the version numbers are proposed milestones, not a promise to publish every milestone on a fixed schedule.
-
-## Current project status
-
-| Status | Version | Milestone |
-|---|---|---|
-| Released | `0.1.0` | Experimental local CSV pipeline |
-| Released | `0.1.x` | Stabilization and compatible fixes |
-| Released | `0.2.0` | Batch contract and built-in processors |
-| Released | `0.3.0` | Parquet format support |
-| Released | `0.4.0` | Storage contract stabilization |
-| Released | `0.5.0` | SQL source and sink |
-| Released | `0.6.0` | YAML configuration and runtime pipeline construction |
-| Released | `0.7.0` | CLI for validation and execution |
-| Released | `0.8.0` | Security, errors, and operational readiness |
-| Released | `0.9.0` | Feature-complete beta and API review |
-
-The current milestone is `0.9.0` — the feature-complete beta. It freezes the intended v1.0 feature set, completes tabular protocol naming and API review, and verifies supported pipelines, failures, documentation, and both distribution artifacts.
-
-Development now focuses on bounded beta feedback, defect correction, and final release-candidate validation. New features remain deferred. See the [beta readiness record](development/beta-readiness.md) for evidence and publication checks.
-
-The [v1.0 Feature Scope and Support Policy](development/v1-scope.md) defines the frozen feature boundary, release support matrix, deferred capabilities, and required readiness work.
-
-## Versioning policy
-
-ETLRelay is in initial development, so `0.y.z` is appropriate while the public API is still evolving. Semantic Versioning explicitly says that a `0.y.z` public API should not yet be considered stable and recommends `0.1.0` as a reasonable starting point. See [Semantic Versioning 2.0.0](https://semver.org/) and the [Python Packaging User Guide's versioning discussion](https://packaging.python.org/en/latest/discussions/versioning/).
-
-Until `1.0.0`:
-
-- Use a **patch release** such as `0.1.1` for compatible fixes to a published release.
-- Use a **minor release** such as `0.2.0` for a coherent feature milestone. Public APIs may still evolve before `1.0.0`, but document notable breaking changes.
-- Never replace or modify an already-published release. Publish a new version instead.
-- Use a release candidate such as `1.0.0rc1` only when the intended `1.0.0` feature set is complete and the remaining work is validation and defect correction.
-
-## Completed early milestones
-
-### `0.1.0` — Experimental local CSV pipeline (released)
-
-**Outcome:** Published the initial experimental local CSV pipeline. This release established the initial file-to-file execution path; it did not promise API stability.
-
-The original release scope covered:
-
-- `Batch` backed by an Apache Arrow table.
-- `Source`, `Processor`, and `Sink` protocols.
-- Synchronous `Pipeline` orchestration.
-- `PathValidator` for local path containment.
-- `FileSystem` protocol and `LocalFileSystem` implementation.
-- Stream-based `Reader` and `Writer` protocols.
-- `CsvReader` and `CsvWriter`.
-- `FileSource` and `FileSink` composed from storage and format components.
-- Unit, integration, and functional tests for the local CSV path.
-- Architecture and usage documentation that matches the actual implementation.
-
-The original release checks are preserved below as historical reference, not as open tasks for the current milestone.
-
-**Original release checks:**
-
-- Full test suite, Ruff lint/format, and configured Pyright checks.
-- Successful source distribution and wheel builds.
-- Clean-environment installation and import/usage smoke test.
-- Accurate README instructions and example.
-- Correct project metadata, licence, package contents, and supported Python version.
-- Release notes describing pre-`1.0.0` API evolution.
-- Git tag and retained release artifacts.
-
-For future releases, `uv build` is the recommended package-build check. The Python Packaging User Guide describes building source and wheel distributions and supports using TestPyPI to rehearse publication: [Building and Publishing](https://packaging.python.org/en/latest/guides/section-build-and-publish/).
-
-### `0.1.x` — Stabilize the first release (released patch line)
-
-**Goal:** Correct defects found during initial use without expanding the feature set unnecessarily.
-
-Scope:
-
-- Fix defects in the pipeline, batch, path validation, local storage, CSV reading, or CSV writing.
-- Improve error messages where they currently obscure the failing operation.
-- Correct packaging, installation, documentation, and typing issues.
-
-Do not use patch releases to sneak in unrelated, large features.
-
-## Feature roadmap
-
-### `0.2.0` — Batch contract and built-in processors (released)
-
-**Goal:** Make ETLRelay useful for more than an untransformed file copy.
-
-Scope:
-
-- Document and test `Batch` semantics, including schemas, types, zero-row tables, and empty iterables.
-- Define what happens when batches in one output stream have incompatible schemas.
-- Add a small set of processors, prioritizing:
-  - `SelectColumns`;
-  - `RenameColumns`;
-  - `FilterRows` with a deliberately limited and documented predicate model.
-- Verify processor ordering and behavior across multiple batches.
-- Keep the processor interface as `process(batch) -> Batch`.
-
-**Done when:** A tested local CSV pipeline can select, rename, and filter columns/rows while preserving documented schema and empty-batch behavior.
-
-**Not in scope:** A general-purpose expression language, user-supplied code evaluation, or a large processor catalogue.
-
-### `0.3.0` — Parquet format support (released)
-
-**Goal:** Support a second high-value tabular format while retaining the format/storage boundary.
-
-Scope:
-
-- Implement `ParquetReader` and `ParquetWriter` against the existing stream-based reader/writer protocols where the chosen Arrow APIs support that contract.
-- Test schema and type preservation, empty data, malformed input, and round trips.
-- Verify that the same reader/writer components work with `LocalFileSystem` without special cases in `FileSource` or `FileSink`.
-- Document CSV and Parquet behavior, including limitations and format-specific differences.
-
-**Done when:** Local CSV and Parquet sources/sinks work through the same file composition model.
-
-### `0.4.0` — Storage contract stabilization (released)
-
-**Outcome:** Stabilized and documented the `FileSystem`/`LocalFileSystem` contract used by the local-file pipelines. The release specifies stream ownership and cleanup, read/write behavior, missing-path handling, path containment, overwrite behavior, and error propagation.
-
-The release retained local filesystem support only. S3, HDFS, and other remote-storage backends remain outside both the v0.4.0 milestone and the planned v1.0.0 scope. Additional storage/platform integrations may be reviewed after v1.0.0 if concrete requirements justify them; none is promised by this roadmap.
-
-**Done when:** The contract is explicit and tested, `LocalFileSystem` satisfies it, and existing CSV/Parquet pipelines remain functional.
-
-### `0.5.0` — SQL source and sink (released)
-
-**Outcome:** Added SQLAlchemy-backed `SqlSource` and `SqlSink` as direct implementations of the core source/sink contracts, independent of file storage and reader/writer abstractions.
-
-The release supports bound query-value parameters, conversion of query results to Arrow-backed batches, and append-only insertion into existing destination tables. SQLite provides repeatable integration coverage for reads, writes, SQL round trips, and mixed file/SQL functional pipelines.
-
-The caller owns the SQLAlchemy engine. `SqlSource` closes query results/connections after reading; `SqlSink` opens one transaction per non-empty batch. Consequently, earlier batches remain committed if a later batch fails. An empty SQL query returns no batches. The sink skips zero-row batches and requires the destination table to exist with compatible columns.
-
-The SQL API does not implement `replace`, ORM-model integration, table creation/schema migrations, automatic retries, or pipeline-wide transactions. SQLite is the reference integration backend; support for other SQLAlchemy dialects requires the relevant driver and verification.
-
-**Done when:** SQL input and append-only output compose with ETLRelay pipelines, value parameters are bound, and the behavior and limitations are documented and tested.
-
-### `0.6.0` — Declarative YAML configuration (released)
-
-**Outcome:** Added versioned YAML configuration and construction of runtime pipelines from validated mappings while preserving the direct Python APIs.
-
-The release includes:
-
-- `KeyValueReader` and `YamlReader` for safe, mapping-shaped YAML documents, including duplicate-key rejection and root mapping/string-key checks.
-- `ConfigLoader` to coordinate configuration file access, parsing, and schema validation.
-- `ConfigValidator`, `ConfigurationError`, component-specific validators, and family dispatchers for source, sink, storage, and processor configuration.
-- `ComponentRegistry` and `ComponentRegistration` to associate a supported component name with its validator and runtime factory.
-- `TabularFileFormatRegistry` capability checks for CSV and Parquet reading/writing.
-- `ComponentCatalog` and `create_default_component_catalog()` to compose shared registries, validators, factories, and the SQL engine factory.
-- `PipelineBuilder` to resolve all component types and preflight SQL environment-variable references before invoking component factories.
-- SQL engine caching, credential-aware error redaction, and explicit builder cleanup for configuration-built pipelines.
-- End-to-end tests for YAML/direct-Python equivalence, processor order, supported file/SQLite source-sink combinations, and rejection before external I/O or component construction.
-- User-facing documentation for schema version 1, supported properties and combinations, environment-variable references, error handling, architecture, and runnable examples.
-
-Schema version 1 supports file sources/sinks with CSV and Parquet, SQL sources/sinks, local filesystem storage, and the `select_columns`, `rename_columns`, and `filter_rows` processors. It uses explicit registrations only; dynamic plugin loading, arbitrary imports, and `eval` are not supported. Missing or empty SQL environment variables fail during builder preflight before component factory construction and source/sink I/O.
-
-The shared SQL engine factory is owned by the configuration-building lifecycle. Callers close the `PipelineBuilder` after a successfully built pipeline finishes execution. Direct Python SQL components retain their caller-owned engine contract.
-
-**Done when:** A user can define a supported pipeline in YAML, load and validate it, build the same effective pipeline as direct Python composition, execute it, and diagnose configuration/preflight errors without leaking resolved connection URLs. Full regression and release checks pass.
-
-### `0.7.0` — Command-line interface (released)
-
-**Outcome:** Added an installed command-line interface for validating and executing supported YAML pipelines while reusing the existing ETLRelay configuration and execution APIs.
-
-The release includes:
-
-- `etlrelay run PIPELINE` to load, build, and execute a configured pipeline.
-- `etlrelay validate PIPELINE` to parse and validate configuration without executing the pipeline.
-- `etlrelay version` to print the installed distribution version.
-- `etlrelay help [COMMAND]`, root help, and command-specific `--help` options.
-- A `CliApplication` class that coordinates command workflows, with thin Typer adapters and injectable service factories.
-- Shared configuration loading and validation behavior between `run` and `validate`.
-- Documented exit codes: `0` for success, `1` for unexpected internal failures, `2` for usage errors, `3` for configuration/build failures, and `4` for runtime execution or cleanup failures.
-- Unit and integration coverage for command outcomes, configuration failures, source/processor/sink errors, and cleanup behavior.
-- Functional subprocess tests for the built and installed package, including local CSV output verification and sensitive-output regression checks.
-- CLI reference documentation, updated getting-started instructions, and release-check documentation.
-
-The CLI delegates configuration parsing and validation to `ConfigLoader`, component resolution and pipeline construction to the existing catalog and `PipelineBuilder`, and orchestration to `Pipeline`. It does not add scheduling, retries, background execution, or external service dependencies to the core CLI test suite.
-
-**Done when:** A user can install ETLRelay, inspect its CLI help, validate a supported YAML pipeline, and run it end to end from a shell with documented process exit codes and error-output conventions.
-
-### `0.8.0` — Security, errors, and operational readiness
-
-**Goal:** Close cross-cutting gaps before the API is frozen.
-
-Scope:
-
-- Review path containment and local storage behavior, including symlinks and output destinations.
-- Review SQL parameterization and identifier validation.
-- Validate configuration before side effects occur.
-- Establish a small, consistent exception/error-reporting policy without wrapping every error in a generic framework exception.
-- Add useful standard-library logging at component boundaries where needed.
-- Redact connection secrets, credentials, and sensitive values from errors/logging.
-- Document resource/stream ownership, overwrite behavior, empty-batch behavior, and failure propagation.
-- Add dependency and package checks to CI.
-- Verify the package can be installed and used from its built artifacts, not only from the repository checkout.
-
-**Done when:** Security-relevant behavior is tested at the layer responsible for the risk, and failures are diagnosable without leaking secrets.
-
-### `0.9.0` — Feature-complete beta and API review (released)
-
-**Outcome:** Froze the feature set, renamed the tabular protocols without legacy aliases, retained the separate mapping-document contract, and completed the API, pipeline, failure, packaging, and documentation reviews. `KeyValueWriter` and generic record conversion are deferred. The [readiness record](development/beta-readiness.md) collects review outcomes and the focused feedback process.
-
-The following scope is retained as the milestone's acceptance record.
-
-Scope:
-
-- Feature freeze.
-- Review public names, constructors, protocol signatures, configuration schema, CLI behavior, and documented exceptions.
-- Complete the pre-`1.0.0` protocol naming cleanup: rename `Reader` and `Writer` to `TabularReader` and `TabularWriter` to make their `Batch`-oriented contracts explicit. Update concrete implementations, type annotations, public exports, tests, examples, and documentation consistently.
-- Keep `KeyValueReader` as a separate protocol for mapping-shaped documents. Confirm that configuration loading depends on this abstraction rather than the concrete `YamlReader`.
-- Decide whether `KeyValueWriter` has a concrete v1.0 use case before adding it; do not introduce it solely for symmetry.
-- Document the distinction between a mapping-shaped document and row records. Review possible tabular-to-records and records-to-tabular conversion contracts before the API freeze, but do not add a generic conversion framework without a demonstrated v1.0 use case.
-- Test full pipelines across supported combinations: local CSV, local Parquet, and SQL input/output.
-- Test empty inputs, empty batches, schema mismatches, malformed data, inaccessible resources, processor failures, sink failures, and stream cleanup.
-- Test a clean install on each supported Python version/platform combination the project claims to support.
-- Complete README, quick start, examples, API reference, configuration reference, security notes, contribution instructions, and release notes.
-- Document unsupported features and known limitations.
-
-**Done when:** No required v1.0 feature remains unimplemented, release-blocking defects are resolved, and the project can maintain a clear public API contract. Reader/writer names clearly identify tabular contracts, the mapping-document contract is separate, and conversion scope is explicitly documented as either required or deferred.
-
-### `1.0.0rc1` — Release candidate
-
-Cut a release candidate only after `0.9.0` has passed the feature-complete criteria. Use release candidates for final packaging validation, integration feedback, and defect correction—not new features. Publish another candidate if fixes materially affect the release, then proceed to `1.0.0` when the release criteria remain satisfied.
-
-### `1.0.0` — Stable initial release
-
-ETLRelay `1.0.0` is ready when a user can:
-
-1. Install the package using documented instructions.
-2. Define a supported pipeline in YAML.
-3. Read data from the local filesystem or a supported SQL source.
-4. Apply the documented set of built-in transformations.
-5. Write to a local file or supported SQL sink.
-6. Run the pipeline through the CLI.
-7. Diagnose failures using documented errors and logs.
-
-The stable API, supported Python versions, supported input/output formats, configuration schema, CLI contract, and compatibility policy must be documented. Breaking changes to the public API after `1.0.0` should follow the project's published versioning policy.
-
-## Potential post-1.0 expansions (not commitments)
-
-The initial stable release intentionally focuses on config-driven execution of pipelines using local files and SQL. Additional integrations and capabilities may be considered after `1.0.0`, based on use cases, maintenance cost, compatibility with the existing architecture, and available development effort.
-
-Potential areas for future review include, but are not limited to:
-
-- Remote and distributed storage, including S3 and HDFS.
-- Additional database, data-warehouse, and analytical-platform integrations, potentially including Snowflake and Hive.
-- Excel and other file formats.
-- Generic API source/sink implementations.
-- Scheduling, retries, distributed processing, concurrency, and orchestration services.
-- Web UI, job queue, monitoring server, and data catalog/lineage systems.
-- Expanded custom-component loading or plugin mechanisms.
-- Larger processor libraries or a general-purpose expression language.
-- Tabular/record conversion utilities (for example, converting `Batch` data to a sequence of row mappings and back), if concrete use cases justify their contracts and maintenance cost.
-
-These examples describe areas that may be evaluated, not features promised for a particular release. After v1.0.0, review candidate enhancements as a separate roadmap decision: identify concrete use cases, define acceptance criteria, estimate implementation and maintenance costs, and determine priority and sequencing. Do not assume that every listed integration will be implemented.
-
-## Release hygiene
-
-Before every public release:
-
-- Run the full test, lint, format, and type-check suites.
-- Build the wheel and source distribution.
-- Install and smoke-test the built package in a clean environment.
-- Review the changelog and release notes.
-- Ensure the version in package metadata matches the Git tag.
-- Test publication through TestPyPI when useful, then publish the actual release artifact.
-
-The `etlrelay` distribution has already been published to PyPI; see the [ETLRelay project page](https://pypi.org/project/etlrelay/). Before each release, verify that package metadata, the built wheel and source distribution, the Git tag, and the release notes all identify the intended version. Revisit distribution-name availability only if the project proposes changing its published package name.
-
-## Summary roadmap
-
-| Version | Status | Milestone | Release outcome |
-|---|---|---|---|
-| `0.1.0` | Released | Experimental local CSV pipeline | Initial local CSV pipeline published |
-| `0.1.x` | Released | Stabilization | Compatible fixes and documentation improvements |
-| `0.2.0` | Released | Batch contract and processors | Basic useful transformations |
-| `0.3.0` | Released | Parquet | CSV and Parquet through shared reader/writer interfaces |
-| `0.4.0` | Released | Storage contract stabilization | Documented and tested local filesystem behavior; no remote-storage implementation |
-| `0.5.0` | Released | SQL source/sink | Tested SQLite reads/writes and mixed file/SQL pipelines |
-| `0.6.0` | Released | YAML configuration | Versioned schema validation, explicit component catalog, SQL preflight, and runtime pipeline construction |
-| `0.7.0` | Released | CLI | Validate and run pipelines from a shell |
-| `0.8.0` | Released | Security and operational readiness | Hardened controls, controlled diagnostics, cleanup, dependency/package checks, and installed-wheel compatibility verification |
-| `0.9.0` | Released | Feature-complete beta | Feature freeze, reader/writer naming cleanup, and full API/representation-contract review |
-| `1.0.0rc1` | Planned | Release candidate | Final validation and feedback |
-| `1.0.0` | Planned | Stable release | Documented, usable, tested config-driven ETL product |
-
-The version numbers and ordering can be adjusted if implementation reveals a dependency or real user requirement that changes priorities. Keep the principle constant: each release should deliver a coherent, tested increment, and the `1.0.0` milestone should mark API stability rather than feature abundance.
+# ETLRelay Roadmap
+
+ETLRelay is a lightweight Python library and CLI for repeatable tabular ETL jobs.
+Post-v1.0 development expands the jobs users can complete: common databases,
+files and cloud storage; useful transformations; repeatable loads; and convenient,
+explicit configuration. The library and CLI remain independently usable.
+
+ETLRelay v1.0.0 establishes the stable release of the reviewed v0.9.0 runtime,
+YAML schema version 1, and documented Python/CLI interfaces. See the
+[release record](development/release-v1.0.0.md) for verification and release details.
+Planned additions below are outside the
+[v1.0 support policy](development/v1-scope.md) until implemented and released.
+
+## Release summary
+
+| Version | Status | Delivered outcome |
+| --- | --- | --- |
+| 0.1.0 / 0.1.x | Released | Initial Arrow-backed batch pipeline, local CSV workflows, and stabilization |
+| 0.2.0 | Released | Batch/schema contracts and select, rename, and filter processors |
+| 0.3.0 | Released | Parquet input/output through the file composition model |
+| 0.4.0 | Released | Local storage, path, stream ownership, and failure contracts |
+| 0.5.0 | Released | SQL query sources and append-only sinks; SQLite verification |
+| 0.6.0 | Released | Versioned YAML configuration, validation, explicit registrations, and pipeline construction |
+| 0.7.0 | Released | Installed CLI for validation, execution, help, and version reporting |
+| 0.8.0 | Released | Security/operational controls, logging, cleanup, and artifact/compatibility checks |
+| 0.9.0 | Released | Feature freeze, tabular protocol naming, API review, and pipeline/failure/documentation verification |
+| 1.0.0 | Released | Stable compatibility policy and completed release documentation; runtime behavior retained from 0.9.0 |
+
+Earlier milestone detail is retained in the
+[tagged v0.9.0 roadmap](https://github.com/apaquette/ETLRelay/blob/v0.9.0/docs/roadmap.md)
+and Git history. The maintained roadmap below governs post-v1.0 development.
+
+## Post-v1.0.0 roadmap
+
+This is the selected development direction, researched on **21 October 2026**.
+Minor-version labels describe intended release themes and order, not dates,
+current capabilities, or a promise to support every version of a technology.
+Create focused implementation tickets before starting a milestone. Split a
+milestone when its independently useful parts warrant separate releases; record
+any scope or ordering changes rather than silently dropping selected work.
+
+The plan extends beyond connectors. More destinations help adoption, but users
+also need transformations, realistic file layouts, and repeatable loading.
+Integration breadth must come with maintained installation instructions,
+representative examples, and reproducible verification.
+
+### Selected milestones
+
+| Target | User outcome and selected scope | Main completion boundary / dependencies |
+| --- | --- | --- |
+| **1.1 — SQL scale and PostgreSQL** | Opt-in chunked SQL reads; verified PostgreSQL source/sink support | Stable cross-chunk schemas, driver buffering, early termination, cleanup, types and per-batch commits tested against a real PostgreSQL service. Preserve existing defaults. |
+| **1.2 — Practical transformations** | Column casting; fill/drop nulls; string cleanup; date parsing; derived columns; richer explicit filters | Arrow-backed operations with documented null, overflow, timezone and invalid-value behavior. Restricted declarative operations, including membership, null tests and Boolean predicate composition; no arbitrary code evaluation. |
+| **1.3 — Directory inputs and file consolidation** | Read multiple files from a directory, select filenames with a regular expression, and combine their batches into one destination | Deterministic discovery/order; explicit recursion and no-match behavior; consistent format/schema; per-file cleanup and failure propagation. Verify multiple CSV/Parquet inputs to one output file or SQL destination through Python, YAML and CLI. |
+| **1.4 — S3 and MySQL-family databases** | S3 filesystem; verified MySQL and MariaDB reads/writes | Reuse SQL/storage contracts from 1.1. Test MySQL and MariaDB separately, using named driver/server versions. Verify cloud credentials, seekable Parquet reads, interrupted writes and cleanup. |
+| **1.5 — Business data interchange** | Verified SQL Server; optional `.xlsx` reading/writing; deterministic filename-based format inference | Document driver/native installation and database type/transaction behavior. Define sheets, headers, dates, formulas versus cached values, and multi-batch workbook output. Explicit format wins; ambiguous suffixes fail clearly. |
+| **1.6 — JSON and Arrow interchange** | JSON mapping configuration; tabular JSON Lines/NDJSON read/write; JSON array-of-records input; Arrow IPC/Feather v2 read/write | Keep mapping configuration separate from row data. Define schema, nesting, decimal/time serialization, empty data and bounded parsing. JSON-array input needs a suitable incremental parser; NDJSON output needs an explicitly tested serializer. |
+| **1.7 — Trusted component extensions** | Explicitly enabled, installed custom source/processor/sink/storage/format components through the stock CLI | Existing Python composition/registries remain valid. Define extension names, validation/factories, collision policy, dependency diagnostics and compatibility tests. Configuration cannot silently import arbitrary executable code. |
+| **1.8 — Partitioned datasets** | Extend the file-collection source from 1.3 with partitioned Parquet datasets; projection/filter pushdown where supported; compression options; explicit input schemas | Builds on directory discovery from 1.3, remote storage adapters and schema work. Define deterministic discovery, partition columns, file sizing, incompatible files, ordering, overwrite/collision rules and partial-dataset cleanup. Compression belongs to the appropriate format/stream layer. |
+| **1.9 — Azure and Google Cloud storage** | Azure Blob Storage/ADLS Gen2 and Google Cloud Storage filesystem adapters | Reuse the remote storage behavior verified for S3. Test each service independently, including authentication, prefix boundaries, retries inherited from clients, seekability and failed uploads. Backend/Python/platform support may be narrower than the core package. |
+| **1.10 — Enterprise destinations and write modes** | Verified Oracle support; explicit `append`, `upsert` and `overwrite` modes; opt-in destination-table creation; staged local-file replacement | Verify Oracle queries/types/reflection/transactions using a selected driver and real database. Introduce SQL modes first for SQLite/PostgreSQL, then other dialects explicitly. Publish a destination/format capability matrix. Define keys, duplicate/null keys, schema/type creation, one-time overwrite initialization, rollback and partial commits. Local replacement guarantees require same-filesystem staging; do not promise atomic publication on every storage backend. |
+| **1.11 — HTTP/API ingestion** | HTTPS file input and a paginated REST JSON-record source | Depends on tabular record conversion from 1.6. Support explicit record paths, selected pagination modes, credential references, timeouts, request/page limits and bounded read retries. Prevent credential forwarding to untrusted pagination/redirect hosts. No universal SaaS connector or HTTP write retry guarantee. |
+| **1.12 — Incremental jobs** | Watermark-based SQL/API extraction across runs; explicit persisted load state | Depends on load modes and source contracts. Define cursor ties, late data, overlap/replay, successful-state advancement, concurrent-run exclusion and restart behavior. Persist state only after the corresponding output is durable; document duplicate windows rather than claiming exactly-once delivery. |
+| **1.13 — Embedded analytical workflows** | Optional DuckDB source/sink integration and job-level SQL transformations for joins, aggregates, sorting and deduplication | Use a maintained execution engine. Establish an explicit whole-job resource/lifecycle boundary, temporary storage, limits and cleanup. Global operations must see all relevant batches, not silently run once per batch. Verify Arrow interchange and actual spill/memory behavior. |
+| **1.14 — Cloud warehouses** | Optional Snowflake and BigQuery integration | Separate feasibility/verification tickets per service. Resolve dialect/dependency compatibility, authenticate through supported methods, and fund reproducible account-backed tests. Define query types, supported writes, load costs and transaction boundaries independently; a SQLAlchemy dialect is not proof of equivalent SQL sink semantics. |
+
+SQL Server, formats, processors and cloud adapters do not technically require
+all earlier milestones. This sequence prioritizes reusable contracts and
+complete user workflows; independent work can proceed without manufacturing
+unnecessary dependencies. The higher-risk stateful/analytical milestones require
+a design review before implementation, while preserving the stable v1 interfaces.
+
+### Directory inputs and consolidation
+
+Reading a directory of files into one destination is selected for 1.3, before
+partitioned datasets. The initial implementation supports local CSV/Parquet
+collections, with remote discovery added alongside the corresponding adapters.
+A job selects one input directory and an optional filename regex, reads matching
+files as one ordered stream of batches, applies its processor chain, and writes
+to one sink. That sink may produce a single output file or write to a SQL table.
+
+- Validate the regex before opening source files or the destination. Define
+  full-match filename semantics; directory recursion must be explicitly enabled.
+- Discover regular files in a deterministic order and define no-match behavior.
+  Reject a destination that is also selected as an input.
+- Use a common configured format and compatible schema. Format inference, when
+  available, must not silently combine incompatible formats or schemas.
+- Consume files incrementally and release each stream on completion or failure;
+  do not materialize every file or open all streams at once.
+- Feed the entire collection to one sink execution. Do not reopen/truncate the
+  destination for each input file or repeat output headers between input files.
+- Test empty files, zero-row batches, schema differences, invalid regexes,
+  inaccessible files, failure in a later file, cleanup and partial output.
+
+The initial collection source concatenates compatible rows. It does not join
+records, deduplicate globally or reconcile incompatible schemas automatically.
+
+### Destination write modes
+
+The target public write-mode vocabulary is **`append`, `upsert`, `overwrite`**.
+Support is explicit per destination, format and backend. Unsupported combinations
+must fail clearly before destination modification; there is no silent fallback.
+
+| Mode | Intended behavior | Required contract |
+| --- | --- | --- |
+| `append` | Add incoming rows while retaining existing destination data | Define schema compatibility, duplicate handling and format-specific append support. SQL append retains the existing per-batch transaction contract unless a separate option changes it. |
+| `upsert` | Insert new keys and update matching keys | Require explicit key columns and define duplicate/null keys, update columns, conflicts and transaction boundaries. Initial support targets SQL sinks; keyed file updates are not implied. |
+| `overwrite` | Replace the destination's data with the complete output of this job | Initialize replacement once per job, across all batches and source files. Define empty-job behavior, metadata preservation, failures and partial publication. Replacing table data does not implicitly authorize dropping/recreating the table. |
+
+SQL initially targets all three modes on individually verified backends. File
+support follows the format/storage capability matrix: CSV append must handle
+headers correctly; a single Parquet file cannot be appended by concatenating
+serialized bytes. Partitioned-dataset append has separate file-collision and
+schema rules. Document unsupported modes for spreadsheets, objects and warehouses
+instead of assuming that every sink offers every mode.
+
+Existing v1.0 defaults remain compatible: SQL appends, while local file output
+truncates an existing destination. Staged local-file overwrite is an opt-in
+stronger publication behavior until deliberately selected by callers. Define
+cleanup and same-filesystem replacement guarantees; cloud publication must not
+inherit local atomicity claims.
+
+### Processor boundaries
+
+The first processor expansion targets operations that correctly transform one
+`Batch` at a time. Proposed configuration concepts include casting named columns,
+replacing nulls, trimming/normalizing strings, parsing dates, calculating columns
+from named arithmetic/string/date operations, and combining explicit predicates.
+Public names and constructor signatures are decided in the implementation review.
+
+Do not call per-batch deduplication, sorting, aggregation or ranking a whole-job
+operation. Forward/backward filling also needs explicit cross-batch semantics.
+Global joins, group-by, sorting and deduplication belong in the analytical
+milestone's separate execution boundary. They must not require breaking
+`Processor.process(batch) -> Batch` or creating a new distributed engine.
+
+### Data representations and schemas
+
+A JSON/YAML mapping document describes one configuration object. A JSON array of
+row mappings or an NDJSON stream describes tabular records; neither is a
+`KeyValueReader` result. The JSON-record/API milestones provide concrete reasons
+for narrow record-to-`Batch` and `Batch`-to-record adapters, with explicit schemas,
+nulls, nesting and batching. They do not justify a generic conversion framework.
+
+Keep current strict output-schema enforcement as the default. Explicit input
+schemas and casting allow users to stabilize otherwise ambiguous data; automatic
+schema evolution or silently widening output schemas is not part of this plan.
+`KeyValueWriter` and general mapping-document pipelines remain deferred because
+none of the selected output workflows requires them.
+
+### Streaming and repeatability
+
+CSV and Parquet already yield incremental batches. SQL chunking fills a specific
+finite-input gap. A `fetchmany` loop alone does not establish bounded end-to-end
+memory: verify each driver's cursor/buffering behavior and measure representative
+jobs. SQL chunking must also document its effect on per-batch transactions.
+
+Incremental loading in 1.12 is different: it remembers which records were loaded
+between runs. Define state ownership and failure recovery explicitly. SDK read
+retries may be useful; automatically retrying a partially committed pipeline is
+not safe without a defined replay/idempotency contract. Continuous message/event
+processing, CDC and exactly-once delivery are separate future decisions.
+
+### Python compatibility and optional installations
+
+**Selected compatibility track:** Target CPython 3.15 in the first minor release
+that passes dependency/artifact/platform checks, aiming for 1.1. PyArrow 23 has no
+CPython 3.15 wheels; PyArrow 26 publishes them. Upgrade after regression testing,
+retain Python 3.12–3.14 compatibility, and verify declared environments before
+changing support claims. This track need not block an otherwise complete feature.
+
+Keep integrations with extra drivers/SDKs optional. Record supported combinations
+per integration; an optional connector's narrower interpreter range must not
+silently narrow core ETLRelay support. Prefer maintained Arrow filesystem adapters,
+SQLAlchemy dialects and existing engine clients over independent connector stacks.
+
+Provide documented installation extras where appropriate, usable examples,
+a troubleshooting guide and a named driver/server test matrix. Cloud integrations
+need real service checks as well as deterministic local tests. An emulator or
+S3-compatible endpoint is verified separately; it does not prove all providers.
+
+### Research and prioritization findings
+
+The 2026 Stack Overflow survey reports PostgreSQL, SQLite, MySQL, SQL Server and
+MariaDB among commonly used databases. This supports broadening relational
+verification beyond SQLite/PostgreSQL/SQL Server. It measures surveyed developer
+usage, not ETLRelay demand or a complete enterprise ETL market.
+
+Arrow already supplies compute kernels, JSON Lines reading, dataset scanning and
+partitioning, IPC formats, and S3/Azure/GCS/HDFS filesystem implementations.
+These make substantial expansion feasible through adapters. Oracle also has an
+included SQLAlchemy dialect and a Python driver whose Thin mode needs no Oracle
+Client installation; a maintained real database test environment is still required.
+ETLRelay still owns configuration, lifecycle, schema, failure and installation
+guarantees. Arrow JSON reading does not by itself supply a JSON writer or a
+JSON-array streaming parser.
+
+DuckDB's Arrow integration and external-memory execution make it a useful local
+analytical target before introducing Spark or a custom parallel runtime. Actual
+query memory/spill behavior remains workload-dependent and must be measured.
+
+Snowflake and BigQuery are promoted from unspecified future integrations to the
+selected warehouse milestone, with explicit compatibility and account-test gates.
+At this review, Snowflake's documented SQLAlchemy requirement is
+`>=2.0.44,<2.1`, while ETLRelay's lockfile uses 2.1.5. The core requirement
+`sqlalchemy>=2,<3` permits 2.0, but a resolver-compatible installation is only the
+start: test supported dependency combinations or choose another maintained
+integration path before claiming support. BigQuery likewise needs its own write
+and transaction design rather than an assumption that it behaves like SQLite.
+
+## Tentative future features — pending feasibility and need
+
+The selected plan now includes processors, JSON records/conversion, additional
+cloud storage, APIs, incremental loading and warehouse integrations that were
+previously broadly deferred. The following remain unassigned. Review them against
+a concrete workflow and a sustainable test/support plan, rather than excluding
+them permanently or advertising them as available.
+
+| Candidate | Assessment and next acceptance condition |
+| --- | --- |
+| **ClickHouse, Redshift, Athena, Trino and Databricks SQL** | Useful analytical integrations with differing dialects, authentication and write capabilities. Evaluate one service at a time; distinguish query-only support from tested sinks and bulk-loading paths. |
+| **HDFS** | Feasible through Arrow, but adds Java/Hadoop native client installation, authentication and service-test costs. Promote when there is a maintained cluster/test image and a clear deployment use case. It does not require distributed ETL execution. |
+| **Hive** | Potential SQL integration; establish maintained driver/dialect, authentication and read/write semantics with a reproducible service. Hive-style Parquet partitioning in 1.8 does not imply Hive server support. |
+| **ORC, Avro, XML, legacy Excel and other formats** | ORC is a plausible Arrow-based addition; others require format-specific dependencies and schema/record rules. Promote a named format when representative interchange files and maintenance capacity justify it. `.xlsx` support does not imply `.xls`, macros or formula evaluation. |
+| **SFTP/FTP and wider filesystem adapters** | A maintained fsspec-based bridge may cover useful transfer workflows. Establish credential, seek, publication and failure behavior per backend; an arbitrary protocol string must not imply verified support. Prefer SFTP where secure transfer is required. |
+| **MongoDB, Elasticsearch and other document stores** | Potential tabular source/sink adapters, with explicit projection, nested-data mapping and bulk/error semantics. Their popularity alone does not settle the mapping-to-table contract. Redis is not prioritized as a general ETL destination. |
+| **Spark and other execution engines** | An optional adapter may serve workloads beyond a single machine. Compare it with the selected local analytical approach; define deployment, schema, ownership and failure boundaries without rebuilding Spark inside ETLRelay. |
+| **Parallel processing** | Benchmark native Arrow/DuckDB parallelism first. Add configurable worker execution only for a measured bottleneck with explicit ordering, backpressure, cancellation, state and serialization semantics. |
+| **Distributed computing, Kafka/event streams and CDC** | Require separate checkpoint, replay, deployment and delivery contracts. Not implied by finite-batch streaming or watermark loads; no custom distributed runtime is planned. |
+| **Mapping-document pipelines and `KeyValueWriter`** | Remain separate from tabular JSON/API records. Need a concrete document transformation/export workflow before adding public lifecycle or writer abstractions. |
+| **Unrestricted expressions, automatic schema evolution and general DAG scheduling** | Broader languages/state/orchestration can alter core guarantees. First establish bounded use cases; prefer integration with existing tools over absorbing their execution platforms. |
+
+## Delivery rules
+
+- Preserve the [stable compatibility policy](compatibility.md): compatible fixes
+  use patches, additions use minors, and incompatible public changes require a
+  major-version proposal. Keep current defaults until compatible opt-ins ship.
+- Start each feature with a user workflow, acceptance criteria, dependency/test
+  costs and focused implementation tickets. Long-range scope can change through
+  an explicit roadmap decision; it is not a v1.0 release requirement.
+- Verify Python, YAML and CLI workflows, data/schema correctness, cleanup,
+  secret handling, failed writes, installation and version-pinned documentation.
+- Retain failure/partial-write guarantees until a named new mode changes them.
+  Document transaction behavior per database; do not assume universal semantics.
+- Record performance and memory baselines for representative larger jobs. Include
+  useful safe run summaries and actionable component/driver diagnostics with
+  relevant milestones; these are execution diagnostics, not a data-quality engine.
+- Add support claims only after integration and built-artifact checks pass.
+  Update the support record, examples, changelog and release notes together.
+- Use maintainer reproductions without requiring an external user base. Review
+  installation friction, maintenance cost and practical usability after releases.
+
+## Technical references
+
+Sources were reviewed on 21 October 2026. Dependency capabilities inform
+feasibility; they do not establish ETLRelay support. Product priority is a
+maintainer judgment, not a measured adoption forecast.
+
+- [2026 Stack Overflow database survey](https://survey.stackoverflow.co/2026/technology/data/databases).
+- [SQLAlchemy included/external dialects](https://docs.sqlalchemy.org/en/21/dialects/index.html)
+  and [cursor/result streaming](https://docs.sqlalchemy.org/en/21/core/connections.html#using-server-side-cursors-a-k-a-stream-results).
+- [Arrow 23 compute kernels](https://arrow.apache.org/docs/23.0/python/api/compute.html),
+  [JSON input](https://arrow.apache.org/docs/python/json.html),
+  [datasets](https://arrow.apache.org/docs/python/dataset.html), and
+  [filesystems](https://arrow.apache.org/docs/python/filesystems.html).
+- [PyArrow 26 published artifacts](https://pypi.org/project/pyarrow/26.0.0/).
+- [Oracle Python driver installation and Thin mode](https://python-oracledb.readthedocs.io/en/stable/user_guide/installation.html)
+  and [Oracle Database Free](https://www.oracle.com/database/free/).
+- [DuckDB Python/Arrow integration](https://duckdb.org/docs/current/guides/python/sql_on_arrow)
+  and [memory management](https://duckdb.org/2024/07/09/memory-management).
+- [Snowflake SQLAlchemy requirements](https://docs.snowflake.com/en/developer-guide/sqlalchemy/sqlalchemy)
+  and [Google's BigQuery dialect](https://googleapis.dev/python/sqlalchemy-bigquery/latest/README.html).
+- [dlt incremental loading](https://dlthub.com/docs/general-usage/incremental-loading)
+  and [merge strategies](https://dlthub.com/docs/general-usage/merge-loading),
+  as examples of the state/write semantics repeatable ingestion must address.
+- [GitHub REST API practices](https://docs.github.com/en/rest/using-the-rest-api/best-practices-for-using-the-rest-api),
+  as a representative API's pagination, credentials and rate-limit concerns.

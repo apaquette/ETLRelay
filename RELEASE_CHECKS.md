@@ -1,74 +1,65 @@
-# v0.9.0 Release Verification
+# v1.0.0 Release Verification
 
-Target: **v0.9.0 — Feature-complete beta**, **2026-10-21**.
-Review record: `docs/development/beta-readiness.md`.
+Ticket: #142. Target release date: **2026-10-21**; update the changelog and release
+notes if publication moves. Review: `docs/development/release-v1.0.0.md`.
+Completed v0.9.0 evidence: `docs/development/release-verification-v0.9.0.md`.
 
-Checked items describe completed review/local checks. Unchecked CI/publication
-items must be completed by the existing release process; they are not claims of
-an unresolved implementation gap. If publication moves, update the changelog and
-release-note date before promotion. Earlier release checklists remain in Git history.
+Checked items describe observed preparation/verification. Pending integrated CI,
+TestPyPI, and production publication remain unchecked until they actually pass.
 
-## Feature and API review
+## Stable contract and metadata
 
-- [x] Tickets 0.9.0-01 through 0.9.0-07 are closed and integrated at `1b0993b`.
-- [x] Required v1.0 inventory is implemented; deferred work is excluded.
-- [x] Tabular protocols, public API, schema, exceptions, transactions, and ownership are reviewed.
-- [x] Pipeline and failure matrices map to meaningful automated tests.
-- [x] Documentation, executable examples, migration guide, and release notes are complete.
-- [x] Public open issues reviewed on 2026-10-21: only #37 and #139 remain; no separate unresolved defect found.
-- [x] Known limitations, deferred work, feedback criteria, and defect-reporting/triage paths are documented.
+- [x] The released v0.9.0 feature set is retained without additional runtime API changes.
+- [x] Public Python, YAML, CLI, data, exception, resource, and persistence contracts are covered by the compatibility policy.
+- [x] Patch/minor/major versioning and deprecation/migration rules are documented.
+- [x] External beta feedback and a release-candidate cycle are optional.
+- [x] v0.9.0 integrated CI/publication evidence is recorded; #139 and #37 are closed.
+- [x] Public issue review found only #142 open and no separate product defect.
+- [x] Metadata and lockfile identify `1.0.0`; Python range remains `>=3.12,<3.15`.
+- [x] Runtime dependency bounds and third-party locked versions are unchanged.
+- [x] README, installation/CLI examples, homepage, security policy, roadmap, changelog, and release notes target v1.0.0.
+- [x] Current release-content links use `v1.0.0` / `1.0.0`; historical evidence retains its original release/run.
+- [x] No Python/YAML migration is required from v0.9.0; earlier migration notes remain available.
+- [x] Known limitations and deferred features are explicit; post-v1.0 work is outside this ticket.
 
-## Release metadata
+## Local verification
 
-- [x] `pyproject.toml` and `uv.lock` identify `0.9.0`.
-- [x] `requires-python` remains `>=3.12,<3.15`; `.python-version` selects 3.12.
-- [x] README, documentation homepage, installation, CLI output examples, security policy, and roadmap reflect v0.9.0.
-- [x] Release-content links use `v0.9.0` repository paths or `0.9.0` documentation paths; historical evidence stays immutable.
-- [x] Changelog and release notes have the target date and describe breaking changes.
-- [x] Existing release workflow uses the finalized version-specific notes for its GitHub release body; shell syntax and a stubbed `gh` dry run pass.
+Linux / CPython 3.12.14: **736 tests passed, 100% configured statement/branch
+coverage**. Ruff, Pyright, strict MkDocs, dependency consistency, Twine, and
+archive-content checks passed. Both v1.0.0 artifacts installed and executed
+outside the checkout on CPython **3.12.14, 3.13.16, and 3.14.8**.
 
-## Local dependency, quality, and distribution checks
-
-Commands passed in the release-preparation checkout using Linux CPython 3.12.14.
-The full suite reports **736 passed, 100% configured statement/branch coverage**.
-The dependency audit exited successfully with no known vulnerabilities; it also
-reported archived `verspec` (a transitive documentation dependency of `mike`).
-This maintenance status is tracked in the readiness record; it is not a runtime
-dependency or a reported vulnerability.
+The dependency audit exited successfully with no known vulnerabilities. It also
+reported archived `verspec`, a transitive documentation dependency of `mike`.
+This remains later tooling-maintenance work recorded during v0.9.0; it is not a
+runtime dependency or a reported vulnerability. No ignore rule is introduced.
 
 - [x] `uv lock --check` and `uv pip check --python .venv/bin/python` pass.
-- [x] `uv audit --locked --preview-features audit-command` reports no known vulnerabilities.
-- [x] `uv run pytest --cov=etlrelay --cov-branch --cov-report=term-missing --cov-fail-under=90.1 -q` passes, including installed examples/quick start.
-- [x] `uv run ruff check src tests` and `uv run ruff format --check src tests` pass.
-- [x] `uv run pyright` passes.
-- [x] `uv run mkdocs build --strict` and `git diff --check` pass.
-- [x] Fresh `uv build` wheel and sdist pass Twine and `tests/packaging/check_distributions.py`.
-- [x] `tests/packaging/smoke_compatibility.py dist` installs both v0.9.0 artifacts outside the checkout and verifies public imports, direct CSV/Parquet/SQLite pipelines, CLI, and YAML.
+- [x] `uv audit --locked --preview-features audit-command` reports no known vulnerabilities; assess any adverse status separately.
+- [x] Full pytest suite with configured statement/branch coverage passes, including installed examples and the actual quick start.
+- [x] Ruff lint/format, Pyright, strict MkDocs, and `git diff --check` pass.
+- [x] Fresh wheel/sdist builds pass Twine and `tests/packaging/check_distributions.py`.
+- [x] Both v1.0.0 artifacts install and pass `tests/packaging/smoke_compatibility.py dist` outside the checkout on the local supported Python versions.
+- [x] Diff review confirms runtime source, tests, workflows, and third-party locked versions remain unchanged.
 
-## Integrated CI and support matrix
+## Final integrated CI
 
-All five jobs passed for baseline `1b0993b1b5bc012754c5c3960c6b79f21d36f189`,
-[run 39642253494](https://github.com/apaquette/ETLRelay/actions/runs/39642253494).
-This establishes the integrated prerequisite evidence. Repeat for the final
-v0.9.0 metadata/documentation/workflow change before promoting to `main`.
-
-Final integrated commit and CI run: **record after integration**.
+Release commit and successful CI run: **record after integration**.
+Existing v0.9.0 results are supporting evidence, not a replacement for these gates.
 
 - [ ] Ubuntu / CPython 3.12: full suite, quality, docs, packaging, both-artifact smoke.
 - [ ] Ubuntu / CPython 3.13: both-artifact smoke.
 - [ ] Ubuntu / CPython 3.14: both-artifact smoke.
 - [ ] macOS / CPython 3.12: both-artifact smoke.
 - [ ] Windows / CPython 3.12: both-artifact smoke.
-- [ ] Recheck newly opened issues; resolve any release-blocking defect before merge.
+- [ ] Recheck new issues and resolve any release-blocking defect before promotion.
 
-## Promotion and publication
+## Publication
 
-Follow `docs/development/release-automation.md`; no new release mechanism is needed.
-
-- [ ] Existing TestPyPI workflow on `dev` publishes and smoke-tests v0.9.0 successfully.
-- [ ] Reviewed release commit is promoted from `dev` to `main` with required CI green.
-- [ ] Production workflow verifies and publishes `etlrelay==0.9.0` to PyPI.
-- [ ] Generated GitHub tag/release `v0.9.0` targets the released commit and uses finalized release notes.
-- [ ] Versioned documentation under `/ETLRelay/0.9.0/` is accessible and pinned example/policy links resolve.
-- [ ] Published artifacts, version metadata, release text, and documentation agree.
-- [ ] Close #139 and parent #37 after their completion criteria are satisfied; record actual beta feedback separately.
+- [ ] Existing TestPyPI workflow publishes and smoke-tests v1.0.0 from reviewed `dev`.
+- [ ] Promote the verified source to `main` and production verification/build succeeds.
+- [ ] PyPI contains both `etlrelay==1.0.0` artifacts with correct metadata.
+- [ ] GitHub release/tag `v1.0.0` targets the released source and uses the finalized notes.
+- [ ] Hosted `/ETLRelay/1.0.0/` documentation and pinned example/policy links resolve.
+- [ ] Published artifacts, release date/text, and documentation agree; record workflow links/results.
+- [ ] Close #142 after publication verification; record any subsequent defects separately.

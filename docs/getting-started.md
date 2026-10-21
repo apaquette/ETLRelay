@@ -1,8 +1,8 @@
 # Getting Started
 
-This guide covers ETLRelay v0.9.0. CLI commands and YAML schema version 1
-remain unchanged; see the [migration guide](development/migration-v0.9.0.md)
-when updating Python protocol imports from v0.8.0.
+This guide covers ETLRelay v1.0.0. Applications upgrading from v0.9.0 need
+no Python or YAML changes. For older versions, see the
+[v0.9.0 migration guide](development/migration-v0.9.0.md).
 
 ## Install in a clean environment
 
@@ -18,17 +18,17 @@ On Linux/macOS, run `source .venv/bin/activate`. On Windows PowerShell, run
 Install the release and inspect its commands:
 
 ```bash
-python -m pip install etlrelay==0.9.0
+python -m pip install etlrelay==1.0.0
 etlrelay --help
 etlrelay version
 ```
 
-`etlrelay version` reports `etlrelay 0.9.0`. To verify a local release build
+`etlrelay version` reports `etlrelay 1.0.0`. To verify a local release build
 before publication, run `uv build` in the checkout and install its archive in
 the clean environment instead:
 
 ```bash
-python -m pip install /absolute/path/to/ETLRelay/dist/etlrelay-0.9.0-py3-none-any.whl
+python -m pip install /absolute/path/to/ETLRelay/dist/etlrelay-1.0.0-py3-none-any.whl
 ```
 
 ## Run a self-contained CSV pipeline
@@ -133,7 +133,7 @@ batch. Neither path provides pipeline-wide rollback.
 
 ## Run the repository examples
 
-Obtain the `examples/` directory from the `v0.9.0` release tag.
+Obtain the `examples/` directory from the `v1.0.0` release tag.
 A published package should instead use examples from its matching release tag.
 Examples are repository files, not a guaranteed wheel payload.
 
@@ -151,7 +151,7 @@ etlrelay run examples/configuration/csv_to_csv.yaml
 
 The preparation script recreates demonstration tables. It is for disposable demo
 resources, not an application migration tool. See the
-[YAML examples instructions](https://github.com/apaquette/ETLRelay/tree/v0.9.0/examples/configuration)
+[YAML examples instructions](https://github.com/apaquette/ETLRelay/tree/v1.0.0/examples/configuration)
 for all nine configurations, SQL environment setup, expected results, and reset
 behavior.
 
