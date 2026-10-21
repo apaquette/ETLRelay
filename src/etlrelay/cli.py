@@ -15,7 +15,7 @@ from etlrelay.config.loader import ConfigLoader
 from etlrelay.config.pipeline_builder import PipelineBuilder, PipelineBuildError
 from etlrelay.default_components import create_default_component_catalog
 from etlrelay.pipeline import Pipeline
-from etlrelay.readers import YamlReader
+from etlrelay.readers import YamlDocumentError, YamlReader
 from etlrelay.security import PathValidationError, PathValidator
 from etlrelay.storage import FileSystemError, LocalFileSystem
 
@@ -218,6 +218,11 @@ class CliApplication:
         except ConfigurationError as error:
             self._exit_validation_error(
                 f"Invalid pipeline configuration '{pipeline}': {error}",
+            )
+
+        except YamlDocumentError:
+            self._exit_validation_error(
+                f"Invalid YAML document in '{pipeline}': expected a root mapping with string keys.",
             )
 
         except yaml.YAMLError as error:

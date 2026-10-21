@@ -14,6 +14,16 @@ from yaml.constructor import ConstructorError
 from yaml.nodes import MappingNode
 
 
+class YamlDocumentError(ValueError):
+    """Reject a YAML document that violates the root mapping contract.
+
+    Syntax and duplicate-key errors remain ``yaml.YAMLError`` instances.
+    This ValueError subclass distinguishes expected document-shape failures
+    from unrelated programming errors without changing existing ValueError
+    handling by library callers.
+    """
+
+
 class _UniqueKeySafeLoader(yaml.SafeLoader):
     """Safely load YAML while rejecting duplicate mapping keys.
 
@@ -100,7 +110,7 @@ class YamlReader:
             mappings may contain keys of other types.
 
         Raises:
-            ValueError: If the parsed document root is not a mapping or any
+            YamlDocumentError: If the parsed document root is not a mapping or any
                 root-level key is not a string.
             yaml.YAMLError: If parsing fails, the document contains duplicate
                 or unhashable mapping keys, or the stream contains multiple
@@ -109,10 +119,10 @@ class YamlReader:
         document = yaml.load(stream, Loader=_UniqueKeySafeLoader)
 
         if not isinstance(document, Mapping):
-            raise ValueError("YAML document must have a mapping at the root")
+            raise YamlDocumentError("YAML document must have a mapping at the root")
 
         for key in document:
             if not isinstance(key, str):
-                raise ValueError(f"YAML root mapping keys must be strings; found {key!r}")
+                raise YamlDocumentError(f"YAML root mapping keys must be strings; found {key!r}")
 
         return cast(Mapping[str, Any], document)

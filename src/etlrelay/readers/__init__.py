@@ -1,5 +1,5 @@
 from .csv import CsvReader
 from .parquet import ParquetReader
-from .yaml import YamlReader
+from .yaml import YamlDocumentError, YamlReader
 
-__all__ = ["CsvReader", "ParquetReader", "YamlReader"]
+__all__ = ["CsvReader", "ParquetReader", "YamlReader", "YamlDocumentError"]
