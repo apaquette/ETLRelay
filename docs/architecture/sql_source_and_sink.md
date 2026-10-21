@@ -53,6 +53,13 @@ source = SqlSource(
 
 Do not build value predicates using f-strings or string concatenation. Binding protects the value boundary; it does not bind SQL syntax such as a table name, column name, operator, or sort direction.
 
+`SqlSource` closes its SQLAlchemy result after retrieving rows, including
+when result validation or iteration fails. Its connection is also released
+on success or failure.
+
+Arrow conversion occurs after the query result has been materialized.
+The caller's engine remains open and is never disposed by `SqlSource`.
+
 ### `SqlSink`
 
 `SqlSink` reflects a destination table that must already exist and inserts incoming rows into it. Its supported behavior is **append only**. It does not create a table, replace a table, update or upsert existing rows, delete rows, or migrate a schema.
@@ -116,6 +123,17 @@ An empty iterable and a zero-row batch are distinct in the core pipeline. SQL so
 `SqlSink` opens a separate transaction for every non-empty batch. Each batch is atomic within its own transaction, subject to the database and driver. A successful batch is committed before the next batch's transaction is started.
 
 Consequently, if a pipeline writes several batches and a later batch fails, earlier successfully committed batches remain in the destination. ETLRelay does not provide one transaction across an entire pipeline or a whole iterable of batches. A retry performed by an application may append rows again unless the application has separately designed an idempotency strategy; ETLRelay does not retry automatically.
+
+A successful batch commit is reported only after the transaction context
+exits successfully. Errors during execution or commit propagate to the
+caller without a successful-commit event.
+
+Zero-row batches are skipped before table reflection, column validation,
+or transaction creation. When `SqlSink` is called directly, an empty batch
+therefore does not establish or validate the destination schema.
+
+Pipeline-level schema validation remains separate and includes zero-row
+batches.
 
 ## Limitations and out-of-scope behavior
 

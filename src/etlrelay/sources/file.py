@@ -55,6 +55,15 @@ class FileSource:
 
         Returns:
             An iterable of batches parsed by the configured reader.
+        Note:
+            FileSource owns the binary stream opened through FileSystem,
+            but does not own the FileSystem or Reader instances.
+
+            When consumed by Pipeline, the source iterator is explicitly
+            closed when pipeline execution terminates.
+
+            When consumed directly, callers stopping iteration early must
+            explicitly close the generator for deterministic stream cleanup.
         """
         logger.debug("File source read started.")
 

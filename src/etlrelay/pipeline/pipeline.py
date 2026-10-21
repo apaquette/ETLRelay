@@ -35,6 +35,22 @@ class Pipeline:
 
     Exceptions from the source, processors, or sink otherwise propagate to
     the caller.
+
+    Pipeline owns the consumption lifecycle of the source iterator for the
+    duration of run(). When execution terminates, it attempts to close both
+    the processing iterator and the underlying source iterator when they
+    provide callable close() methods.
+
+    This cleanup occurs after successful execution, early sink termination,
+    or failures during source iteration, processing, or sink execution.
+
+    Execution exceptions take precedence over iterator cleanup failures.
+    Secondary cleanup failures are logged without their exception messages.
+    If execution otherwise succeeds but cleanup fails, the first cleanup
+    exception propagates.
+
+    Pipeline does not own or dispose the underlying storage backends,
+    database engines, or component instances.
     """
 
     source: Source

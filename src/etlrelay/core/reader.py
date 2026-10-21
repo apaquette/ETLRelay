@@ -28,10 +28,12 @@ class Reader(Protocol):
             An iterable of batches containing the parsed data.
 
         Note:
-            The caller retains ownership of the stream and is responsible for
-            managing its lifecycle. Implementations may propagate format-specific
-            parsing and I/O exceptions; the protocol does not normalize them into
-            ReaderError.
+            The caller retains ownership of the supplied stream and must close
+            it when appropriate. Reader implementations must not close the
+            caller-owned stream, including when parsing fails.
+
+            Concrete readers may have additional stream requirements, such
+            as seekability for Parquet input.
         """
         ...
 

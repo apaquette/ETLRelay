@@ -177,6 +177,7 @@ class TestParquetWriter:
 
         assert not stream.closed
 
+
 def test_parquet_writer_accepts_metadata_only_schema_differences() -> None:
     """Accept batches whose schemas differ only in Arrow metadata."""
     first_schema = pa.schema(

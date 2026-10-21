@@ -27,8 +27,11 @@ class Writer(Protocol):
             stream: A writable binary stream that receives the serialized
                 data. The caller is responsible for closing the stream.
 
-        Raises:
-            WriterError: If the batches cannot be serialized.
-            OSError: If an I/O error occurs while writing to the stream.
+        Note:
+            The caller retains ownership of the supplied output stream.
+            Writers must not close it, including when serialization fails.
+
+            Empty-input behavior, schema compatibility, and serialization
+            constraints depend on the concrete writer implementation.
         """
         ...

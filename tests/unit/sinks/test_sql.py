@@ -227,9 +227,11 @@ class TestSqlSink:
         ) = sqlalchemy_mocks
 
         empty_batch = Batch(
-            table=pa.table({
-                "unknown": pa.array([], type=pa.string()),
-            })
+            table=pa.table(
+                {
+                    "unknown": pa.array([], type=pa.string()),
+                }
+            )
         )
 
         valid_rows = [
@@ -401,4 +403,3 @@ def test_sql_sink_skips_empty_batch_without_opening_transaction() -> None:
 
     engine.begin.assert_not_called()
     engine.dispose.assert_not_called()
-
