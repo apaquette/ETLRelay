@@ -10,18 +10,17 @@ Source → Processor(s) → Sink
 
 A source produces batches, processors transform them, and a sink consumes the processed output. File workflows keep storage access independent of format-specific reading and writing.
 
-## v0.9.0 — Feature-complete beta
+## v1.0.0 — Stable initial release
 
-This documentation describes ETLRelay v0.9.0 and its frozen v1.0 feature set.
-Install `etlrelay==0.9.0` and review the migration notes when updating Python APIs.
+This documentation describes ETLRelay v1.0.0 and its supported public contract.
+Install `etlrelay==1.0.0`. The release retains the verified v0.9.0 Python APIs,
+local CSV/Parquet and SQLite workflows, processors, YAML schema version 1,
+and CLI behavior. No code or configuration migration is required from v0.9.0.
 
-v0.9.0 freezes local CSV/Parquet and SQLite-based SQL workflows, the existing
-processors, YAML schema version 1, and CLI execution. It completes tabular
-protocol naming and reviews API contracts, failures, and installation.
-
-Start with [Getting Started](getting-started.md),
-[Migration](development/migration-v0.9.0.md), and the
-[release notes](development/release-notes-v0.9.0.md).
+Start with [Getting Started](getting-started.md), the
+[compatibility policy](compatibility.md), and
+[release notes](development/release-notes-v1.0.0.md).
+For releases before v0.9.0, use the [migration guide](development/migration-v0.9.0.md).
 
 ## Current capabilities
 
@@ -42,7 +41,7 @@ SQLite is the reference SQL integration-test backend. Other SQLAlchemy dialects 
 
 ETLRelay supports CPython 3.12, 3.13, and 3.14. The complete test suite runs on Python 3.12, with installed wheel/source-distribution compatibility checks across the declared Python/platform matrix. See the [packaging verification record](development/packaging-verification.md) for verification evidence.
 
-See the [beta review and feedback guide](development/beta-readiness.md) for release evidence and reporting criteria.
+See the [v1.0.0 readiness record](development/release-v1.0.0.md) for verification evidence and release gates.
 
 ## Documentation
 
@@ -75,4 +74,4 @@ File writes are non-atomic, and SQL sink transactions operate per nonempty batch
 
 S3, HDFS, and other remote-storage integrations remain outside the planned v1.0.0 scope.
 
-ETLRelay is experimental pre-1.0 software. Its public APIs may evolve, and users should assess deployment security and operational requirements before processing sensitive or production data.
+Public interfaces follow the [compatibility policy](compatibility.md). Users remain responsible for evaluating deployment security and operational requirements.

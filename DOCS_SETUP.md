@@ -57,8 +57,8 @@ installation examples, CLI output, migration guidance, and release notes. During
 preparation, record publication checks separately from local verification. Run
 the installed-candidate example test in addition to the strict documentation build.
 
-Pin release-content links to the target release: use the `v0.9.0` Git tag
-for repository files and examples, and `/ETLRelay/0.9.0/` for absolute
+Pin release-content links to the target release: use the `v1.0.0` Git tag
+for repository files and examples, and `/ETLRelay/1.0.0/` for absolute
 documentation URLs. Do not link release content to moving branches such as
 `dev` or `main`, or to a moving documentation alias such as `latest`. Relative
 links between documentation pages stay within the deployed version. Keep

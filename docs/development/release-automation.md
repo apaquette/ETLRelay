@@ -210,22 +210,21 @@ same script before publication. See the
 [packaging verification record](packaging-verification.md) for commands and evidence.
 
 
-## v0.9.0 beta promotion
+## v1.0.0 stable release promotion
 
-The package version is `0.9.0`; the changelog and [release notes](release-notes-v0.9.0.md)
-use the target release date 2026-10-21. If publication moves to a different day,
-update both dates before promotion. The term "beta" names this roadmap milestone;
-the distribution version remains `0.9.0`, not `0.9.0b1`.
+The package version is `1.0.0`. The changelog and
+[release notes](release-notes-v1.0.0.md) use the target date 2026-10-21; update both
+if publication moves. The [compatibility policy](../compatibility.md) applies to
+the stable public contract. No Python or YAML migration is required from v0.9.0.
 
-Use the existing TestPyPI procedure on `dev`, then promote the same reviewed
-source to `main`. Do not create the tag manually before the production workflow:
-it creates `v0.9.0` after publication and uses the reviewed release-notes file
-for the GitHub release body. Versioned documentation deploys under `0.9.0`;
-repository examples and policy links are pinned to `v0.9.0`.
+Use the existing TestPyPI procedure on `dev`, then promote the reviewed source
+to `main`. The production workflow creates `v1.0.0` after publication and uses
+`docs/development/release-notes-v1.0.0.md` for the GitHub release body. Versioned
+documentation deploys under `1.0.0`; repository content links use `v1.0.0`.
+Do not create the release tag before the workflow or overwrite published files.
 
 Complete `RELEASE_CHECKS.md` against the integrated release commit. The
-[beta readiness record](beta-readiness.md) separates the completed source review
-and existing support evidence from checks still required for promotion and
-publication. A local build does not establish that PyPI, the GitHub release,
-or hosted documentation has been published. Gather feedback using that record's
-checklist and preserve the frozen feature boundary.
+[readiness record](release-v1.0.0.md) distinguishes prior v0.9.0 support evidence,
+local v1.0.0 checks, required final CI, and publication. External beta feedback
+and an RC cycle are optional; readiness is established through maintainer
+verification. No deployment is implied by a successful local build.

@@ -1,12 +1,12 @@
 # Security
 
-ETLRelay v0.9.0 strengthens the security and operational contracts established in earlier releases.
+ETLRelay v1.0.0 retains the reviewed security and operational contracts established in earlier releases.
 
 The release includes regression-tested controls for local path containment, safe YAML configuration, SQL parameter handling, connection-secret references, error reporting, operational logging, and resource cleanup. Its CI workflow also checks dependencies and verifies built distribution artifacts.
 
 These controls address specific risks. **ETLRelay does not provide a filesystem sandbox, SQL authorization boundary, secrets vault, or general-purpose environment for executing untrusted code.**
 
-ETLRelay remains experimental pre-1.0 software. Applications must evaluate its suitability, permissions, and operational safeguards before processing sensitive or production data.
+ETLRelay v1.0.0 provides a stable public contract. Applications remain responsible for evaluating suitability, permissions, and operational safeguards before processing sensitive or production data.
 
 ## Local filesystem paths
 
@@ -237,7 +237,7 @@ Pipeline execution is not atomic. A later validation or execution failure does n
 
 ## Dependency and distribution integrity
 
-The v0.9.0 CI workflow includes:
+The v1.0.0 CI workflow includes:
 
 - Lockfile consistency verification.
 - Dependency vulnerability auditing.
@@ -254,7 +254,7 @@ Applications deploying ETLRelay remain responsible for ongoing dependency mainte
 
 ## Current limitations and deferred risks
 
-ETLRelay v0.9.0 does not provide:
+ETLRelay v1.0.0 does not provide:
 
 - Operating-system-level filesystem sandboxing or elimination of path-validation races.
 - A mechanism for safely executing arbitrary untrusted SQL or Python components.
@@ -273,7 +273,7 @@ These limitations should be evaluated explicitly when designing applications tha
 
 ## Reporting vulnerabilities
 
-Report suspected vulnerabilities privately using the repository's [Security Policy](https://github.com/apaquette/ETLRelay/blob/v0.9.0/SECURITY.md).
+Report suspected vulnerabilities privately using the repository's [Security Policy](https://github.com/apaquette/ETLRelay/blob/v1.0.0/SECURITY.md).
 
 Do not include real credentials, private datasets, or production records in reports.
 Parquet footer finalization follows primary-error precedence: a processing or

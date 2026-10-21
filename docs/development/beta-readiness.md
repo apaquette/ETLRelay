@@ -4,6 +4,20 @@ Ticket: **0.9.0-08**, [#139](https://github.com/apaquette/ETLRelay/issues/139).
 Review date and target release date: **2026-10-21**.
 Integrated baseline: `1b0993b1b5bc012754c5c3960c6b79f21d36f189`.
 
+## Release completion
+
+v0.9.0 was published on 2026-10-21. The completed
+[release verification record](release-verification-v0.9.0.md) contains final CI,
+TestPyPI, PyPI, GitHub release, and documentation evidence. Tickets #139 and #37
+are closed. The preparation review below remains historical evidence; its
+then-pending publication gates have been completed.
+
+External beta feedback is optional, and none is claimed to have been collected.
+Maintainer verification establishes v1.0.0 readiness without a mandatory waiting
+period or RC cycle. See the [stable-release record](release-v1.0.0.md) and
+[compatibility policy](../compatibility.md). Future enhancements belong to a
+separate post-v1.0 roadmap review.
+
 ## Decision
 
 The intended v1.0 feature set is implemented and frozen. Preceding tickets

@@ -26,8 +26,9 @@ documented in the [CLI Reference](cli-reference.md).
 Configuration schema version `1` remains supported and is independent
 of the ETLRelay package version.
 
-ETLRelay remains pre-1.0 software. Public interfaces may change before
-v1.0.0.
+The documented public interfaces and import paths are stable from v1.0.0.
+See the [compatibility policy](compatibility.md) for guarantees, exclusions,
+and release/deprecation rules.
 
 Consult the [YAML Configuration](configuration.md),
 [Security](security.md), [Logging](logging.md), and

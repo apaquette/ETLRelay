@@ -11,8 +11,11 @@ nav:
   - Security: security.md
   - Logging: logging.md
   - API Reference: api-reference.md
+  - Compatibility Policy: compatibility.md
   - Development:
       - Overview: development.md
+      - v1.0.0 release notes: development/release-notes-v1.0.0.md
+      - v1.0.0 readiness: development/release-v1.0.0.md
       - Migration to v0.9.0: development/migration-v0.9.0.md
       - v0.9.0 release notes: development/release-notes-v0.9.0.md
       - v1.0 scope: development/v1-scope.md
@@ -21,6 +24,7 @@ nav:
       - Failure matrix: development/failure-matrix.md
       - Packaging verification: development/packaging-verification.md
       - Documentation review: development/documentation-review.md
+      - v0.9.0 release verification: development/release-verification-v0.9.0.md
       - Beta readiness and feedback: development/beta-readiness.md
       - Release automation: development/release-automation.md
   - Roadmap: roadmap.md
