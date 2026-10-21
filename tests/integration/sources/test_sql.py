@@ -1,5 +1,6 @@
 """Integration tests for the SQL source."""
 
+import logging
 from collections.abc import Iterator
 from pathlib import Path
 
@@ -14,6 +15,7 @@ from sqlalchemy import (
     create_engine,
 )
 from sqlalchemy.engine import Engine
+from sqlalchemy.exc import SQLAlchemyError
 
 from etlrelay.sources import SqlSource
 
@@ -112,3 +114,55 @@ def test_read_rejects_duplicate_result_column_names(
 
     with pytest.raises(ValueError, match="duplicate column names"):
         source.read()
+
+
+def test_read_logs_row_count_without_query_parameters(
+    sqlite_engine: Engine,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Log the number of returned rows without logging SQL values."""
+    secret = "private-database-credential"
+
+    source = SqlSource(
+        sqlite_engine,
+        "SELECT :secret AS value",
+        parameters={"secret": secret},
+    )
+
+    with caplog.at_level(logging.DEBUG, logger="etlrelay.sources.sql"):
+        batches = list(source.read())
+
+    messages = [
+        record.message for record in caplog.records if record.name == "etlrelay.sources.sql"
+    ]
+
+    assert messages == ["SQL source read completed (1 rows)."]
+    assert batches[0].table.to_pylist() == [{"value": secret}]
+    assert secret not in caplog.text
+    assert "SELECT :secret" not in caplog.text
+
+
+def test_read_failure_does_not_log_query_or_parameters(
+    sqlite_engine: Engine,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Propagate SQL errors without logging statements or bound values."""
+    secret = "private-query-parameter"
+
+    source = SqlSource(
+        sqlite_engine,
+        "SELECT :secret FROM missing_table",
+        parameters={"secret": secret},
+    )
+
+    with caplog.at_level(logging.DEBUG, logger="etlrelay.sources.sql"):
+        with pytest.raises(SQLAlchemyError):
+            source.read()
+
+    messages = [
+        record.message for record in caplog.records if record.name == "etlrelay.sources.sql"
+    ]
+
+    assert messages == []
+    assert secret not in caplog.text
+    assert "missing_table" not in caplog.text

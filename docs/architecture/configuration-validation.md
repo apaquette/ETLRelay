@@ -2,9 +2,19 @@
 
 ## Purpose
 
-ETLRelay 0.6.0 validates a versioned mapping-shaped configuration before runtime components are constructed. Validation uses explicit component registrations and component-specific validators; it does not use dynamic discovery, reflection, arbitrary imports, or Python expression evaluation.
+ETLRelay validates schema-version-1 configuration before runtime
+components are constructed.
 
-The version-1 schema is specified in the [YAML Configuration reference](../configuration.md). This page documents how that contract is validated and how validation differs from construction and execution.
+Validation uses explicit component registrations and component-specific
+validators. It does not use dynamic component discovery, arbitrary Python
+imports, or Python expression evaluation.
+
+ETLRelay v0.8.0 retains the version-1 configuration schema while
+strengthening SQL connection-reference validation and documenting the
+limits of configuration preflight.
+
+See [YAML Configuration](../configuration.md) for the supported
+component and property contract.
 
 ## Validation layers
 
@@ -50,8 +60,12 @@ Leaf validators own their own property rules:
 
 - File source: required `path`, `format`, and nested `storage`; the format registry must support reading.
 - File sink: required `path`, `format`, and nested `storage`; the format registry must support writing.
-- SQL source: connection-variable name and query are non-empty strings; optional parameters are a mapping of string keys to scalar strings, numbers, Booleans, or `None`.
-- SQL sink: connection-variable name and table name are required non-empty strings; optional schema is a non-empty string.
+- SQL source: `connection_url_env` must be a valid environment-variable
+  identifier; `query` must be a nonempty string. Optional `parameters`
+  must map string keys to supported scalar values or `None`.
+- SQL sink: `connection_url_env` must be a valid environment-variable
+  identifier; `table_name` must be a nonempty string. Optional `schema`
+  must be a nonempty string.
 - Local storage: `type: local`; optional `base_path` must be a non-empty string when present.
 - `select_columns`: required list of unique strings.
 - `rename_columns`: required mapping with string keys and values; data-dependent source/final-name constraints remain at processing time.
@@ -68,6 +82,20 @@ File source/sink validators share the storage validator and tabular file-format 
 Configuration validation can check that a column list contains unique strings, but it cannot establish whether the source data contains those column names. It can check that a SQL query string and scalar parameters have supported types, but it does not execute the query. It can check a table-name string, but it does not connect to a database or verify that the destination table exists. Similarly, local path syntax/containment validation does not prove that the data file exists or is accessible.
 
 Environment-variable names are part of the configuration and can be checked for shape during schema validation. Whether a connection-variable name resolves to a non-empty value is checked by `PipelineBuilder`'s SQL preflight, before component factory construction and source/sink I/O.
+
+The SQL configuration validators check the syntax of
+`connection_url_env`, not the contents of the referenced environment
+variable.
+
+`PipelineBuilder` checks required variable presence and nonempty values
+during preflight before invoking component factories.
+
+Neither stage guarantees that the resolved connection URL is valid,
+that a database can be reached, or that the database account has
+permission to execute the configured operations.
+
+Actual query execution, destination column compatibility, and database
+constraints remain runtime responsibilities.
 
 ## Representative errors
 

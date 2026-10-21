@@ -1,20 +1,83 @@
 # YAML Configuration
 
-ETLRelay 0.6.0 supports declarative pipeline configuration using a versioned YAML document. Configuration schema version `1` exposes the built-in components only; it is not a general-purpose plugin system and does not permit arbitrary Python construction.
+ETLRelay v0.8.0 supports declarative pipelines using versioned YAML
+configuration. Schema version `1` defines a closed set of supported
+sources, processors, sinks, storage backends, and file formats.
+
+Configuration validation checks the documented schema and component
+properties. Pipeline construction performs additional component-registration
+resolution and SQL connection-reference preflight before invoking component
+factories.
+
+These checks detect supported configuration errors before execution,
+but they do not guarantee successful filesystem access, database operations,
+data processing, or output persistence.
+
+Configuration schema version `1` is independent of the ETLRelay package
+version and remains unchanged in v0.8.0.
 
 Use this page as the canonical reference for the schema. [Getting Started](getting-started.md) demonstrates how to load, build, and execute a configuration; the [configuration architecture pages](architecture/configuration-loading.md) explain the internal boundaries.
 
 ## Configuration lifecycle
 
-Configuration loading, validation, construction, and execution are separate stages:
+Configuration loading, schema validation, component construction, and
+pipeline execution are separate stages:
 
-1. `ConfigLoader` opens and parses the configuration document through `FileSystem` and `KeyValueReader` (`YamlReader` is the built-in implementation).
-2. `ConfigValidator` checks schema version 1 and delegates to the source, ordered processor-sequence, and sink validators. It raises `ConfigurationError` for schema failures.
-3. `PipelineBuilder` resolves the source, sink, and processor registrations, then preflights SQL environment-variable references.
-4. Only after component types and SQL references pass preflight does the builder invoke component factories and return a `Pipeline`.
-5. The caller runs the pipeline with `pipeline.run()` and closes the builder after execution to release SQL engines owned by the shared factory.
+1. `ConfigLoader` opens and parses the configuration document through
+   `FileSystem` and `KeyValueReader`. `YamlReader` is the built-in
+   configuration reader.
+2. `ConfigValidator` checks schema version `1`, required properties,
+   component types, and component-specific configuration rules.
+3. `PipelineBuilder` resolves the configured component registrations
+   and preflights SQL connection environment-variable references.
+4. After registration resolution and SQL preflight succeed, the builder
+   invokes component factories and returns a `Pipeline`.
+5. The caller executes the pipeline and closes the builder afterward
+   to release SQL engines owned by the shared factory.
 
-The configuration file itself must be opened to read it. Invalid schema and missing/empty SQL connection variables are rejected before source/sink data operations begin. This is not a guarantee against runtime file, query, database, schema, processor, or sink failures.
+The CLI exposes this workflow through `etlrelay validate` and
+`etlrelay run`, with distinct validation/construction and execution
+error reporting.
+
+### Preflight guarantees
+
+The supported validation and preflight checks establish that:
+
+- The YAML document satisfies the required parsing and root-shape rules.
+- The configuration uses schema version `1`.
+- Required configuration properties are present and have supported types.
+- Unsupported properties and component types are rejected.
+- Configured components resolve through explicit registrations.
+- SQL `connection_url_env` values are valid environment-variable names.
+- Referenced SQL connection environment variables are present and
+  nonempty during builder preflight.
+- Component factories are not invoked if registration resolution or
+  required SQL environment preflight fails.
+
+Schema validation does not execute source queries, process records,
+write pipeline output, or verify the compatibility of actual data
+with the configured processors and destinations.
+
+### Preflight limitations
+
+Successful configuration validation does not establish that:
+
+- Input files exist, are accessible, or contain valid data.
+- Output paths are writable or have sufficient available storage.
+- SQL connection URLs represent reachable databases.
+- Database credentials have the necessary permissions.
+- SQL queries are valid, authorized, or guaranteed to succeed.
+- Destination tables exist or accept the processed data.
+- Processors will accept every batch encountered during execution.
+- Different batches will have compatible Arrow schemas.
+- Execution will be atomic or recover automatically from failures.
+
+The configuration document itself must be read during validation.
+Pipeline construction may allocate resources for configured components.
+
+`etlrelay validate` checks the configured pipeline without executing
+its data-processing run. It is not a comprehensive runtime-readiness
+or security assessment.
 
 ## Root schema
 
@@ -72,7 +135,7 @@ Source and sink formats are selected independently, so all four file-to-file com
 | Property | Required | Type | Meaning |
 |---|---:|---|---|
 | `type` | Yes | string: `sql` | Selects `SqlSource`. |
-| `connection_url_env` | Yes | non-empty string | Name of an environment variable containing the SQLAlchemy connection URL. |
+| `connection_url_env` | Yes | valid environment-variable identifier | Name of an environment variable containing a SQLAlchemy connection URL; literal URLs are not accepted in this field. |URL. |
 | `query` | Yes | non-empty string | Caller-authored SQL query. Use named bind parameters for query values. |
 | `parameters` | No | mapping | Named bind-parameter values. Keys must be strings; values may be strings, integers, floats, Booleans, or `null`. |
 
@@ -94,13 +157,26 @@ source:
 | Property | Required | Type | Meaning |
 |---|---:|---|---|
 | `type` | Yes | string: `sql` | Selects `SqlSink`. |
-| `connection_url_env` | Yes | non-empty string | Name of an environment variable containing the SQLAlchemy connection URL. |
+| `connection_url_env` | Yes | valid environment-variable identifier | Name of an environment variable containing a SQLAlchemy connection URL; literal URLs are not accepted in this field. |
 | `table_name` | Yes | non-empty string | Existing destination table to append rows to. |
 | `schema` | No | non-empty string | Optional database schema name. |
 
 The destination table must already exist and accept the processed batch columns. The sink does not create, truncate, replace, or migrate tables. Each non-empty batch is written in its own transaction; a later failure does not roll back earlier committed batches. SQLite is the reference integration-test backend. Other SQLAlchemy dialects require their relevant drivers and independent verification.
 
 SQL source and sink components can use the same environment-variable name or different names.
+
+The configuration validator rejects `connection_url_env` values that
+do not have valid environment-variable identifier syntax. It does not
+interpret arbitrary strings or literal SQLAlchemy connection URLs as
+environment-variable references.
+
+`PipelineBuilder` checks that each required variable resolves to a
+nonempty value before invoking component factories. It does not
+validate the contents of the resolved URL, establish a database
+connection as part of preflight, or verify database authorization.
+
+Connection values must be supplied securely by the application's
+execution environment.
 
 ## Processor definitions
 
@@ -152,6 +228,52 @@ The configured source and sink are independently selected from the supported for
 | SQL | SQL | Supported. Target table must exist and accept the output columns; source and sink may use same or separate connection variables. |
 
 These are supported combinations, not a guarantee that arbitrary queries, schemas, paths, values, or destination tables will work. Runtime checks and external system errors still apply.
+
+## Operational semantics
+
+The configuration schema determines which components can be constructed. Runtime behavior follows the contracts of `Pipeline` and the selected source, processor, sink, and format implementations.
+
+### Empty sources and zero-row batches
+
+A source that produces no batches causes the pipeline to finish without invoking its sink.
+
+A zero-row batch is different: it passes through the configured processors and participates in pipeline output-schema validation. If processing succeeds, it is delivered to the sink.
+
+The concrete sink or writer determines how such a batch is persisted.
+
+- `CsvWriter` can write a CSV header for a schema-bearing zero-row batch.
+- `ParquetWriter` can write a valid zero-row Parquet file. A directly supplied empty iterable raises `WriterError` because no output schema can be established.
+- `SqlSink` skips zero-row batches before opening a transaction or validating destination columns.
+
+### Output schema compatibility
+
+The first processed batch establishes the expected pipeline output schema, including when it contains zero rows.
+
+Subsequent processed batches must have matching field names, field order, Arrow types, and nullability. Schema metadata differences are ignored.
+
+An incompatible batch raises `ValueError` before being passed to the sink. ETLRelay does not automatically cast values, reorder fields, or reconcile incompatible schemas.
+
+### Output files and transactions
+
+Local file output uses truncating write mode. An existing output file is truncated when it is opened for writing, and a failed operation may leave an empty or partially written file.
+
+An entirely empty pipeline source does not invoke the sink, so it does not truncate an existing output file through `FileSink`.
+
+SQL output is append-only. Each nonempty batch is written in its own transaction. A failed transaction is rolled back according to the database and SQLAlchemy transaction behavior, but previously committed batches remain committed.
+
+ETLRelay does not provide atomic file replacement, pipeline-wide transactions, automatic retries, or rollback of all previously written output.
+
+### Resource cleanup
+
+File streams acquired by `FileSource` and `FileSink` are closed when their operations complete or fail.
+
+`Pipeline` attempts to close active processing and source iterators on termination when they expose callable `close()` methods.
+
+Configuration-built pipelines use a shared `SqlEngineFactory` managed by `PipelineBuilder`. The caller must close the builder after execution, including when execution raises an exception.
+
+Direct Python SQL components borrow their supplied engines; the application retains responsibility for disposing of those engines.
+
+For detailed contracts, see [Pipeline](architecture/pipeline.md), [File Sink](architecture/file_sink.md), [Reader and Writer](architecture/reader_and_writer.md), and [SQL Source and Sink](architecture/sql_source_and_sink.md).
 
 ## Complete runnable examples
 

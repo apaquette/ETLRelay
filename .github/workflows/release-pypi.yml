@@ -82,9 +82,21 @@ jobs:
           echo "already_published=false" >> "$GITHUB_OUTPUT"
           echo "Version ${PACKAGE_VERSION} is not on PyPI; running release checks."
 
+      - name: Verify dependency lockfile
+        if: steps.pypi-check.outputs.already_published == 'false'
+        run: uv lock --check
+
+      - name: Audit dependencies
+        if: steps.pypi-check.outputs.already_published == 'false'
+        run: uv audit --locked --preview-features audit-command
+
       - name: Install locked project and development dependencies
         if: steps.pypi-check.outputs.already_published == 'false'
         run: uv sync --locked --all-groups
+
+      - name: Verify installed dependency consistency
+        if: steps.pypi-check.outputs.already_published == 'false'
+        run: uv pip check --python .venv/bin/python
 
       - name: Run tests with branch coverage
         if: steps.pypi-check.outputs.already_published == 'false'
@@ -112,13 +124,24 @@ jobs:
         if: steps.pypi-check.outputs.already_published == 'false'
         run: uv run mkdocs build --strict
 
-      - name: Build source distribution and wheel
+      - name: Verify installed dependency consistency
         if: steps.pypi-check.outputs.already_published == 'false'
-        run: uv build
+        run: uv pip check --python .venv/bin/python
 
       - name: Validate distribution metadata
         if: steps.pypi-check.outputs.already_published == 'false'
         run: uvx --from 'twine>=7,<8' twine check dist/*
+
+      - name: Verify distribution contents
+        if: steps.pypi-check.outputs.already_published == 'false'
+        run: uv run python tests/packaging/check_distributions.py
+
+      - name: Verify installed release wheel
+        if: steps.pypi-check.outputs.already_published == 'false'
+        run: >-
+          uv run --no-project
+          --python 3.12
+          python tests/packaging/smoke_compatibility.py dist
 
       - name: Upload built distributions
         if: steps.pypi-check.outputs.already_published == 'false'

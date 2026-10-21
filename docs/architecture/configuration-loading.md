@@ -2,7 +2,19 @@
 
 ## Purpose
 
-ETLRelay 0.6.0 separates configuration-document parsing, schema validation, runtime component construction, and pipeline execution. The loader and validator stop at a validated mapping; the builder converts that mapping into runtime components only after resolving registrations and preflighting SQL environment references.
+ETLRelay separates configuration-document parsing, schema validation,
+component construction, and pipeline execution.
+
+`ConfigLoader` and `ConfigValidator` establish the configuration contract.
+`PipelineBuilder` resolves explicit component registrations, preflights
+required SQL environment-variable references, and constructs runtime
+components.
+
+The pipeline executes only when the caller invokes `Pipeline.run()`.
+
+These responsibilities are shared by the direct Python APIs and the
+`etlrelay` CLI. Schema version `1` remains the supported configuration
+format in ETLRelay v0.8.0.
 
 ## End-to-end boundary
 
@@ -70,9 +82,25 @@ A future document format does not need to be part of the tabular `TabularFileFor
 
 ## Scope
 
-The implementation intentionally has no CLI, arbitrary dynamic imports, expression evaluation, automatic plugin discovery, configuration inheritance, templating, or JSON reader. The v0.6.0 public workflow is the YAML loader/validator, the shared default component catalog, and `PipelineBuilder`, with the CLI remaining a roadmap item.
+The supported configuration workflow includes YAML loading, schema
+validation, explicit component registration, SQL connection-reference
+preflight, runtime pipeline construction, and execution through the
+Python API or CLI.
 
-See [YAML Configuration](../configuration.md), [Configuration Validation Architecture](configuration-validation.md), and [Component Registry Architecture](component-registry.md).
+The implementation does not support arbitrary dynamic imports,
+unrestricted Python expression evaluation, automatic plugin discovery,
+configuration inheritance, templating, or JSON configuration loading.
+
+The configuration schema does not provide scheduling, distributed
+execution, or a general-purpose extension system.
+
+Preflight guarantees apply to registration resolution and the required
+SQL environment-variable references. They do not establish runtime
+filesystem availability, database connectivity, SQL authorization,
+input-data compatibility, or successful output persistence.
+
+For CLI behavior and exit codes, see the
+[CLI Reference](../cli-reference.md).
 
 ## Class diagram: loading, validation, building, and execution
 

@@ -1,5 +1,6 @@
 """Integration tests for the SQL sink."""
 
+import logging
 from collections.abc import Iterator
 from pathlib import Path
 from typing import Any
@@ -279,4 +280,203 @@ def test_write_targets_configured_schema() -> None:
         ]
     finally:
         event.remove(engine, "connect", attach_archive)
+        engine.dispose()
+
+
+def test_write_does_not_execute_sql_embedded_in_table_name(
+    sqlite_engine: Engine,
+) -> None:
+    """Treat SQL-looking table names as identifiers, not SQL statements."""
+    sink = SqlSink(
+        sqlite_engine,
+        "customers; DROP TABLE customers; --",
+    )
+
+    batch = make_batch([{"id": 2, "name": "Alice", "score": 9.5}])
+
+    with pytest.raises(NoSuchTableError):
+        sink.write([batch])
+
+    assert read_customers(sqlite_engine) == [
+        {"id": 1, "name": "Existing", "score": 1.5},
+    ]
+
+
+def test_write_treats_sql_looking_values_as_data(
+    sqlite_engine: Engine,
+) -> None:
+    """Insert SQL-looking strings without interpreting them as SQL."""
+    malicious_looking_value = "Alice'); DROP TABLE customers; --"
+
+    sink = SqlSink(sqlite_engine, "customers")
+
+    sink.write(
+        [
+            make_batch(
+                [
+                    {
+                        "id": 2,
+                        "name": malicious_looking_value,
+                        "score": 9.5,
+                    }
+                ]
+            )
+        ]
+    )
+
+    assert read_customers(sqlite_engine) == [
+        {"id": 1, "name": "Existing", "score": 1.5},
+        {
+            "id": 2,
+            "name": malicious_looking_value,
+            "score": 9.5,
+        },
+    ]
+
+
+def test_write_supports_identifiers_requiring_quoting(
+    sqlite_engine: Engine,
+) -> None:
+    """Write to tables and columns whose identifiers require quoting."""
+    metadata = MetaData()
+
+    records = Table(
+        "customer records",
+        metadata,
+        Column("record id", Integer, primary_key=True),
+        Column("display name", String, nullable=False),
+    )
+
+    metadata.create_all(sqlite_engine)
+
+    sink = SqlSink(sqlite_engine, "customer records")
+
+    sink.write(
+        [
+            make_batch(
+                [
+                    {
+                        "record id": 1,
+                        "display name": "Alice",
+                    }
+                ]
+            )
+        ]
+    )
+
+    with sqlite_engine.connect() as connection:
+        rows = [dict(row) for row in connection.execute(select(records)).mappings()]
+
+    assert rows == [
+        {"record id": 1, "display name": "Alice"},
+    ]
+
+
+def test_write_logs_committed_batches_without_record_values(
+    sqlite_engine: Engine,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Log successful commits without exposing batch contents."""
+    secret = "private-customer-value"
+
+    sink = SqlSink(sqlite_engine, "customers")
+
+    with caplog.at_level(logging.DEBUG, logger="etlrelay.sinks.sql"):
+        sink.write(
+            [
+                make_batch(
+                    [
+                        {
+                            "id": 2,
+                            "name": secret,
+                            "score": 9.5,
+                        },
+                        {
+                            "id": 3,
+                            "name": "Another customer",
+                            "score": 7.0,
+                        },
+                    ]
+                )
+            ]
+        )
+
+    messages = [record.message for record in caplog.records if record.name == "etlrelay.sinks.sql"]
+
+    assert messages == ["SQL sink committed batch (2 rows)."]
+    assert secret not in caplog.text
+
+    assert len(read_customers(sqlite_engine)) == 3
+
+
+def test_write_logs_only_successfully_committed_batches(
+    sqlite_engine: Engine,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Do not log a successful commit for a rolled-back batch."""
+    sink = SqlSink(sqlite_engine, "customers")
+
+    first_batch = make_batch([{"id": 2, "name": "Committed", "score": 2.0}])
+    second_batch = make_batch(
+        [
+            {"id": 3, "name": "Rolled back", "score": 3.0},
+            {"id": 1, "name": "Duplicate ID", "score": 4.0},
+        ]
+    )
+
+    with caplog.at_level(logging.DEBUG, logger="etlrelay.sinks.sql"):
+        with pytest.raises(IntegrityError):
+            sink.write([first_batch, second_batch])
+
+    messages = [record.message for record in caplog.records if record.name == "etlrelay.sinks.sql"]
+
+    assert messages == ["SQL sink committed batch (1 rows)."]
+
+    assert read_customers(sqlite_engine) == [
+        {"id": 1, "name": "Existing", "score": 1.5},
+        {"id": 2, "name": "Committed", "score": 2.0},
+    ]
+
+
+def test_sql_sink_rolls_back_failed_batch_but_preserves_prior_commit() -> None:
+    """Rollback applies to the failed batch, not earlier committed batches."""
+    engine = create_engine("sqlite+pysqlite:///:memory:")
+
+    try:
+        with engine.begin() as connection:
+            connection.execute(
+                text("CREATE TABLE records (id INTEGER PRIMARY KEY, name TEXT NOT NULL)")
+            )
+
+        first_batch = Batch(
+            table=pa.table(
+                {
+                    "id": [1],
+                    "name": ["first"],
+                }
+            )
+        )
+
+        failing_batch = Batch(
+            table=pa.table(
+                {
+                    "id": [2, 1],
+                    "name": ["second", "duplicate"],
+                }
+            )
+        )
+
+        sink = SqlSink(engine, "records")
+
+        with pytest.raises(IntegrityError):
+            sink.write([first_batch, failing_batch])
+
+        # The borrowed engine is still usable after the failure.
+        with engine.connect() as connection:
+            rows = connection.execute(text("SELECT id, name FROM records ORDER BY id")).all()
+
+        assert rows == [(1, "first")]
+
+    finally:
+        # The test owns the engine and is responsible for disposing of it.
         engine.dispose()

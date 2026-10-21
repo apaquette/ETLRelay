@@ -6,6 +6,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: testpypi-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   build:
     name: verify and build
@@ -38,12 +42,11 @@ jobs:
         shell: bash
         run: |
           python - <<'PY' >> "$GITHUB_OUTPUT"
-          import os
           import re
           import tomllib
           from pathlib import Path
 
-          project = tomllib.loads(Path("pyproject.toml").read_text())["project"]
+          project = tomllib.loads(Path("pyproject.toml").read_text(encoding="utf-8"))["project"]
           distribution = re.sub(r"[-_.]+", "-", project["name"]).lower()
           if distribution != "etlrelay":
               raise SystemExit(f"Expected distribution name 'etlrelay', got {project['name']!r}")
@@ -51,8 +54,34 @@ jobs:
           print(f"distribution={distribution}")
           PY
 
+      - name: Require an unpublished TestPyPI version
+        env:
+          PACKAGE_VERSION: ${{ steps.metadata.outputs.version }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          status="$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' \
+            "https://test.pypi.org/pypi/etlrelay/${PACKAGE_VERSION}/json")"
+          case "$status" in
+            404) echo "ETLRelay ${PACKAGE_VERSION} is not published to TestPyPI." ;;
+            200) echo "ETLRelay ${PACKAGE_VERSION} already exists on TestPyPI; use a new version." >&2; exit 1 ;;
+            *) echo "TestPyPI lookup returned HTTP ${status}." >&2; exit 1 ;;
+          esac
+
+      - name: Verify dependency lockfile
+        run: uv lock --check
+
+      - name: Audit dependencies
+        run: uv audit --locked --preview-features audit-command
+
       - name: Install locked project and development dependencies
         run: uv sync --locked --all-groups
+
+      - name: Verify installed dependency consistency
+        run: uv pip check --python .venv/bin/python
+
+      - name: Build documentation
+        run: uv run mkdocs build --strict
 
       - name: Run tests with branch coverage
         run: >-
@@ -72,16 +101,23 @@ jobs:
       - name: Check types
         run: uv run pyright
 
-      - name: Build documentation
-        run: uv run mkdocs build --strict
-
       - name: Build source distribution and wheel
-        run: uv build
+        run: |
+          rm -rf dist
+          uv build
 
       - name: Validate distribution metadata
         run: uvx --from 'twine>=7,<8' twine check dist/*
 
-      - name: Upload built distributions
+      - name: Verify distribution contents
+        run: uv run python tests/packaging/check_distributions.py
+
+      - name: Smoke-test built wheel outside checkout
+        run: >-
+          uv run --no-project --python 3.12
+          python tests/packaging/smoke_compatibility.py dist
+
+      - name: Upload verified distributions
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: testpypi-distributions
@@ -99,7 +135,7 @@ jobs:
     permissions:
       id-token: write
     steps:
-      - name: Download built distributions
+      - name: Download verified distributions
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: testpypi-distributions
@@ -126,20 +162,23 @@ jobs:
       - name: Install Python
         run: uv python install 3.12
 
-      - name: Export runtime dependencies without the checkout package
+      - name: Export locked runtime dependencies, excluding ETLRelay itself
         run: >-
-          uv export
+          uv export --locked
           --no-dev
           --no-default-groups
           --no-emit-project
           --format requirements.txt
-          --output-file /tmp/etlrelay-runtime-requirements.txt
+          --output-file ${{ runner.temp }}/etlrelay-runtime-requirements.txt
 
-      - name: Create a clean environment and install runtime dependencies
+      - name: Create clean environment and install runtime dependencies
+        shell: bash
         run: |
-          uv venv --python 3.12 /tmp/etlrelay-smoke
-          uv pip install --python /tmp/etlrelay-smoke/bin/python \
-            -r /tmp/etlrelay-runtime-requirements.txt
+          set -euo pipefail
+          venv="${RUNNER_TEMP}/etlrelay-testpypi-smoke/venv"
+          uv venv --python 3.12 "$venv"
+          uv pip install --python "$venv/bin/python" \
+            -r "${RUNNER_TEMP}/etlrelay-runtime-requirements.txt"
 
       - name: Wait for TestPyPI to index the release
         env:
@@ -162,15 +201,89 @@ jobs:
       - name: Install the published TestPyPI distribution
         env:
           PACKAGE_VERSION: ${{ needs.build.outputs.version }}
-        run: >-
-          uv pip install
-          --python /tmp/etlrelay-smoke/bin/python
-          --index-url https://test.pypi.org/simple/
-          --no-deps
-          "etlrelay==${PACKAGE_VERSION}"
-
-      - name: Smoke-test installed package outside the repository
+        shell: bash
         run: |
-          cd /tmp
-          /tmp/etlrelay-smoke/bin/python -c \
-            "from etlrelay.core import Batch; from etlrelay.pipeline import Pipeline; print('ETLRelay installed-package imports succeeded')"
+          set -euo pipefail
+          python="${RUNNER_TEMP}/etlrelay-testpypi-smoke/venv/bin/python"
+          uv pip install --no-cache \
+            --python "$python" \
+            --index-url https://test.pypi.org/simple/ \
+            --no-deps \
+            "etlrelay==${PACKAGE_VERSION}"
+          uv pip check --python "$python"
+
+      - name: Smoke-test the published package outside checkout
+        env:
+          PACKAGE_VERSION: ${{ needs.build.outputs.version }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          work_dir="${RUNNER_TEMP}/etlrelay-testpypi-smoke/work"
+          python="${RUNNER_TEMP}/etlrelay-testpypi-smoke/venv/bin/python"
+          cli="${RUNNER_TEMP}/etlrelay-testpypi-smoke/venv/bin/etlrelay"
+          mkdir -p "$work_dir"
+          cd "$work_dir"
+          unset PYTHONPATH PYTHONHOME
+          export PYTHONNOUSERSITE=1
+
+          "$python" -I - "$PACKAGE_VERSION" <<'PY'
+          import os
+          import sys
+          from importlib.metadata import version
+          from pathlib import Path
+          import etlrelay
+
+          package_path = Path(etlrelay.__file__).resolve()
+          venv_path = Path(sys.prefix).resolve()
+          checkout_path = Path(os.environ["GITHUB_WORKSPACE"]).resolve()
+          assert package_path.is_relative_to(venv_path), package_path
+          assert not package_path.is_relative_to(checkout_path), package_path
+          assert version("etlrelay") == sys.argv[1]
+          print(f"TestPyPI package: {package_path}")
+          PY
+
+          test "$("$cli" version)" = "etlrelay ${PACKAGE_VERSION}"
+          "$cli" --help > help.txt
+          grep -Fq 'run' help.txt
+          grep -Fq 'validate' help.txt
+          grep -Fq 'version' help.txt
+
+          cat > input.csv <<'CSV'
+          id,amount,state
+          1,10,ready
+          CSV
+
+          cat > pipeline.yml <<'YAML'
+          version: 1
+          source:
+            type: file
+            path: input.csv
+            format: csv
+            storage:
+              type: local
+              base_path: .
+          processors:
+            - type: select_columns
+              columns: [id, amount]
+          sink:
+            type: file
+            path: output.csv
+            format: csv
+            storage:
+              type: local
+              base_path: .
+          YAML
+
+          "$cli" validate pipeline.yml
+          test ! -e output.csv
+          "$cli" run pipeline.yml
+
+          "$python" - <<'PY'
+          import csv
+          from pathlib import Path
+
+          with Path("output.csv").open(encoding="utf-8", newline="") as output:
+              rows = list(csv.reader(output))
+          assert rows == [["id", "amount"], ["1", "10"]], rows
+          print("Published TestPyPI CLI and CSV pipeline smoke test passed.")
+          PY

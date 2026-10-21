@@ -1,5 +1,6 @@
 """Command-line interface for validating and executing ETLRelay pipelines."""
 
+import logging
 from collections.abc import Callable
 from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
@@ -18,7 +19,16 @@ from etlrelay.readers import YamlReader
 from etlrelay.security import PathValidationError, PathValidator
 from etlrelay.storage import FileSystemError, LocalFileSystem
 
+logger = logging.getLogger(__name__)
+
 _HELP_CONTEXT_SETTINGS = {"help_option_names": ["-h", "--help"]}
+_LOG_LEVELS = {
+    "DEBUG": logging.DEBUG,
+    "INFO": logging.INFO,
+    "WARNING": logging.WARNING,
+    "ERROR": logging.ERROR,
+    "CRITICAL": logging.CRITICAL,
+}
 
 app = typer.Typer(
     add_completion=False,
@@ -238,7 +248,11 @@ class CliApplication:
                 ),
             )
 
-        except Exception:
+        except Exception as error:
+            logger.error(
+                "Configuration loading failed unexpectedly (%s).",
+                type(error).__name__,
+            )
             typer.echo(unexpected_error_message, err=True)
             raise typer.Exit(code=1) from None
 
@@ -314,7 +328,11 @@ class CliApplication:
             except PipelineBuildError as error:
                 build_error = error
 
-            except Exception:
+            except Exception as error:
+                logger.error(
+                    "Pipeline construction failed unexpectedly (%s).",
+                    type(error).__name__,
+                )
                 unexpected_build_failure = True
 
             if execution_pipeline is not None:
@@ -327,8 +345,12 @@ class CliApplication:
             if builder is not None:
                 try:
                     builder.close()
-                except Exception:
+                except Exception as error:
                     cleanup_failed = True
+                    logger.warning(
+                        "Pipeline resource cleanup failed (%s).",
+                        type(error).__name__,
+                    )
 
         # Report failures after cleanup to avoid masking the primary error.
         if build_error is not None:
@@ -408,18 +430,67 @@ def _create_application() -> CliApplication:
     )
 
 
-# Typer adapters. Keep these functions minimal; command logic belongs to the
-# application class.
+def _configure_cli_logging(ctx: typer.Context, log_level: str) -> None:
+    """Configure ETLRelay logging for the duration of a CLI invocation.
+
+    Logging is written to stderr and restricted to the ETLRelay logger
+    hierarchy. Previous logger settings are restored when the root
+    command context closes.
+
+    Args:
+        ctx: Root Typer context controlling the logging lifecycle.
+        log_level: Requested logging level, case-insensitive.
+
+    Raises:
+        typer.BadParameter: If the requested level is unsupported.
+    """
+    level_name = log_level.upper()
+
+    if level_name not in _LOG_LEVELS:
+        raise typer.BadParameter(
+            "Must be one of: debug, info, warning, error, critical.",
+            param_hint="--log-level",
+        )
+
+    package_logger = logging.getLogger("etlrelay")
+
+    previous_level = package_logger.level
+    previous_propagate = package_logger.propagate
+
+    handler = logging.StreamHandler()
+    handler.setFormatter(logging.Formatter("%(levelname)s %(name)s: %(message)s"))
+
+    package_logger.setLevel(_LOG_LEVELS[level_name])
+    package_logger.propagate = False
+    package_logger.addHandler(handler)
+
+    def restore_logging() -> None:
+        package_logger.removeHandler(handler)
+        handler.close()
+        package_logger.setLevel(previous_level)
+        package_logger.propagate = previous_propagate
+
+    ctx.call_on_close(restore_logging)
+
+
 @app.callback()
-def _root_callback(ctx: typer.Context) -> None:
-    """Show root help when no command is supplied.
+def _root_callback(
+    ctx: typer.Context,
+    log_level: Annotated[
+        str,
+        typer.Option(
+            "--log-level",
+            help="Logging verbosity: debug, info, warning, error, or critical.",
+        ),
+    ] = "warning",
+) -> None:
+    """Configure logging and display root help when appropriate.
 
     Args:
         ctx: Typer context for the root command.
-
-    Raises:
-        typer.Exit: With exit code 0 when no subcommand was invoked.
+        log_level: Minimum severity of ETLRelay log messages.
     """
+    _configure_cli_logging(ctx, log_level)
     _create_application().root_callback(ctx)
 
 

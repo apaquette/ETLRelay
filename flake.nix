@@ -1,3 +1,4 @@
+
 {
   description = "Development environment for the ETLRelay ETL project";
 
@@ -21,17 +22,28 @@
         {
           default = pkgs.mkShell {
             packages = [
+              # Supported Python versions.
               pkgs.python312
+              pkgs.python313
+              pkgs.python314
+
+              # Development tooling
               pkgs.uv
               pkgs.git
+              pkgs.ripgrep
+              pkgs.nodejs
               pkgs.ruff
               pkgs.pyright
+
               fix-python.packages.${system}.default
             ];
 
             env = {
               UV_PYTHON_PREFERENCE = "only-system";
               UV_PYTHON_DOWNLOADS = "never";
+
+              # Use Nix-provided Node.js instead of Pyright's downloaded nodeenv binary.
+              PYRIGHT_PYTHON_GLOBAL_NODE = "on";
             };
 
             LD_LIBRARY_PATH = pkgs.lib.makeLibraryPath [
@@ -40,7 +52,7 @@
 
             shellHook = ''
               if [ ! -x "$PWD/.venv/bin/python" ]; then
-                python -m venv "$PWD/.venv" --copies
+                ${pkgs.python312}/bin/python -m venv "$PWD/.venv" --copies
               fi
 
               export VIRTUAL_ENV="$PWD/.venv"
@@ -50,6 +62,7 @@
 
               echo "ETLRelay development environment"
               echo "Python: $(python --version)"
+              echo "Node.js: $(node --version)"
               echo "uv:     $(uv --version)"
               echo "Ruff:   $(ruff --version)"
               echo "Pyright: $(pyright --version)"

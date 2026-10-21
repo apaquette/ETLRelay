@@ -1,6 +1,20 @@
 # CI and Release Automation
 
-This document describes the ETLRelay branch and publishing workflow. Run release checks against the exact code and artifacts intended for publication; results from a previous release do not establish that the current release is valid.
+ETLRelay uses GitHub Actions to verify changes, build and validate
+distributions, publish releases to PyPI, and deploy versioned
+documentation.
+
+The CI workflow verifies dependency integrity, package metadata,
+distribution contents, installed CLI behavior, and compatibility with
+the supported Python versions and selected operating systems.
+
+The production release workflow publishes a new version from `main`
+when publishing is enabled and that exact version has not already
+been released to PyPI.
+
+ETLRelay v0.8.0 retains the existing branch and publication strategy.
+The release-readiness checks verify the built distribution rather than
+relying solely on editable development installations.
 
 ## Branch strategy
 
@@ -10,14 +24,100 @@ This document describes the ETLRelay branch and publishing workflow. Run release
 - `main` is the production branch. A push to `main` triggers the PyPI release workflow when the release gate is enabled.
 - The release workflow publishes only when the version in `pyproject.toml` has not already been published to PyPI. Merging ordinary changes without a version bump therefore does not create a duplicate release.
 
-Before a release PR is merged:
+## Release candidate preparation
 
-1. Update `project.version` in `pyproject.toml` to the intended version.
-2. Update `CHANGELOG.md` and confirm release notes describe the actual shipped scope.
-3. Run the established test, lint, format, type, documentation, and packaging checks; ensure CI passes.
-4. Confirm the release version, Git tag, distribution name, and generated documentation version are correct.
+Before opening or merging a release pull request:
 
-A PyPI version cannot be overwritten. Every release that should publish must use a new version.
+1. Set `project.version` in `pyproject.toml` to the intended release version.
+2. Regenerate `uv.lock` and verify it with `uv lock --check`.
+3. Confirm the supported Python range and default development interpreter.
+4. Update `CHANGELOG.md` with the actual release changes.
+5. Update the README, documentation homepage, and versioned links.
+6. Run the dependency audit and installed dependency compatibility checks.
+7. Run the full tests, coverage, lint, formatting, type-checking,
+   and strict documentation build.
+8. Build a fresh wheel and source distribution.
+9. Validate the built artifacts using Twine and the distribution
+   verification script.
+10. Verify clean-environment installation, CLI behavior, and a
+    representative pipeline execution using the built wheel.
+11. Confirm the complete CI workflow and compatibility matrix pass.
+12. Review the changeset for unintended public API changes,
+    unsupported security claims, or out-of-scope refactoring.
+13. Complete the release checklist before promoting `dev` to `main`.
+
+A successful editable install does not satisfy the built-artifact
+verification requirement.
+
+PyPI versions cannot be overwritten. Release candidates must use an
+appropriate new version when a previously published artifact needs
+to be replaced.
+
+
+## Continuous integration
+
+The primary CI workflow is `.github/workflows/ci.yml`.
+
+### Quality job
+
+The primary quality job runs on Ubuntu with Python 3.12.
+
+It verifies:
+
+1. Dependency lockfile consistency using `uv lock --check`.
+2. Known dependency vulnerabilities and adverse package statuses using
+   `uv audit`.
+3. Installed dependency compatibility using `uv pip check`.
+4. The full pytest suite with statement and branch coverage.
+5. Ruff linting and formatting.
+6. Pyright static analysis.
+7. Strict MkDocs documentation builds.
+8. Wheel and source-distribution construction.
+9. Distribution metadata using Twine.
+10. Distribution contents through `tests/packaging/check_distributions.py`.
+11. Installed CLI behavior using a wheel installed into an independent
+    environment outside the repository checkout.
+
+The installed CLI verification includes version/help output, configuration
+validation, local CSV pipeline execution, exit codes, and selected
+sensitive-output regression checks.
+
+The quality job uploads the verified distribution artifacts for use by
+the compatibility matrix.
+
+### Installed-wheel compatibility
+
+The compatibility jobs download the same wheel built by the quality job.
+They do not rebuild the project separately.
+
+| Platform | Python |
+|---|---|
+| Ubuntu | 3.13 |
+| Ubuntu | 3.14 |
+| macOS | 3.12 |
+| Windows | 3.12 |
+
+Each compatibility job installs the wheel into a clean environment,
+checks dependency consistency and import isolation, and exercises the
+installed CLI and a minimal supported CSV pipeline.
+
+The full pytest suite runs in the primary quality job rather than
+being duplicated across every operating-system and Python combination.
+
+### Verification limitations
+
+The matrix does not test every possible operating-system, CPU
+architecture, Python-version, or database-driver combination.
+
+A successful dependency audit identifies no currently reported
+vulnerabilities covered by the audit; it does not guarantee the absence
+of undiscovered vulnerabilities.
+
+Distribution metadata checks confirm expected archive contents and
+declared metadata. Installed-wheel smoke tests independently verify
+that representative runtime functionality works without the
+repository checkout.
+
 
 ## Coverage requirement
 
@@ -72,18 +172,6 @@ For each index, configure the repository owner and repository name exactly. Conf
 
 Trusted Publishing uses GitHub's OIDC integration, so do not add a long-lived PyPI API token to GitHub secrets. The publish jobs deliberately have only `id-token: write`; build and test jobs do not receive it.
 
-## Historical first-release bootstrap
-
-The following procedure documents the initial `0.1.0` bootstrap and is retained as historical release-process context. It is not the workflow to repeat for v0.6.0.
-
-1. Set the repository Actions variable `PYPI_RELEASE_ENABLED` to `false` (or leave it unset).
-2. Merge the initial release candidate from `dev` into `main`, including CI/release workflow files. The production workflow is present but disabled, so the merge does not publish.
-3. Configure the TestPyPI Trusted Publisher and GitHub `testpypi` environment. Run **Publish to TestPyPI** with the selected branch set to `dev`, then wait for its smoke-test job to pass.
-4. Configure the PyPI Trusted Publisher and GitHub `pypi` environment. Review the successful TestPyPI run and release notes.
-5. Set `PYPI_RELEASE_ENABLED` to `true`, then manually run **Publish release to PyPI** with the selected branch set to `main`. This publishes the initial `0.1.0` and creates its matching GitHub tag/release. Leave the variable enabled for future releases.
-
-The variable is a one-time bootstrap gate, not a permanent manual release step. After the first verified release, every push to `main` can publish automatically when `pyproject.toml` contains a new version. Manual production workflow dispatch is restricted to `main`.
-
 ## Production publication behavior
 
 When `PYPI_RELEASE_ENABLED` is exactly `true`, every push to `main` runs `.github/workflows/release-pypi.yml`. It reads the project name/version and checks whether that exact version exists on PyPI.
@@ -99,7 +187,14 @@ The CI and release workflows both run checks intentionally: CI blocks unsafe mer
 For releases that change declarative configuration, include these documentation checks in the release review:
 
 - `docs/configuration.md` must match the implemented schema version, component registrations, validator behavior, and SQL environment preflight.
-- The runnable examples should load and build through `ConfigLoader`, `create_default_component_catalog()`, and `PipelineBuilder`; they must not rely on a CLI if no CLI is implemented.
+- Runnable examples must use supported ETLRelay interfaces and remain
+  consistent with the current release. Python configuration examples
+  should use `ConfigLoader`, `create_default_component_catalog()`, and
+  `PipelineBuilder` where appropriate. CLI examples should use the
+  supported `etlrelay validate` and `etlrelay run` commands.
+- Release verification must include the installed CLI smoke tests,
+  confirming that configuration validation and pipeline execution
+  work from a built distribution outside the repository checkout.
 - README, getting-started, API reference, configuration architecture, security, changelog, roadmap, and versioned documentation links must consistently reflect the intended release.
 - Run `uv run mkdocs build --strict` after documentation edits to check navigation, internal links, and generated API references.
 - Run the release workflow's clean-environment smoke test against the built wheel and source distribution; do not rely only on imports from the repository checkout.

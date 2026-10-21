@@ -1,16 +1,37 @@
 # API Reference
 
-This reference documents ETLRelay's Python API using public classes,
-interfaces, and their docstrings.
+This reference documents ETLRelay's public Python interfaces and
+implementations using their source-code docstrings.
 
-Configuration APIs introduced in ETLRelay 0.6.0 are grouped separately
-from the direct runtime component APIs. The command-line interface
-introduced in ETLRelay 0.7.0 is documented in the
-[CLI Reference](cli-reference.md).
+ETLRelay v0.8.0 retains the existing source, processor, sink, storage,
+configuration, and CLI interfaces while strengthening their documented
+security and operational contracts.
 
-The public API may evolve before the 1.0.0 release. Consult the
-configuration and architecture documentation for supported YAML
-properties, component combinations, and implementation boundaries.
+Important runtime behaviors include:
+
+- Local filesystem path containment and explicit stream ownership.
+- Lazy batch processing and deterministic cleanup of closeable pipeline
+  iterators.
+- Output-schema validation, including zero-row batches.
+- SQLAlchemy connection and result cleanup.
+- Per-batch SQL transactions and append-only persistence.
+- Configuration validation and SQL environment-variable preflight.
+- Exception propagation and controlled operational logging.
+
+The Python API generally preserves underlying runtime exceptions.
+The CLI provides separate error-reporting and exit-code conventions,
+documented in the [CLI Reference](cli-reference.md).
+
+Configuration schema version `1` remains supported and is independent
+of the ETLRelay package version.
+
+ETLRelay remains pre-1.0 software. Public interfaces may change before
+v1.0.0.
+
+Consult the [YAML Configuration](configuration.md),
+[Security](security.md), [Logging](logging.md), and
+[Architecture](architecture/overview.md) documentation for detailed
+usage contracts and limitations.
 
 ## Configuration loading and validation
 

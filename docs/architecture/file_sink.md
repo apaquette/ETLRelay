@@ -214,6 +214,16 @@ Exceptions are propagated rather than wrapped in a new `FileSink` exception hier
 
 For the current local filesystem implementation, opening a destination for writing uses binary write mode. An existing destination is therefore truncated, while a new destination is created if its parent directory exists and filesystem access is permitted. Parent directories are not created automatically.
 
+`FileSink` closes the stream returned by `FileSystem.open_write()` on
+successful completion and on serialization failure.
+
+With `LocalFileSystem`, opening an existing output truncates it
+immediately. A failure may leave an empty or partially written file;
+the previous contents are not restored.
+
+`FileSink` does not provide atomic replacement or rollback. It delegates
+empty-input behavior to its configured writer.
+
 ## SOLID Considerations
 
 ### Single Responsibility Principle

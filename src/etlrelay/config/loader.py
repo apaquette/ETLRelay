@@ -5,12 +5,15 @@ filesystem abstraction, parses them using a key-value reader, and validates
 the resulting configuration before returning it.
 """
 
+import logging
 from collections.abc import Mapping
 from typing import Any
 
 from etlrelay.config.validator import ConfigValidator
 from etlrelay.core.reader import KeyValueReader
 from etlrelay.storage.filesystem import FileSystem
+
+logger = logging.getLogger(__name__)
 
 
 class ConfigLoader:
@@ -61,8 +64,13 @@ class ConfigLoader:
             Exception: Any parsing or validation exception raised by the
                 configured reader or validator may propagate to the caller.
         """
+        logger.debug("Configuration loading started.")
+
         with self._filesystem.open_read(path) as stream:
             config = self._reader.read(stream)
 
         self._validator.validate(config)
+
+        logger.debug("Configuration validation completed.")
+
         return config

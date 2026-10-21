@@ -4,10 +4,13 @@ This module provides a source that reads data from a file using a
 filesystem abstraction and a reader implementation.
 """
 
+import logging
 from collections.abc import Iterable
 
 from etlrelay.core import Batch, Reader
 from etlrelay.storage import FileSystem
+
+logger = logging.getLogger(__name__)
 
 
 class FileSource:
@@ -52,6 +55,18 @@ class FileSource:
 
         Returns:
             An iterable of batches parsed by the configured reader.
+        Note:
+            FileSource owns the binary stream opened through FileSystem,
+            but does not own the FileSystem or Reader instances.
+
+            When consumed by Pipeline, the source iterator is explicitly
+            closed when pipeline execution terminates.
+
+            When consumed directly, callers stopping iteration early must
+            explicitly close the generator for deterministic stream cleanup.
         """
+        logger.debug("File source read started.")
+
         with self.storage.open_read(self.path) as stream:
             yield from self.reader.read(stream)
+        logger.debug("File source read completed.")

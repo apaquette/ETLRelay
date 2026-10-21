@@ -4,6 +4,80 @@ Notable changes to ETLRelay are documented here.
 
 This project follows the principles of [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and [Semantic Versioning](https://semver.org/).
 
+## [0.8.0] - 2026-10-20
+
+### Security
+
+- Strengthen and verify local filesystem path-containment behavior, including traversal and symbolic-link escape handling.
+- Clarify that path containment does not provide operating-system sandboxing or eliminate time-of-check/time-of-use races.
+- Strengthen SQL connection environment-variable validation and preflight contracts, rejecting literal connection URLs where environment-variable identifiers are required.
+- Standardize controlled operational logging and CLI error reporting to avoid routinely exposing SQL connection URLs, parameters, record contents, and sensitive exception messages.
+- Add regression coverage for sensitive-output handling during configuration and runtime failures.
+- Update the locked `certifi` dependency from `2026.7.22` to `2026.10.19` to address reported certificate-authority security advisories.
+
+### Reliability and Resource Lifecycle
+
+- Ensure `Pipeline.run()` attempts deterministic cleanup of active processing and source iterators on completion, early sink termination, and execution failure.
+- Preserve original execution exceptions when iterator cleanup also fails, reporting secondary cleanup failures through controlled warnings.
+- Verify file stream closure during normal execution and reader/writer failures while preserving caller ownership of borrowed streams.
+- Verify SQL connection and result cleanup and retain caller ownership of directly supplied SQLAlchemy engines.
+- Clarify the lifecycle of engines owned by the shared SQL engine factory for configuration-built pipelines.
+- Ensure successful SQL batch-commit logging occurs only after successful transaction completion.
+
+### Operational Contracts
+
+- Verify that entirely empty pipeline sources do not invoke sinks or modify existing output files.
+- Confirm that zero-row batches participate in pipeline schema validation.
+- Verify schema compatibility for field names, order, Arrow types, and nullability while permitting schema metadata differences.
+- Confirm CSV and Parquet empty-input behavior and SQL sink handling of zero-row batches.
+- Verify file overwrite and failure semantics, including truncation of existing output and potentially partial files after failed writes.
+- Confirm that SQL sink transactions are scoped to individual nonempty batches and that earlier committed batches are not rolled back by later failures.
+- Expand regression coverage for schema mismatches, failure propagation, and resource cleanup.
+
+### CI and Distribution Integrity
+
+- Add explicit dependency lockfile verification and known-vulnerability auditing to CI.
+- Add installed dependency consistency checks.
+- Verify built wheel and source-distribution metadata, package contents, runtime dependency declarations, and CLI entry points.
+- Strengthen installed-wheel import isolation and distribution-version verification.
+- Extend clean-environment installed CLI testing, including configuration validation and representative CSV pipeline execution.
+- Add a compatibility matrix covering Ubuntu, macOS, and Windows using the same built wheel.
+- Retain the full test and quality suite on Ubuntu with Python 3.12 without duplicating it across every compatibility target.
+
+### Compatibility and Development
+
+- Declare CPython `>=3.12,<3.15` as the supported interpreter range.
+- Verify installed-wheel operation on Python 3.13 and 3.14 in addition to the Python 3.12 baseline.
+- Establish Python 3.12 as the default development interpreter through `.python-version`.
+- Extend the Nix development environment with Python 3.13 and 3.14 for compatibility checks.
+- Provide Nix-managed Node.js for Pyright execution.
+- Confirm that Python 3.11 is not currently supported because the implementation uses Python 3.12-specific generic type syntax.
+
+### Documentation
+
+- Update security documentation to distinguish tested controls from operating-system and application responsibilities.
+- Clarify configuration validation, SQL environment-variable preflight, and their runtime limitations.
+- Document operational logging, error propagation, exception precedence, and redaction boundaries.
+- Document file and SQL resource ownership, empty-input handling, schema validation, transactions, and partial-write behavior.
+- Update the API reference and architecture documentation to match verified component contracts.
+- Expand development and release instructions to cover dependency integrity, distribution verification, and installed-wheel compatibility.
+- Update the README and documentation homepage for the v0.8.0 release.
+
+### Limitations
+
+- ETLRelay does not provide a complete filesystem sandbox, secrets vault, SQL authorization layer, or unrestricted execution environment for untrusted components.
+- File output does not provide atomic replacement or automatic restoration after failure.
+- SQL transactions operate per nonempty batch; pipeline-wide transactions, automatic retries, and rollback of earlier committed output are not supported.
+- Built-in error-reporting protections do not guarantee sanitization of all third-party exceptions or externally configured logs.
+- SQLite remains the reference SQL integration-test backend; other SQLAlchemy dialects require independent verification.
+- S3, HDFS, and other remote-storage integrations remain outside the planned v1.0.0 scope.
+
+### API and Configuration Compatibility
+
+- Retain YAML configuration schema version `1`.
+- Retain the existing CLI commands and primary Python component interfaces.
+- No new source, sink, storage backend, processor type, or configuration schema version is introduced by this release.
+
 ## [0.7.1] - 2026-10-20
 
 ### Documentation

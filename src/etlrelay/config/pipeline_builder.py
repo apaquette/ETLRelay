@@ -8,6 +8,7 @@ resolved and SQL environment preflight has succeeded.
 
 from __future__ import annotations
 
+import logging
 import os
 from collections.abc import Callable, Mapping
 from typing import Protocol, cast
@@ -16,6 +17,8 @@ from etlrelay.config.registry import ComponentRegistration, ComponentRegistry
 from etlrelay.config.sql_engine_factory import SqlEngineFactoryError
 from etlrelay.core import Processor, Sink, Source
 from etlrelay.pipeline import Pipeline
+
+logger = logging.getLogger(__name__)
 
 EnvironmentLookup = Callable[[str], str | None]
 
@@ -160,11 +163,16 @@ class PipelineBuilder:
                 self._resolve_registration(self._processor_registry, processor_config, path)
             )
 
+        logger.debug("Pipeline components resolved.")
+
         references = self._sql_environment_references(
             source_config=source_config,
             sink_config=sink_config,
         )
         self._preflight_sql_environment(references)
+
+        if references:
+            logger.debug("SQL connection preflight completed.")
 
         # No component factory is invoked until all types and SQL environment
         # references have passed preflight. If construction fails after a SQL
@@ -178,14 +186,20 @@ class PipelineBuilder:
                 )
             ]
             sink = sink_registration.factory.build(sink_config)
-            return Pipeline(source, processors, sink)
+            pipeline = Pipeline(source, processors, sink)
+
+            logger.debug("Pipeline construction completed.")
+
+            return pipeline
         except Exception:
             if references and self._sql_engine_factory is not None:
                 try:
                     self._sql_engine_factory.close()
-                except Exception:
-                    # Preserve the original construction failure.
-                    pass
+                except Exception as cleanup_error:
+                    logger.warning(
+                        "SQL resource cleanup failed during pipeline construction (%s).",
+                        type(cleanup_error).__name__,
+                    )
             raise
 
     def close(self) -> None:

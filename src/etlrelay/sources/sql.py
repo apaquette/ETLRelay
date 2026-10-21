@@ -1,5 +1,6 @@
 """SQL-backed data source."""
 
+import logging
 from collections import Counter
 from collections.abc import Iterable, Mapping, Sequence
 from typing import Any
@@ -9,6 +10,8 @@ from sqlalchemy import text
 from sqlalchemy.engine import Connection, Engine
 
 from etlrelay.core import Batch
+
+logger = logging.getLogger(__name__)
 
 
 class SqlSource:
@@ -53,14 +56,34 @@ class SqlSource:
         Raises:
             ValueError: If the query returns duplicate column names.
             SQLAlchemyError: If query execution fails.
+
+        Note:
+            FileSink owns and closes the stream returned by FileSystem.open_write().
+            It does not close or otherwise manage the supplied FileSystem or Writer
+            instances.
+
+            With LocalFileSystem, an existing destination is truncated when
+            opened for writing. If serialization fails, an empty or partially
+            written file may remain. Previous contents are not restored.
+
+            File writes are not atomic and are not rolled back.
+            Format-specific empty-input behavior is determined by the Writer.
         """
         with self._engine.connect() as connection:
             rows = self._fetch_rows(connection)
 
         if not rows:
+            logger.debug("SQL source read completed (0 rows).")
             return []
 
-        return [self._rows_to_batch(rows)]
+        batch = self._rows_to_batch(rows)
+
+        logger.debug(
+            "SQL source read completed (%d rows).",
+            len(rows),
+        )
+
+        return [batch]
 
     def _fetch_rows(
         self,
