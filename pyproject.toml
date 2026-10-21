@@ -7,7 +7,7 @@ name = "etlrelay"
 version = "0.7.1"
 description = "A lightweight, composable framework for building declarative ETL pipelines in Python."
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.12,<3.15"
 license = { text = "Apache-2.0" }
 authors = [
     { name = "Alex Paquette" }
