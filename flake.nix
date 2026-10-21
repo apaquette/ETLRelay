@@ -22,12 +22,18 @@
         {
           default = pkgs.mkShell {
             packages = [
+              # Supported Python versions.
               pkgs.python312
+              pkgs.python313
+              pkgs.python314
+
+              # Development tooling
               pkgs.uv
               pkgs.git
               pkgs.nodejs
               pkgs.ruff
               pkgs.pyright
+
               fix-python.packages.${system}.default
             ];
 
@@ -45,7 +51,7 @@
 
             shellHook = ''
               if [ ! -x "$PWD/.venv/bin/python" ]; then
-                python -m venv "$PWD/.venv" --copies
+                ${pkgs.python312}/bin/python -m venv "$PWD/.venv" --copies
               fi
 
               export VIRTUAL_ENV="$PWD/.venv"
