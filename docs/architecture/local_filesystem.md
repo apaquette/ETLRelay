@@ -34,23 +34,23 @@ classDiagram
     class FileSource {
         -path: str
         -storage: FileSystem
-        -reader: Reader
+        -reader: TabularReader
         +read() Iterable~Batch~
     }
 
     class FileSink {
         -path: str
         -storage: FileSystem
-        -writer: Writer
+        -writer: TabularWriter
         +write(batches: Iterable~Batch~) None
     }
 
-    class Reader {
+    class TabularReader {
         <<protocol>>
         +read(stream: BinaryIO) Iterable~Batch~
     }
 
-    class Writer {
+    class TabularWriter {
         <<protocol>>
         +write(batches: Iterable~Batch~, stream: BinaryIO) None
     }
@@ -61,8 +61,8 @@ classDiagram
     FileSource --> FileSystem : uses
     FileSink --> FileSystem : uses
 
-    FileSource --> Reader : uses
-    FileSink --> Writer : uses
+    FileSource --> TabularReader : uses
+    FileSink --> TabularWriter : uses
 ```
 
 ## Responsibilities
@@ -185,7 +185,7 @@ FileSource
     │       BinaryIO
     │          │
     │          ▼
-    └────── Reader.read(stream)
+    └────── TabularReader.read(stream)
                    │
                    ▼
              Iterable[Batch]
@@ -204,7 +204,7 @@ FileSink
     │       BinaryIO
     │          │
     │          ▼
-    └────── Writer.write(batches, stream)
+    └────── TabularWriter.write(batches, stream)
                    │
                    ▼
               Serialized data

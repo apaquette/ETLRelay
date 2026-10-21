@@ -13,6 +13,8 @@ nav:
   - API Reference: api-reference.md
   - Development:
       - Overview: development.md
+      - v1.0 scope: development/v1-scope.md
+      - API review: development/api-review.md
       - Release automation: development/release-automation.md
   - Roadmap: roadmap.md
   - Architecture:

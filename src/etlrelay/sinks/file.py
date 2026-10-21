@@ -18,13 +18,13 @@ class FileSink:
     """Write batches to a file resource using a storage backend and writer.
 
     FileSink obtains a writable binary stream from the supplied FileSystem
-    and passes the batches to the supplied Writer for serialization. It is
+    and passes the batches to the supplied TabularWriter for serialization. It is
     independent of the underlying storage implementation and file format.
 
     Args:
         path: Path identifying the output resource.
         storage: Storage implementation used to open the output stream.
-        writer: Writer used to serialize the batches.
+        writer: TabularWriter used to serialize the batches.
     """
 
     path: str
@@ -37,7 +37,7 @@ class FileSink:
         Args:
             path: Path identifying the output resource.
             storage: Storage implementation used to access the resource.
-            writer: Writer used to serialize batches.
+            writer: TabularWriter used to serialize batches.
         """
         self.path = path
         self.storage = storage
@@ -59,7 +59,7 @@ class FileSink:
             Exception: Any exception raised by the writer is propagated.
         Note:
             FileSink owns and closes the stream returned by FileSystem.open_write().
-            It does not close or otherwise manage the supplied FileSystem or Writer
+            It does not close or otherwise manage the supplied FileSystem or TabularWriter
             instances.
 
             With LocalFileSystem, an existing destination is truncated when
@@ -67,7 +67,7 @@ class FileSink:
             written file may remain. Previous contents are not restored.
 
             File writes are not atomic and are not rolled back.
-            Format-specific empty-input behavior is determined by the Writer.
+            Format-specific empty-input behavior is determined by the TabularWriter.
         """
         logger.debug("File sink write started.")
 

@@ -58,16 +58,11 @@ class SqlSource:
             SQLAlchemyError: If query execution fails.
 
         Note:
-            FileSink owns and closes the stream returned by FileSystem.open_write().
-            It does not close or otherwise manage the supplied FileSystem or Writer
-            instances.
-
-            With LocalFileSystem, an existing destination is truncated when
-            opened for writing. If serialization fails, an empty or partially
-            written file may remain. Previous contents are not restored.
-
-            File writes are not atomic and are not rolled back.
-            Format-specific empty-input behavior is determined by the Writer.
+            The query result and connection are closed after row retrieval,
+            including when retrieval fails. Arrow conversion occurs after
+            the connection is released and may raise Arrow conversion errors.
+            All rows are materialized in memory; this is not a streaming query.
+            The supplied engine remains owned by the caller and is not disposed.
         """
         with self._engine.connect() as connection:
             rows = self._fetch_rows(connection)

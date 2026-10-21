@@ -3,9 +3,10 @@
 This reference documents ETLRelay's public Python interfaces and
 implementations using their source-code docstrings.
 
-ETLRelay v0.8.0 retains the existing source, processor, sink, storage,
-configuration, and CLI interfaces while strengthening their documented
-security and operational contracts.
+The v0.9.0 API review retains the synchronous pipeline model and configuration
+schema version 1. Tabular stream protocols are now named `TabularReader` and
+`TabularWriter`; update imports of the former class names. See the
+[API review](development/api-review.md) for decisions and compatibility notes.
 
 Important runtime behaviors include:
 
@@ -79,9 +80,9 @@ usage contracts and limitations.
 
 ::: etlrelay.core.sink.Sink
 
-::: etlrelay.core.reader.Reader
+::: etlrelay.core.reader.TabularReader
 
-::: etlrelay.core.writer.Writer
+::: etlrelay.core.writer.TabularWriter
 
 ## Pipeline
 
@@ -128,3 +129,15 @@ usage contracts and limitations.
 ::: etlrelay.readers.parquet.ParquetReader
 
 ::: etlrelay.writers.parquet.ParquetWriter
+
+## Additional public exceptions and registries
+
+::: etlrelay.readers.yaml.YamlDocumentError
+
+::: etlrelay.core.reader.ReaderError
+
+::: etlrelay.core.writer.WriterError
+
+::: etlrelay.security.path.PathValidationError
+
+::: etlrelay.file_formats.TabularFileFormatRegistry

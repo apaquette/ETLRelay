@@ -62,7 +62,7 @@ ETLRelay supports CPython 3.12, 3.13, and 3.14. The complete test suite runs on 
 - [Configuration Loading](architecture/configuration-loading.md) — loading, validation, construction, and execution boundaries.
 - [Configuration Validation](architecture/configuration-validation.md) — schema and component validation.
 - [Component Registry](architecture/component-registry.md) — registrations, factories, and component catalog.
-- [Reader and Writer Contracts](architecture/reader_and_writer.md) — stream ownership and format behavior.
+- [TabularReader and TabularWriter Contracts](architecture/reader_and_writer.md) — stream ownership and format behavior.
 - [SQL Source and Sink](architecture/sql_source_and_sink.md) — SQL parameterization, resources, and transactions.
 - [Roadmap](roadmap.md) — released milestones and the remaining v1.0 roadmap.
 

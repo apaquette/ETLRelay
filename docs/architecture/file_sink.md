@@ -7,7 +7,7 @@
 It composes two independent components:
 
 * `FileSystem`, which provides a writable binary stream for the destination.
-* `Writer`, which serializes an iterable of `Batch` objects into the supplied stream.
+* `TabularWriter`, which serializes an iterable of `Batch` objects into the supplied stream.
 
 `FileSink` does not depend on a particular storage implementation or file format. The current implementation combines `LocalFileSystem` with `CsvWriter` or `ParquetWriter` without changing the sink implementation.
 
@@ -23,7 +23,7 @@ classDiagram
     class FileSink {
         -path: str
         -storage: FileSystem
-        -writer: Writer
+        -writer: TabularWriter
         +write(batches: Iterable~Batch~) None
     }
 
@@ -32,7 +32,7 @@ classDiagram
         +open_write(path: str) BinaryIO
     }
 
-    class Writer {
+    class TabularWriter {
         <<protocol>>
         +write(batches: Iterable~Batch~, stream: BinaryIO) None
     }
@@ -57,15 +57,15 @@ classDiagram
 
     Sink <|.. FileSink
     FileSystem <|.. LocalFileSystem
-    Writer <|.. CsvWriter
-    Writer <|.. ParquetWriter
+    TabularWriter <|.. CsvWriter
+    TabularWriter <|.. ParquetWriter
 
     FileSink --> FileSystem : uses
-    FileSink --> Writer : uses
+    FileSink --> TabularWriter : uses
 
     LocalFileSystem --> PathValidator : validates paths with
 
-    Writer --> Batch : consumes
+    TabularWriter --> Batch : consumes
 ```
 
 ## Responsibilities
@@ -76,7 +76,7 @@ classDiagram
 
 * Storing the configured destination path.
 * Opening the destination through the supplied `FileSystem`.
-* Passing the iterable of batches and writable stream to the supplied `Writer`.
+* Passing the iterable of batches and writable stream to the supplied `TabularWriter`.
 * Opening the destination once per write operation rather than once per batch.
 * Ensuring the stream is closed after writing, including when serialization fails.
 * Implementing the `Sink` protocol.
@@ -100,9 +100,9 @@ Its implementations handle storage-specific behavior, including resource access,
 
 `FileSink` depends on the protocol rather than directly on `LocalFileSystem`.
 
-### Writer
+### TabularWriter
 
-`Writer` defines the contract for serializing an iterable of `Batch` objects into a binary stream.
+`TabularWriter` defines the contract for serializing an iterable of `Batch` objects into a binary stream.
 
 Its implementations handle format-specific serialization. The current built-in writers are `CsvWriter` and `ParquetWriter`.
 
@@ -122,12 +122,12 @@ FileSink
  │      └── LocalFileSystem
  │              └── PathValidator
  │
- └── Writer
+ └── TabularWriter
         ├── CsvWriter
         └── ParquetWriter
 ```
 
-`FileSink` depends on the `FileSystem` and `Writer` protocols, not their concrete implementations.
+`FileSink` depends on the `FileSystem` and `TabularWriter` protocols, not their concrete implementations.
 
 Current file-based combinations use local storage with one of the built-in formats:
 
@@ -152,7 +152,7 @@ FileSystem.open_write(path)
     BinaryIO stream
           │
           ▼
-Writer.write(batches, stream)
+TabularWriter.write(batches, stream)
           │
           ▼
    Serialized file data
@@ -176,7 +176,7 @@ The sink does not buffer the entire iterable or independently iterate over it be
 ```python
 from collections.abc import Iterable
 
-from etlrelay.core import Batch, Writer
+from etlrelay.core import Batch, TabularWriter
 from etlrelay.storage import FileSystem
 
 
@@ -185,7 +185,7 @@ class FileSink:
         self,
         path: str,
         storage: FileSystem,
-        writer: Writer,
+        writer: TabularWriter,
     ) -> None:
         ...
 
@@ -208,7 +208,7 @@ class FileSink:
 | Write when serialization fails | Propagates the writer's exception |
 | Complete or fail a write | Closes the opened stream |
 | Supply another storage implementation | Works without modifying `FileSink`, provided it satisfies `FileSystem` and its behavioral contract |
-| Supply another writer implementation | Works without modifying `FileSink`, provided it satisfies `Writer` and its behavioral contract |
+| Supply another writer implementation | Works without modifying `FileSink`, provided it satisfies `TabularWriter` and its behavioral contract |
 
 Exceptions are propagated rather than wrapped in a new `FileSink` exception hierarchy.
 
@@ -242,14 +242,14 @@ No factory, registry, or plugin framework is required at this layer.
 
 ### Liskov Substitution Principle
 
-Any implementation satisfying `FileSystem` can be supplied as storage, and any implementation satisfying `Writer` can be supplied as a writer, provided it preserves the documented behavioral contracts, including writable-stream behavior, iterable consumption, and exception propagation.
+Any implementation satisfying `FileSystem` can be supplied as storage, and any implementation satisfying `TabularWriter` can be supplied as a writer, provided it preserves the documented behavioral contracts, including writable-stream behavior, iterable consumption, and exception propagation.
 
 ### Interface Segregation Principle
 
 `FileSink` depends on two small protocols:
 
 * `FileSystem` provides writable resource access.
-* `Writer` provides format-specific serialization.
+* `TabularWriter` provides format-specific serialization.
 
 Neither protocol needs unrelated operations such as pipeline orchestration or data transformation.
 
@@ -263,9 +263,9 @@ This keeps sink orchestration independent of local filesystem details and partic
 
 The implementation should remain small:
 
-* Accept a destination path, `FileSystem`, and `Writer`.
+* Accept a destination path, `FileSystem`, and `TabularWriter`.
 * Use `FileSystem.open_write()` to obtain the output stream.
-* Pass the iterable of batches and stream to `Writer.write()`.
+* Pass the iterable of batches and stream to `TabularWriter.write()`.
 * Open the destination once per write operation.
 * Close the stream reliably.
 * Propagate underlying exceptions.

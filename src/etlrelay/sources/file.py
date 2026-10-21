@@ -57,7 +57,7 @@ class FileSource:
             An iterable of batches parsed by the configured reader.
         Note:
             FileSource owns the binary stream opened through FileSystem,
-            but does not own the FileSystem or Reader instances.
+            but does not own the FileSystem or TabularReader instances.
 
             When consumed by Pipeline, the source iterator is explicitly
             closed when pipeline execution terminates.

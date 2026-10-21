@@ -10,12 +10,20 @@ This project follows the principles of [Keep a Changelog](https://keepachangelog
 ### Changed
 
 - Renamed the public `Reader` and `Writer` protocols to `TabularReader`
-  and `TabularWriter`, with corresponding module and import updates.
-  The former protocol names and module paths are removed without
-  compatibility aliases. Applications must update their imports and
-  type annotations.
+  and `TabularWriter`. The modules remain `etlrelay.core.reader` and
+  `etlrelay.core.writer`; the former class names are removed without aliases.
+  Applications must update imported class names and type annotations.
 - Retained `KeyValueReader` as the separate contract for mapping-shaped
   documents. Configuration loading continues to depend on this abstraction.
+
+### Fixed
+
+- Report invalid YAML document shapes as configuration failures (CLI exit code
+  `3`) through `YamlDocumentError`, a backward-compatible `ValueError` subclass.
+- Reject ambiguous requested columns in `SelectColumns` with `ValueError`.
+- Reject duplicate final names in `RenameColumns`, including duplicate input fields.
+- Correct tabular protocol references, validation behavior, and SQL resource
+  ownership documentation; restore strict API documentation builds.
 
 ### Scope Decisions
 

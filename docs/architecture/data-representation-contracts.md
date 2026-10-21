@@ -35,11 +35,11 @@ class TabularWriter(Protocol):
 
 ```python
 from collections.abc import Mapping
-from typing import BinaryIO, Protocol
+from typing import Any, BinaryIO, Protocol
 
 
 class KeyValueReader(Protocol):
-    def read(self, stream: BinaryIO) -> Mapping[str, object]:
+    def read(self, stream: BinaryIO) -> Mapping[str, Any]:
         ...
 ```
 

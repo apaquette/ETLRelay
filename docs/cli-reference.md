@@ -3,12 +3,12 @@
 ETLRelay provides a command-line interface (CLI) for validating and executing supported YAML pipeline configurations. Install ETLRelay into the Python environment where you intend to run it, then invoke the `etlrelay` command from a terminal.
 
 ```bash
-python -m pip install etlrelay==0.7.0
+python -m pip install etlrelay==0.8.0
 etlrelay --help
 etlrelay version
 ```
 
-The package requires Python 3.12 or newer. See [Getting Started](getting-started.md) for installation and a complete local CSV example, and [YAML Configuration](configuration.md) for the supported schema and component properties.
+The package supports CPython 3.12–3.14 (`>=3.12,<3.15`). See [Getting Started](getting-started.md) for installation and a complete local CSV example, and [YAML Configuration](configuration.md) for the supported schema and component properties.
 
 ## General usage
 
@@ -167,3 +167,13 @@ The resulting `output.csv` contains the positive-amount rows with `id` renamed t
 - Check the documented process exit code to decide whether an automated job succeeded.
 - Keep credentials out of YAML configuration and diagnostic text. Use environment-variable references for SQL connection URLs.
 - The CLI is synchronous. It does not provide scheduling, retries, background jobs, or a daemon.
+
+## YAML document-shape failures
+
+An empty document, a non-mapping root, or a root with non-string keys is a
+configuration failure. Both `validate` and `run` return exit code `3` and
+report the required document shape without echoing document contents.
+
+`validate` does not construct runtime components or resolve SQL connection
+environment variables. SQL environment preflight occurs during `run` when
+`PipelineBuilder` constructs the pipeline.

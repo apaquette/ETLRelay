@@ -13,7 +13,7 @@ A source produces batches of data, processors transform those batches, and a sin
 For file-based pipelines, ETLRelay separates storage access from format parsing and serialization:
 
 ```text
-FileSystem → Reader → Batch → Processor(s) → Writer → FileSystem
+FileSystem → TabularReader → Batch → Processor(s) → TabularWriter → FileSystem
 ```
 
 This separation allows file sources and sinks to compose storage and format implementations independently. CSV and Parquet readers/writers use the same file source/sink abstractions without format-specific branches in those components.
@@ -75,8 +75,9 @@ etlrelay run pipeline.yaml
 The CLI supports configuration validation, pipeline execution, version
 reporting, and command help.
 
-`validate` checks the configuration and constructs the pipeline without
-executing its data-processing run. It does not guarantee that runtime
+`validate` parses the configuration and validates schema and component settings.
+It does not build runtime components, resolve SQL connection environment
+variables, or execute the pipeline. It does not guarantee that runtime
 filesystem operations, database operations, or data transformations
 will succeed.
 
@@ -167,10 +168,10 @@ tests exercise component composition and complete pipeline workflows.
 | `FileSystem`      | Defines the interface for opening binary streams                |
 | `LocalFileSystem` | Provides local filesystem access                                |
 | `PathValidator`   | Enforces local filesystem path containment                      |
-| `Reader`          | Defines the contract for reading data from a binary stream      |
+| `TabularReader`          | Defines the contract for reading data from a binary stream      |
 | `CsvReader`       | Parses CSV data into ETLRelay batches                          |
 | `ParquetReader`   | Parses Parquet data into ETLRelay batches                      |
-| `Writer`          | Defines the contract for serializing batches to a binary stream |
+| `TabularWriter`          | Defines the contract for serializing batches to a binary stream |
 | `CsvWriter`       | Serializes ETLRelay batches as CSV                             |
 | `ParquetWriter`   | Serializes ETLRelay batches as Parquet                         |
 | `FileSource`      | Composes a filesystem and reader to produce batches             |
@@ -347,10 +348,10 @@ For file-based operations:
 FileSystem
     Opens binary streams
 
-Reader
+TabularReader
     Converts stream data into batches
 
-Writer
+TabularWriter
     Serializes batches to a stream
 ```
 

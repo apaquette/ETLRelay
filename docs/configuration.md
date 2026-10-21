@@ -273,7 +273,7 @@ Configuration-built pipelines use a shared `SqlEngineFactory` managed by `Pipeli
 
 Direct Python SQL components borrow their supplied engines; the application retains responsibility for disposing of those engines.
 
-For detailed contracts, see [Pipeline](architecture/pipeline.md), [File Sink](architecture/file_sink.md), [Reader and Writer](architecture/reader_and_writer.md), and [SQL Source and Sink](architecture/sql_source_and_sink.md).
+For detailed contracts, see [Pipeline](architecture/pipeline.md), [File Sink](architecture/file_sink.md), [TabularReader and TabularWriter](architecture/reader_and_writer.md), and [SQL Source and Sink](architecture/sql_source_and_sink.md).
 
 ## Complete runnable examples
 
@@ -319,7 +319,7 @@ Validation rejects malformed documents and unsupported configuration before runt
 
 The full SQL preflight error is wrapped in `PipelineBuildError`; it may aggregate multiple missing references into one message. Component validators normally return lists of path-qualified errors; the root `ConfigValidator` raises `ConfigurationError` containing those validation errors.
 
-YAML syntax/document errors are distinct from schema errors. `YamlReader` rejects malformed YAML, duplicate mapping keys, multiple documents, a non-mapping root, and non-string root keys. `ConfigLoader` does not translate filesystem or reader exceptions into `ConfigurationError` by default.
+YAML syntax/document errors are distinct from schema errors. `YamlReader` rejects malformed YAML, duplicate mapping keys, and multiple documents with `yaml.YAMLError`. It raises `YamlDocumentError` (a `ValueError` subclass) for an empty document, a non-mapping root, or non-string root keys. `ConfigLoader` does not translate filesystem or reader exceptions into `ConfigurationError` by default.
 
 Validation does not guarantee that source files exist, SQL parses or executes, destination tables exist, columns match the data, or output operations will succeed. Those conditions depend on runtime components and external resources.
 

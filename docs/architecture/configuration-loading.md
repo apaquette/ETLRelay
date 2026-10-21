@@ -41,7 +41,7 @@ The configuration document itself has to be read. The no-side-effects guarantee 
 
 ### `KeyValueReader` and `YamlReader`
 
-`KeyValueReader` is a format-independent protocol for reading one mapping-shaped document from a binary stream. It is distinct from the tabular `Reader` protocol, which produces an iterable of ETLRelay `Batch` objects.
+`KeyValueReader` is a format-independent protocol for reading one mapping-shaped document from a binary stream. It is distinct from the tabular `TabularReader` protocol, which produces an iterable of ETLRelay `Batch` objects.
 
 `YamlReader` lives in `etlrelay.readers.yaml`. It uses a safe PyYAML loader, rejects duplicate mapping keys (including duplicates after merge-key flattening), requires one document whose root is a mapping, and requires string keys at the root. It does not know ETLRelay's allowed configuration fields and does not perform application-schema validation. `YamlReader` leaves the supplied stream lifecycle to its caller.
 
