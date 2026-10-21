@@ -112,7 +112,7 @@ jobs:
       - name: Verify distribution contents
         run: uv run python tests/packaging/check_distributions.py
 
-      - name: Smoke-test built wheel outside checkout
+      - name: Smoke-test built distributions outside checkout
         run: >-
           uv run --no-project --python 3.12
           python tests/packaging/smoke_compatibility.py dist

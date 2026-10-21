@@ -9,6 +9,8 @@ import zipfile
 from email.parser import Parser
 from pathlib import Path
 
+from packaging.requirements import Requirement
+
 
 def require(condition: bool, message: str) -> None:
     """Fail packaging verification with an actionable diagnostic."""
@@ -28,14 +30,21 @@ def normalize_python_requirement(requirement: str) -> frozenset[str]:
     )
 
 
-def dependency_name(requirement: str) -> str:
-    """Extract and normalize the distribution name from a requirement."""
-    match = re.match(r"^[A-Za-z0-9._-]+", requirement)
+def normalize_dependencies(requirements: list[str]) -> set[str]:
+    """Compare complete requirements, including bounds, extras, and markers."""
+    normalized = set()
+    for value in requirements:
+        requirement = Requirement(value)
+        normalized.add(normalize_name(requirement.name) + str(requirement)[len(requirement.name) :])
+    return normalized
 
-    if match is None:
-        raise SystemExit(f"Distribution verification failed: Invalid requirement: {requirement!r}")
 
-    return normalize_name(match.group())
+def verify_dependencies(declared: list[str], packaged: list[str], artifact: str) -> None:
+    """Reject missing, extra, or altered runtime requirements."""
+    require(
+        normalize_dependencies(declared) == normalize_dependencies(packaged),
+        f"{artifact} runtime dependency requirements differ from pyproject.toml.",
+    )
 
 
 def read_metadata(text: str):
@@ -84,6 +93,8 @@ def main() -> None:
             f"{dist_info}/WHEEL",
             f"{dist_info}/RECORD",
             f"{dist_info}/entry_points.txt",
+            f"{dist_info}/licenses/LICENSE",
+            f"{dist_info}/licenses/NOTICE",
         }
         require(
             required_metadata <= entries,
@@ -111,19 +122,7 @@ def main() -> None:
             "Wheel Python requirement differs from pyproject.toml.",
         )
 
-        declared_dependencies = {
-            dependency_name(requirement) for requirement in project["dependencies"]
-        }
-
-        packaged_dependencies = {
-            dependency_name(requirement) for requirement in metadata.get_all("Requires-Dist", [])
-        }
-
-        require(
-            declared_dependencies <= packaged_dependencies,
-            "Wheel is missing declared runtime dependencies: "
-            f"{sorted(declared_dependencies - packaged_dependencies)}",
-        )
+        verify_dependencies(project["dependencies"], metadata.get_all("Requires-Dist", []), "Wheel")
 
         entry_points = configparser.ConfigParser()
         entry_points.read_string(wheel.read(f"{dist_info}/entry_points.txt").decode("utf-8"))
@@ -151,6 +150,8 @@ def main() -> None:
             f"{prefix}pyproject.toml",
             f"{prefix}README.md",
             f"{prefix}PKG-INFO",
+            f"{prefix}LICENSE",
+            f"{prefix}NOTICE",
         }
         required_modules = {f"{prefix}src/{module}" for module in source_modules}
 
@@ -180,8 +181,9 @@ def main() -> None:
         require(
             normalize_python_requirement(metadata["Requires-Python"])
             == normalize_python_requirement(python_requirement),
-            "Wheel Python requirement differs from pyproject.toml.",
+            "Sdist Python requirement differs from pyproject.toml.",
         )
+        verify_dependencies(project["dependencies"], metadata.get_all("Requires-Dist", []), "Sdist")
 
     print(f"Source distribution verified: {sdists[0].name}")
     print(f"Verified {len(source_modules)} packaged Python modules.")

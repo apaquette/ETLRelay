@@ -9,6 +9,9 @@ This project follows the principles of [Keep a Changelog](https://keepachangelog
 
 ### Changed
 
+- Remove the unused Polars runtime dependency; the frozen implementation uses PyArrow.
+- Verify wheel and source-distribution installation in separate environments across
+  the declared CI matrix and existing release workflows.
 - Renamed the public `Reader` and `Writer` protocols to `TabularReader`
   and `TabularWriter`. The modules remain `etlrelay.core.reader` and
   `etlrelay.core.writer`; the former class names are removed without aliases.
@@ -30,6 +33,9 @@ This project follows the principles of [Keep a Changelog](https://keepachangelog
 
 ### Testing
 
+- Compare complete runtime dependency constraints in wheel and sdist metadata,
+  verify licence/notice inclusion, and exercise public imports and direct
+  CSV/Parquet/SQLite composition from installed artifacts.
 - Audit the failure and cleanup matrix; cover borrowed streams after failures,
   processor failures before and during output, SQL connection/conversion failures,
   malformed SQL connection check-in, and controlled CLI connection diagnostics.

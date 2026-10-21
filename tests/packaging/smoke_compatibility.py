@@ -1,5 +1,6 @@
-"""Smoke-test a built ETLRelay wheel across Python versions and platforms."""
+"""Smoke-test built ETLRelay distributions across Python versions and platforms."""
 
+import argparse
 import csv
 import os
 import subprocess
@@ -45,32 +46,42 @@ def run(
 
 
 def main() -> None:
-    """Install the wheel outside the checkout and exercise its public CLI."""
+    """Select built artifacts and test each in a separate clean environment."""
     project_root = Path(__file__).resolve().parents[2]
     project = tomllib.loads((project_root / "pyproject.toml").read_text(encoding="utf-8"))[
         "project"
     ]
-
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("dist", nargs="?", type=Path, default=project_root / "dist")
+    parser.add_argument("--artifact", choices=("wheel", "sdist", "both"), default="both")
+    arguments = parser.parse_args()
+    dist_dir = arguments.dist.resolve()
     expected_version = project["version"]
+    artifacts = []
+    for kind, pattern in (
+        ("wheel", f"etlrelay-{expected_version}-*.whl"),
+        ("sdist", f"etlrelay-{expected_version}.tar.gz"),
+    ):
+        if arguments.artifact not in (kind, "both"):
+            continue
+        matches = sorted(dist_dir.glob(pattern))
+        require(len(matches) == 1, f"Expected one {kind} for {expected_version} in {dist_dir}.")
+        artifacts.extend(matches)
+    for artifact in artifacts:
+        smoke_artifact(project_root, expected_version, artifact)
 
-    dist_dir = Path(sys.argv[1]).resolve() if len(sys.argv) > 1 else project_root / "dist"
 
-    wheels = sorted(dist_dir.glob(f"etlrelay-{expected_version}-*.whl"))
-
-    require(
-        len(wheels) == 1,
-        (
-            f"Expected exactly one wheel for ETLRelay {expected_version} "
-            f"in {dist_dir}, found {len(wheels)}. "
-            f"Available wheels: {[path.name for path in dist_dir.glob('*.whl')]}"
-        ),
-    )
-
-    wheel = wheels[0]
-
+def smoke_artifact(project_root: Path, expected_version: str, artifact: Path) -> None:
+    """Install an archive outside the checkout and exercise public APIs/CLI."""
     env = os.environ.copy()
-    env.pop("PYTHONPATH", None)
-    env.pop("PYTHONHOME", None)
+    for name in (
+        "PYTHONPATH",
+        "PYTHONHOME",
+        "PYTHONUSERBASE",
+        "VIRTUAL_ENV",
+        "UV_PROJECT_ENVIRONMENT",
+    ):
+        env.pop(name, None)
     env["PYTHONNOUSERSITE"] = "1"
 
     with tempfile.TemporaryDirectory(prefix="etlrelay-compat-") as temp:
@@ -98,9 +109,9 @@ def main() -> None:
             env=env,
         )
 
-        # Install the built wheel, never the repository or an editable install.
+        # Install the selected archive; sdist installation uses an isolated build.
         run(
-            ["uv", "pip", "install", "--python", str(python), str(wheel)],
+            ["uv", "pip", "install", "--python", str(python), str(artifact)],
             cwd=work_dir,
             env=env,
         )
@@ -122,7 +133,22 @@ def main() -> None:
 
             import etlrelay
             import pyarrow
-            import polars
+            from etlrelay.core import (
+                Batch, Source, Processor, Sink, TabularReader, TabularWriter,
+                KeyValueReader, WriterError,
+            )
+            from etlrelay.pipeline import Pipeline
+            from etlrelay.processors import SelectColumns, RenameColumns, FilterRows
+            from etlrelay.readers import CsvReader, ParquetReader, YamlReader, YamlDocumentError
+            from etlrelay.writers import CsvWriter, ParquetWriter
+            from etlrelay.sources import FileSource, SqlSource
+            from etlrelay.sinks import FileSink, SqlSink
+            from etlrelay.storage import LocalFileSystem, FileSystem, FileSystemError
+            from etlrelay.security import PathValidator, PathValidationError
+            from etlrelay.config.loader import ConfigLoader
+            from etlrelay.config.pipeline_builder import PipelineBuilder
+            from etlrelay.default_components import create_default_component_catalog
+            from sqlalchemy import create_engine, text
 
             expected_version = sys.argv[1]
             checkout = Path(sys.argv[2]).resolve()
@@ -137,6 +163,31 @@ def main() -> None:
             for entry in sys.path:
                 if entry:
                     assert not Path(entry).resolve().is_relative_to(checkout), entry
+
+            # Exercise direct Python composition with native Parquet and SQLite.
+            Path("direct-input.csv").write_text("id,amount\\n1,10\\n2,-2\\n", encoding="utf-8")
+            storage = LocalFileSystem(PathValidator(Path.cwd()))
+            Pipeline(
+                FileSource("direct-input.csv", storage, CsvReader()),
+                [SelectColumns(["id", "amount"]), FilterRows("amount", ">", 0)],
+                FileSink("direct-output.parquet", storage, ParquetWriter()),
+            ).run()
+            engine = create_engine("sqlite:///:memory:")
+            try:
+                with engine.begin() as connection:
+                    connection.execute(text("CREATE TABLE records (id INTEGER, amount INTEGER)"))
+                Pipeline(
+                    FileSource("direct-output.parquet", storage, ParquetReader()),
+                    [], SqlSink(engine, "records"),
+                ).run()
+                batches = list(SqlSource(engine, "SELECT id, amount FROM records").read())
+                assert len(batches) == 1
+                assert batches[0].table.to_pylist() == [{"id": 1, "amount": 10}]
+                assert batches[0].table.schema == pyarrow.schema([
+                    ("id", pyarrow.int64()), ("amount", pyarrow.int64())
+                ])
+            finally:
+                engine.dispose()
 
             print(f"Python: {sys.version.split()[0]}")
             print(f"Installed package: {package_path}")
@@ -181,7 +232,7 @@ def main() -> None:
             "Installed CLI help is missing expected commands.",
         )
 
-        # Use real supported CSV and processor components from the wheel.
+        # Exercise YAML validation and a representative pipeline through the installed CLI.
         (work_dir / "input.csv").write_text(
             "id,amount,state\n1,10,ready\n",
             encoding="utf-8",
@@ -240,7 +291,7 @@ def main() -> None:
             f"Unexpected pipeline output: {rows!r}",
         )
 
-        print("Installed-wheel compatibility smoke test passed.")
+        print(f"Installed-artifact compatibility smoke test passed: {artifact.name}")
 
 
 if __name__ == "__main__":

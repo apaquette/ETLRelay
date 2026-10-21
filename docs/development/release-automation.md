@@ -85,7 +85,7 @@ sensitive-output regression checks.
 The quality job uploads the verified distribution artifacts for use by
 the compatibility matrix.
 
-### Installed-wheel compatibility
+### Installed-artifact compatibility
 
 The compatibility jobs download the same wheel built by the quality job.
 They do not rebuild the project separately.
@@ -114,7 +114,7 @@ vulnerabilities covered by the audit; it does not guarantee the absence
 of undiscovered vulnerabilities.
 
 Distribution metadata checks confirm expected archive contents and
-declared metadata. Installed-wheel smoke tests independently verify
+declared metadata. Wheel and source-distribution smoke tests independently verify
 that representative runtime functionality works without the
 repository checkout.
 
@@ -202,3 +202,8 @@ For releases that change declarative configuration, include these documentation 
 ## Manual release recovery
 
 If publication succeeds but GitHub release creation fails, do not change the published package version. Check whether the `vX.Y.Z` tag already exists and create the missing GitHub release manually for that same tag/commit. If the PyPI version exists but is wrong, publish a new version; PyPI files cannot be replaced in place.
+
+The shared compatibility smoke script now defaults to testing both artifacts
+in separate environments. TestPyPI and PyPI verification workflows use this
+same script before publication. See the
+[packaging verification record](packaging-verification.md) for commands and evidence.

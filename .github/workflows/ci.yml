@@ -74,6 +74,9 @@ jobs:
       - name: Verify distribution contents
         run: uv run python tests/packaging/check_distributions.py
 
+      - name: Smoke-test wheel and source distribution outside checkout
+        run: uv run python tests/packaging/smoke_compatibility.py dist
+
       - name: Upload verified distributions
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
@@ -433,7 +436,7 @@ jobs:
           name: etlrelay-distributions
           path: dist/
 
-      - name: Test installed wheel
+      - name: Test installed wheel and source distribution
         run: >-
           uv run --no-project
           --python ${{ matrix.python }}

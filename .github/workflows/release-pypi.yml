@@ -138,7 +138,7 @@ jobs:
         if: steps.pypi-check.outputs.already_published == 'false'
         run: uv run python tests/packaging/check_distributions.py
 
-      - name: Verify installed release wheel
+      - name: Verify installed release distributions
         if: steps.pypi-check.outputs.already_published == 'false'
         run: >-
           uv run --no-project

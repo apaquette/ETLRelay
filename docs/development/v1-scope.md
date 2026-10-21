@@ -75,13 +75,13 @@ The release support matrix is the following set of combinations, rather than eve
 
 | Platform | CPython | Required verification |
 | --- | --- | --- |
-| Ubuntu | 3.12 | Full test suite, coverage, quality checks, documentation build, distribution checks, and installed-wheel CLI verification |
-| Ubuntu | 3.13 | Installed-wheel compatibility smoke test |
-| Ubuntu | 3.14 | Installed-wheel compatibility smoke test |
-| macOS | 3.12 | Installed-wheel compatibility smoke test |
-| Windows | 3.12 | Installed-wheel compatibility smoke test |
+| Ubuntu | 3.12 | Full test suite, coverage, quality checks, documentation build, distribution checks, and installed wheel/sdist verification |
+| Ubuntu | 3.13 | Installed wheel/sdist compatibility smoke tests |
+| Ubuntu | 3.14 | Installed wheel/sdist compatibility smoke tests |
+| macOS | 3.12 | Installed wheel/sdist compatibility smoke tests |
+| Windows | 3.12 | Installed wheel/sdist compatibility smoke tests |
 
-The compatibility smoke test verifies isolated installation, package and dependency imports, dependency consistency, CLI help/version, YAML validation, and a minimal CSV pipeline.
+The compatibility smoke test installs the wheel and source distribution separately and verifies isolated installation, public imports, dependency consistency, direct CSV/Parquet/SQLite composition, CLI help/version, YAML validation, and a minimal CSV CLI pipeline.
 
 Smoke coverage does not imply that the full test suite runs on every matrix entry.
 
@@ -139,7 +139,7 @@ These are required work items, not claims that every review area contains a defe
 | Complete documentation and correct stale claims | 0.9.0-07 | Accurate documentation, working examples, and strict documentation build |
 | Resolve release-blocking defects and prepare beta | 0.9.0-08 | Completed release review and release checklist |
 
-The existing CI builds and inspects the source distribution but the supplied workflow explicitly installs only the wheel. Ticket 0.9.0-06 must verify installation from the source distribution as well.
+Ticket 0.9.0-06 extends CI to install both the wheel and source distribution. See the [packaging verification record](packaging-verification.md) for baseline CI evidence, local checks, and remaining CI gates.
 
 No additional runtime feature gap is established by the files reviewed for this scope record. Later implementation review or testing may identify defects; track them under the owning ticket without expanding the feature boundary.
 

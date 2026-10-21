@@ -103,11 +103,11 @@ The distribution verification checks the built archives, not just the repository
 
 This does not replace installed-artifact testing: a valid archive can still contain runtime or dependency errors.
 
-## Installed-wheel compatibility
+## Installed-artifact compatibility
 
-The compatibility smoke test installs the built wheel into a clean virtual environment outside the repository checkout.
+The compatibility smoke test installs both the wheel and source distribution into separate clean virtual environments outside the repository checkout. Source installation uses an isolated build from the archive.
 
-It verifies package imports, installed dependency consistency, CLI version/help output, YAML validation, and execution of a minimal CSV pipeline.
+It verifies public imports, dependency consistency, direct CSV/Parquet/SQLite pipelines, CLI version/help output, YAML validation, and a minimal CSV CLI pipeline. Use `--artifact wheel` or `--artifact sdist` to select one artifact; the default is `both`.
 
 Run the checks with the additional supported interpreters:
 
@@ -121,7 +121,7 @@ uv run --no-project --python 3.14 \
 
 Using `--no-project` prevents these compatibility checks from changing the repository's primary Python 3.12 environment.
 
-The CI workflow additionally tests the installed wheel on macOS and Windows.
+The CI workflow tests both artifacts on every declared Python/platform combination, including macOS and Windows. See the [packaging verification record](development/packaging-verification.md) for baseline CI evidence, local results, and checks pending CI.
 
 ## CI coverage
 
@@ -139,10 +139,10 @@ The compatibility matrix verifies the same built wheel in these additional confi
 
 | Platform | Python | Verification |
 |---|---|---|
-| Ubuntu | 3.13 | Installed-wheel smoke |
-| Ubuntu | 3.14 | Installed-wheel smoke |
-| macOS | 3.12 | Installed-wheel smoke |
-| Windows | 3.12 | Installed-wheel smoke |
+| Ubuntu | 3.13 | Wheel and sdist smoke |
+| Ubuntu | 3.14 | Wheel and sdist smoke |
+| macOS | 3.12 | Wheel and sdist smoke |
+| Windows | 3.12 | Wheel and sdist smoke |
 
 The full test suite is not repeated for every matrix entry. These jobs verify the installed artifact and a representative execution path.
 

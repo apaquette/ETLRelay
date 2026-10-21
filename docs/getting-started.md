@@ -4,7 +4,7 @@ ETLRelay 0.7.0 supports an installed command-line interface (CLI), versioned YAM
 
 ## Requirements
 
-- Python 3.12 or newer.
+- CPython 3.12, 3.13, or 3.14 (`>=3.12,<3.15`).
 - ETLRelay 0.7.0.
 - A local filesystem directory where the example data and outputs can be stored.
 

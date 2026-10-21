@@ -1,3 +1,20 @@
+## v0.9.0 packaging and compatibility gate
+
+Local evidence for the packaging change is recorded in
+`docs/development/packaging-verification.md`. The v0.8.0 checklist below is
+retained as historical release context.
+
+- [x] Wheel/sdist metadata, dependency bounds, modules, licence, notice, and entry-point checks pass locally.
+- [x] Both artifacts install outside the checkout on Linux CPython 3.12, 3.13, and 3.14.
+- [x] Public imports, direct CSV/Parquet/SQLite pipelines, YAML validation, and CLI execution pass.
+- [x] Full local suite: 734 passed, 100% configured coverage; required quality checks pass.
+- [ ] Ubuntu / Python 3.12 required CI passes for the integrated packaging change.
+- [ ] Ubuntu / Python 3.13 wheel and sdist smoke passes for that change.
+- [ ] Ubuntu / Python 3.14 wheel and sdist smoke passes for that change.
+- [ ] macOS / Python 3.12 wheel and sdist smoke passes for that change.
+- [ ] Windows / Python 3.12 wheel and sdist smoke passes for that change.
+- [ ] Record the integrated commit and successful CI run in the verification record.
+
 
 ## v0.8.0 release verification
 

@@ -36,16 +36,16 @@ The following configurations are verified in CI:
 
 | Platform | Python | Verification |
 |---|---|---|
-| Ubuntu | 3.12 | Full test suite, quality checks, and installed-wheel smoke test |
-| Ubuntu | 3.13 | Installed-wheel smoke test |
-| Ubuntu | 3.14 | Installed-wheel smoke test |
-| macOS | 3.12 | Installed-wheel smoke test |
-| Windows | 3.12 | Installed-wheel smoke test |
+| Ubuntu | 3.12 | Full test suite, quality checks, and installed wheel/sdist smoke tests |
+| Ubuntu | 3.13 | Installed wheel/sdist smoke tests |
+| Ubuntu | 3.14 | Installed wheel/sdist smoke tests |
+| macOS | 3.12 | Installed wheel/sdist smoke tests |
+| Windows | 3.12 | Installed wheel/sdist smoke tests |
 
-Compatibility testing installs the built wheel into a clean virtual
-environment outside the source checkout. It verifies package imports,
-dependency consistency, CLI operation, configuration validation, and
-a minimal CSV ETL pipeline.
+Compatibility testing installs the built wheel and source distribution into
+separate clean virtual environments outside the source checkout. It verifies
+public imports, dependency consistency, direct CSV/Parquet/SQLite composition,
+CLI operation, YAML validation, and a minimal CSV CLI pipeline.
 
 Other operating-system and Python-version combinations may work but
 are not independently verified by CI.
@@ -323,7 +323,7 @@ Readers convert external data into batches. Processors operate on batches, and w
 
 This provides a common data boundary between file formats and pipeline components.
 
-Polars is a potential transformation tool for future processors; its use is not required by the current core pipeline implementation.
+The frozen feature set uses PyArrow for tabular representation and transformations. Polars is not a runtime dependency.
 
 ### Component Contracts
 

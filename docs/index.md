@@ -45,7 +45,7 @@ ETLRelay includes:
 
 SQLite is the reference SQL integration-test backend. Other SQLAlchemy dialects require appropriate drivers and application-level verification.
 
-ETLRelay supports CPython 3.12, 3.13, and 3.14. The complete test suite runs on Python 3.12, with additional installed-wheel compatibility checks for newer Python versions and selected operating systems.
+ETLRelay supports CPython 3.12, 3.13, and 3.14. The complete test suite runs on Python 3.12, with installed wheel/source-distribution compatibility checks across the declared Python/platform matrix. See the [packaging verification record](development/packaging-verification.md) for verification evidence and outstanding CI gates.
 
 ## Documentation
 

@@ -17,6 +17,7 @@ nav:
       - API review: development/api-review.md
       - Pipeline coverage: development/pipeline-coverage.md
       - Failure matrix: development/failure-matrix.md
+      - Packaging verification: development/packaging-verification.md
       - Release automation: development/release-automation.md
   - Roadmap: roadmap.md
   - Architecture:
