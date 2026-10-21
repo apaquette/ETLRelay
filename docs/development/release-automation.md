@@ -210,16 +210,22 @@ same script before publication. See the
 [packaging verification record](packaging-verification.md) for commands and evidence.
 
 
-## v0.9.0 beta documentation handoff
+## v0.9.0 beta promotion
 
-The [draft release notes](release-notes-v0.9.0.md) and
-[migration guide](migration-v0.9.0.md) describe the candidate. The beta ticket must
-assign a fresh package version, update `uv.lock`, set the changelog date, and
-replace candidate notices with released installation and documentation links.
-Do not change package metadata or deploy documentation merely to validate a
-local documentation draft.
+The package version is `0.9.0`; the changelog and [release notes](release-notes-v0.9.0.md)
+use the target release date 2026-10-21. If publication moves to a different day,
+update both dates before promotion. The term "beta" names this roadmap milestone;
+the distribution version remains `0.9.0`, not `0.9.0b1`.
 
-Before sign-off, check the [packaging record](packaging-verification.md) against
-the successful CI run for the integrated source state, review unresolved issues,
-and complete the release checklist. Documentation review does not certify that
-beta feedback has been gathered or that publication has occurred.
+Use the existing TestPyPI procedure on `dev`, then promote the same reviewed
+source to `main`. Do not create the tag manually before the production workflow:
+it creates `v0.9.0` after publication and uses the reviewed release-notes file
+for the GitHub release body. Versioned documentation deploys under `0.9.0`;
+repository examples and policy links are pinned to `v0.9.0`.
+
+Complete `RELEASE_CHECKS.md` against the integrated release commit. The
+[beta readiness record](beta-readiness.md) separates the completed source review
+and existing support evidence from checks still required for promotion and
+publication. A local build does not establish that PyPI, the GitHub release,
+or hosted documentation has been published. Gather feedback using that record's
+checklist and preserve the frozen feature boundary.

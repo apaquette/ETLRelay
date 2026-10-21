@@ -52,9 +52,10 @@ For a release candidate, run the repository's full quality and packaging checks,
 
 The MkDocs configuration includes the `mike` plugin for versioned documentation. Use the repository's documented publishing workflow and verify the target branch, version, and hosting settings before deploying. Do not create a second deployment workflow or assume that a local build has published the site.
 
-Candidate docs must identify unreleased behavior explicitly. Preserve actual
-published-version links until release preparation updates them. Run the
-installed-candidate example test in addition to the strict documentation build.
+Release documentation must match the target package version, including
+installation examples, CLI output, migration guidance, and release notes. During
+preparation, record publication checks separately from local verification. Run
+the installed-candidate example test in addition to the strict documentation build.
 
 Pin release-content links to the target release: use the `v0.9.0` Git tag
 for repository files and examples, and `/ETLRelay/0.9.0/` for absolute

@@ -186,7 +186,7 @@ literal connection URLs. `PipelineBuilder` resolves the configured
 component registrations and preflights required connection-variable
 references before invoking component factories.
 
-The v0.8.0 release retains these configuration properties and clarifies
+The v0.9.0 release retains these configuration properties and documents
 their validation, error-reporting, and resource-lifecycle contracts.
 
 Unlike the direct Python API, the configuration builder does not receive an `Engine` argument. It receives the name of an environment variable containing the SQLAlchemy connection URL. `PipelineBuilder` first resolves all component registrations and calls the shared `SqlEngineFactory.preflight()` for the referenced variable names. If a variable is missing or empty, building fails before SQL component factories, engine creation, or configured source/sink I/O.

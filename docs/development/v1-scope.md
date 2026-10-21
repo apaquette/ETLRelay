@@ -2,7 +2,10 @@
 
 This document defines the feature boundary for ETLRelay v0.9.0 and v1.0.0.
 
-The implementation baseline is v0.8.0. An implemented capability remains subject to the API review, regression testing, and release verification required by v0.9.0.
+The v0.9.0 feature-complete beta implements the intended v1.0 feature set. The
+review began from v0.8.0; completed reviews and verification are collected in the
+[beta readiness record](beta-readiness.md). Final publication checks remain
+separate from feature implementation.
 
 ## Feature Freeze
 
@@ -24,8 +27,8 @@ Any exception must identify a concrete requirement that prevents the agreed v1.0
 
 Status meanings:
 
-- **Implemented:** Available in the v0.8.0 baseline; final review and verification remain required.
-- **Required but incomplete:** Necessary work before the v0.9.0 feature-complete criteria can be met.
+- **Implemented:** Available in v0.9.0 and covered by the completed reviews/tests.
+- **Required but incomplete:** An identified release-blocking feature or correction; none remains in this inventory.
 - **Deferred:** Excluded from v1.0; future consideration is not a commitment.
 - **Explicitly unsupported:** Behavior or usage outside the v1.0 contract.
 
@@ -42,12 +45,12 @@ Status meanings:
 | Mapping-document reading | Implemented | Separate `KeyValueReader` contract and safe `YamlReader` implementation |
 | CLI | Implemented | `run`, `validate`, `version`, help, and operational logging controls |
 | Security and operational controls | Implemented | Existing path checks, preflight, controlled diagnostics, cleanup, and dependency/package checks |
-| Packaging and compatibility checks | Implemented | Existing distribution checks and installed-wheel CI smoke tests |
-| Tabular protocol naming cleanup | Required but incomplete | Rename `Reader`/`Writer` to `TabularReader`/`TabularWriter` consistently |
-| Public API and contract review | Required but incomplete | Names, constructors, signatures, exports, schemas, CLI behavior, and exceptions |
-| Final pipeline and failure verification | Required but incomplete | Audit existing tests and close demonstrated gaps |
-| Final installation verification | Required but incomplete | Verify release artifacts across the declared support matrix |
-| Documentation and beta review | Required but incomplete | Complete documentation, migration notes, limitations, and release readiness |
+| Packaging and compatibility checks | Implemented | Distribution checks and independent wheel/sdist CI smoke tests |
+| Tabular protocol naming cleanup | Implemented | `TabularReader`/`TabularWriter` consistently used; no legacy class aliases |
+| Public API and contract review | Implemented | Completed review outcomes and corrections in the API review record |
+| Final pipeline and failure verification | Implemented | Completed coverage/failure matrices and regression tests |
+| Final installation verification | Implemented | Both-artifact verification across the declared support matrix |
+| Documentation and beta review | Implemented | Complete references, migration notes, release notes, limitations, and feedback process |
 | S3, HDFS, and other remote storage | Deferred | No remote-storage implementation is required for v1.0 |
 | Additional formats and integrations | Deferred | Includes JSON configuration readers, Excel, generic APIs, and additional database-specific integrations |
 | Additional processors and expression languages | Deferred | Retain the existing processor set and predicate model |
@@ -124,24 +127,13 @@ Mapping-shaped documents are distinct from sequences of row records. `KeyValueRe
 
 ## Required Work and Release Blockers
 
-These are required work items, not claims that every review area contains a defect.
-
-| Requirement | Owning ticket | Completion evidence |
-| --- | --- | --- |
-| Rename tabular protocols and review mapping-document separation | 0.9.0-02 | Consistent implementation, exports, annotations, tests, examples, documentation, and migration decision |
-| Confirm `ConfigLoader` depends on `KeyValueReader` | 0.9.0-02 | Implementation review and a test using an alternative protocol implementation |
-| Record writer/conversion deferral decisions | 0.9.0-02 | Representation-contract documentation agrees with this scope |
-| Review remaining public API and behavior | 0.9.0-03 | Recorded review outcomes and regression tests for justified changes |
-| Resolve conflicting descriptions of CLI `validate` | 0.9.0-03 | Implementation and tests establish whether it constructs runtime components or performs builder preflight |
-| Verify representative supported pipelines | 0.9.0-04 | Coverage matrix linked to passing integration/functional tests |
-| Verify failures, cleanup, redaction, and partial writes | 0.9.0-05 | Failure matrix linked to passing tests |
-| Verify clean installation and declared environments | 0.9.0-06 | Built-artifact installation results and successful matrix checks |
-| Complete documentation and correct stale claims | 0.9.0-07 | Accurate documentation, working examples, and strict documentation build |
-| Resolve release-blocking defects and prepare beta | 0.9.0-08 | Completed release review and release checklist |
-
-Ticket 0.9.0-06 extends CI to install both the wheel and source distribution. See the [packaging verification record](packaging-verification.md) for baseline CI evidence, local checks, and remaining CI gates.
-
-No additional runtime feature gap is established by the files reviewed for this scope record. Later implementation review or testing may identify defects; track them under the owning ticket without expanding the feature boundary.
+The required implementation and review work is complete. No unresolved product
+release blocker was identified in the final review. The
+[beta readiness record](beta-readiness.md) maps tickets 0.9.0-01 through 0.9.0-08
+to evidence and classifies remaining work. `RELEASE_CHECKS.md` tracks verification
+of the integrated release commit and publication separately; those operational
+gates must pass before promotion. A newly reported correctness, security, or
+supported-environment regression remains a required fix under the feature freeze.
 
 ## Completion Rule
 

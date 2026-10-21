@@ -1,11 +1,11 @@
 # Command-Line Interface Reference
 
-This reference targets the v0.9.0 candidate. The installation below selects the published v0.8.0 release; see [Getting Started](getting-started.md) for local candidate installation and version identification.
+This reference describes ETLRelay v0.9.0. See [Getting Started](getting-started.md) for a complete installation and pipeline example.
 
 ETLRelay provides a command-line interface (CLI) for validating and executing supported YAML pipeline configurations. Install ETLRelay into the Python environment where you intend to run it, then invoke the `etlrelay` command from a terminal.
 
 ```bash
-python -m pip install etlrelay==0.8.0
+python -m pip install etlrelay==0.9.0
 etlrelay --help
 etlrelay version
 ```
@@ -69,7 +69,7 @@ etlrelay version
 Example output:
 
 ```text
-etlrelay 0.8.0
+etlrelay 0.9.0
 ```
 
 If the installed package version cannot be determined from metadata, the command exits with code `1` and writes a diagnostic to standard error.

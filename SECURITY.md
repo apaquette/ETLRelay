@@ -4,7 +4,7 @@
 
 ETLRelay is experimental pre-1.0 software.
 
-Security reports are assessed against the latest released version, currently **v0.8.0**. Security fixes and backports for older releases are not guaranteed unless maintainers explicitly announce otherwise.
+Security reports are assessed against the latest released version, currently **v0.9.0**. Security fixes and backports for older releases are not guaranteed unless maintainers explicitly announce otherwise.
 
 Public APIs and security-related implementation details may change before v1.0.0.
 
@@ -28,7 +28,7 @@ Reports will be reviewed as promptly as reasonably possible. No fixed acknowledg
 
 ## Security scope
 
-ETLRelay v0.8.0 includes security-related controls for:
+ETLRelay v0.9.0 includes security-related controls for:
 
 - Local filesystem path containment, including resolved path traversal and symlink escapes.
 - Safe YAML configuration parsing and strict schema validation.

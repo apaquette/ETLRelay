@@ -20,23 +20,25 @@ This separation allows file sources and sinks to compose storage and format impl
 
 ETLRelay is being developed incrementally, with test-driven development, explicit component contracts, and a focus on keeping the architecture small.
 
-## Development status
+## v0.9.0 — Feature-complete beta
 
-The `dev` branch targets **v0.9.0 — feature-complete beta (unreleased)**.
-The latest published release is v0.8.0. Development API documentation describes
-this candidate, including the `TabularReader`/`TabularWriter` rename.
+The intended v1.0 feature set is frozen. This release completes the public API
+review, including the `TabularReader`/`TabularWriter` rename, and verifies the
+supported pipelines, failures, examples, and distribution artifacts.
 
-See [Getting Started](docs/getting-started.md) for clean-environment candidate
-installation and a complete CSV/YAML/Python quick start, and
-[Migration to v0.9.0](docs/development/migration-v0.9.0.md) before updating imports.
-[Draft release notes](docs/development/release-notes-v0.9.0.md) summarize the milestone.
+See [Getting Started](https://apaquette.github.io/ETLRelay/0.9.0/getting-started/)
+for a complete CSV/YAML/Python quick start and
+[Migration to v0.9.0](https://apaquette.github.io/ETLRelay/0.9.0/development/migration-v0.9.0/)
+before updating imports. [Release notes](https://apaquette.github.io/ETLRelay/0.9.0/development/release-notes-v0.9.0/)
+and [beta feedback guidance](https://apaquette.github.io/ETLRelay/0.9.0/development/beta-readiness/)
+describe the milestone and focused review criteria.
 
 ## Installation
 
 Install ETLRelay from PyPI:
 
 ```bash
-pip install etlrelay
+pip install etlrelay==0.9.0
 ```
 
 ### Supported Python Versions and Platforms
@@ -67,10 +69,10 @@ PyArrow major version does not provide Python 3.15 support.
 
 ## CLI Quick Start
 
-Install ETLRelay v0.8.0 and inspect the available commands:
+Install ETLRelay v0.9.0 and inspect the available commands:
 
 ```bash
-python -m pip install etlrelay==0.8.0
+python -m pip install etlrelay==0.9.0
 
 etlrelay --help
 etlrelay version
@@ -92,10 +94,10 @@ variables, or execute the pipeline. It does not guarantee that runtime
 filesystem operations, database operations, or data transformations
 will succeed.
 
-See the [CLI Reference](docs/cli-reference.md)
+See the [CLI Reference](https://apaquette.github.io/ETLRelay/0.9.0/cli-reference/)
 for command syntax, exit codes, and error-output conventions.
 
-See [Getting Started](docs/getting-started.md)
+See [Getting Started](https://apaquette.github.io/ETLRelay/0.9.0/getting-started/)
 for a complete local CSV example.
 
 
@@ -122,35 +124,32 @@ Operational logs report pipeline progress, component activity, and resource
 lifecycle events without routinely exposing record contents, SQL parameters,
 or database credentials.
 
-See the [Logging documentation](docs/logging.md) for supported levels, examples, Python integration, and security limitations.
+See the [Logging documentation](https://apaquette.github.io/ETLRelay/0.9.0/logging/) for supported levels, examples, Python integration, and security limitations.
 
 ## Documentation
 
-Read the [candidate documentation](docs/index.md) for current usage, contracts, and examples. The [published v0.8.0 documentation](https://apaquette.github.io/ETLRelay/0.8.0/) remains available for that release.
+Read the [v0.9.0 documentation](https://apaquette.github.io/ETLRelay/0.9.0/) for usage, contracts, and examples.
 
 
 
 ## Project Status
 
-**Current release: `0.8.0` — Security and operational readiness**
+**Current release: `0.9.0` — Feature-complete beta and API review**
 
-ETLRelay v0.8.0 strengthens the security, reliability, and
-release-verification foundations established in previous releases.
+The v1.0 feature boundary is complete: synchronous local CSV/Parquet and SQLite
+pipelines, the three existing processors, YAML configuration, and CLI execution.
+Only correctness, security, compatibility, and release-readiness fixes are
+accepted during beta and release-candidate review.
 
 Highlights include:
 
-- Hardened local path validation and explicit filesystem security
-  limitations.
-- Strengthened configuration validation and SQL connection-reference
-  preflight.
-- Controlled operational logging and CLI error reporting.
-- Deterministic cleanup of active pipeline iterators and owned
-  file/SQL resources.
-- Verified failure, transaction, overwrite, empty-batch, and
-  schema-compatibility contracts.
-- Dependency auditing, distribution-content verification, and
-  clean-environment installed-wheel testing.
-- Compatibility verification for CPython 3.12, 3.13, and 3.14.
+- Explicit tabular protocols and separate mapping-document reading.
+- Reviewed public constructors, schemas, exceptions, and resource ownership.
+- Corrected YAML configuration errors, ambiguous column selection, duplicate
+  rename targets, and Parquet cleanup exception precedence.
+- Verified Python, YAML, and installed-CLI pipelines and executable examples.
+- Independent wheel/sdist installation across the five supported environments.
+- Documented migration steps, limitations, and focused beta feedback criteria.
 
 The existing YAML configuration schema remains version `1`.
 Direct Python composition, supported source/sink interfaces, and
@@ -205,7 +204,7 @@ Development during v0.9.0 focuses on correctness, security, compatibility, publi
 
 S3, HDFS, additional formats and processors, dynamic plugin loading, scheduling, retries, and distributed execution are deferred. Future consideration does not promise implementation or a release date.
 
-See the [v1.0 Feature Scope and Support Policy](docs/development/v1-scope.md) for the feature inventory, exact support matrix, operational boundaries, and required readiness work.
+See the [v1.0 Feature Scope and Support Policy](https://apaquette.github.io/ETLRelay/0.9.0/development/v1-scope/) for the feature inventory, exact support matrix, operational boundaries, and required readiness work.
 
 
 ## Operational Contracts
@@ -234,9 +233,9 @@ exceptions or application logging.
 
 For details, see:
 
-- [Security](docs/security.md)
-- [Logging](docs/logging.md)
-- [Pipeline Architecture](docs/architecture/pipeline.md)
+- [Security](https://apaquette.github.io/ETLRelay/0.9.0/security/)
+- [Logging](https://apaquette.github.io/ETLRelay/0.9.0/logging/)
+- [Pipeline Architecture](https://apaquette.github.io/ETLRelay/0.9.0/architecture/pipeline/)
 
 
 ## Architecture
@@ -314,7 +313,7 @@ For file-based pipelines, the current implementation supports the local filesyst
 
 ### SQL Sources and Sinks
 
-`SqlSource` and `SqlSink` implement the core source/sink contracts using SQLAlchemy. They are separate from file storage and file-format readers/writers. Query values can be supplied as bound parameters; the sink appends to an existing table using one transaction per non-empty batch. The caller owns the SQLAlchemy engine. SQLite is the reference integration-test backend; see [SQL source and sink](docs/architecture/sql_source_and_sink.md) for identifier handling, empty-data behavior, transaction boundaries, and limitations.
+`SqlSource` and `SqlSink` implement the core source/sink contracts using SQLAlchemy. They are separate from file storage and file-format readers/writers. Query values can be supplied as bound parameters; the sink appends to an existing table using one transaction per non-empty batch. The caller owns the SQLAlchemy engine. SQLite is the reference integration-test backend; see [SQL source and sink](https://apaquette.github.io/ETLRelay/0.9.0/architecture/sql_source_and_sink/) for identifier handling, empty-data behavior, transaction boundaries, and limitations.
 
 ### Declarative YAML Configuration
 
@@ -324,7 +323,7 @@ The configuration lifecycle is `ConfigLoader` → `ConfigValidator` → `Pipelin
 
 For SQL configuration, YAML stores an environment-variable name such as `ETLRELAY_SOURCE_DATABASE_URL`, not the resolved connection URL. Missing/empty variables fail before component factories or source/sink I/O. The `PipelineBuilder` owns the lifecycle of engines created by the catalog's shared `SqlEngineFactory`; callers close the builder after execution. Direct Python `SqlSource`/`SqlSink` engine ownership remains unchanged.
 
-See the [YAML Configuration reference](docs/configuration.md) for the versioned schema, examples, supported combinations, and validation errors.
+See the [YAML Configuration reference](https://apaquette.github.io/ETLRelay/0.9.0/configuration/) for the versioned schema, examples, supported combinations, and validation errors.
 
 ### Common Data Representation
 

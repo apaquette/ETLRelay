@@ -255,13 +255,23 @@ jobs:
     permissions:
       contents: write
     steps:
+      - name: Check out the released source for release notes
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
       - name: Create tag and GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
           PACKAGE_VERSION: ${{ needs.verify-build.outputs.version }}
         run: |
+          notes_file="docs/development/release-notes-v${PACKAGE_VERSION}.md"
+          notes_args=(--generate-notes)
+          if [[ -f "$notes_file" ]]; then
+            notes_args=(--notes-file "$notes_file")
+          fi
           gh release create "v${PACKAGE_VERSION}" \
             --repo "$GITHUB_REPOSITORY" \
             --target "$GITHUB_SHA" \
             --title "ETLRelay ${PACKAGE_VERSION}" \
-            --generate-notes
+            "${notes_args[@]}"
