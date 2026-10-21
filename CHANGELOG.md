@@ -46,6 +46,19 @@ This project follows the principles of [Keep a Changelog](https://keepachangelog
 - Record the representative Python, YAML, and installed-CLI pipeline coverage
   matrix without duplicating every combination at each test layer.
 
+### Documentation
+
+- Complete a self-contained YAML/Python quick start with explicit published versus
+  candidate installation instructions and bounded CPython requirements.
+- Add v0.9.0 migration guidance and draft release notes; retain schema version 1
+  and document removed protocol names, corrected failures, and dependency changes.
+- Verify all maintained Python/YAML examples and the quick-start code against a
+  built, installed candidate outside the checkout using the existing CLI fixture.
+- Add an application-defined processor example, contributor guidance, expected
+  demo outputs, SQL reset instructions, and troubleshooting guidance.
+- Align API, architecture, configuration, logging, security, and release docs;
+  consolidate duplicate release instructions into the existing canonical page.
+
 ### Scope Decisions
 
 - Deferred `KeyValueWriter` because the v1.0 feature set does not require

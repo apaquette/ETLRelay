@@ -244,7 +244,7 @@ The v0.8.0 CI workflow includes:
 - Installed dependency compatibility checks.
 - Wheel and source-distribution builds.
 - Distribution metadata and package-content verification.
-- Clean-environment installation of the built wheel.
+- Separate clean-environment installation of the wheel and source distribution.
 - Installed CLI and representative pipeline smoke tests.
 - Compatibility verification across the documented Python/platform matrix.
 
@@ -273,6 +273,10 @@ These limitations should be evaluated explicitly when designing applications tha
 
 ## Reporting vulnerabilities
 
-Report suspected vulnerabilities privately using the repository's [Security Policy](https://github.com/apaquette/ETLRelay/blob/main/SECURITY.md).
+Report suspected vulnerabilities privately using the repository's [Security Policy](https://github.com/apaquette/ETLRelay/blob/v0.9.0/SECURITY.md).
 
 Do not include real credentials, private datasets, or production records in reports.
+Parquet footer finalization follows primary-error precedence: a processing or
+serialization failure is preserved when finalization also fails, and the
+secondary warning identifies only the exception type. Failed finalization can
+leave unreadable partial output. This is not an atomic-write guarantee.

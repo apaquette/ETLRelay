@@ -62,3 +62,5 @@ site/
 # Ignore generated example outputs.
 /examples/data/copy_output.csv
 /examples/data/transformed.csv
+/examples/data/uppercase_output.csv
+/examples/data/*.parquet

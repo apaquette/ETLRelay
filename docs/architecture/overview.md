@@ -4,7 +4,7 @@
 
 ETLRelay is organized around composable runtime contracts and a separate configuration-construction layer. `Pipeline` coordinates batch processing; sources obtain data, processors transform batches, and sinks consume the processed output. File sources and sinks compose filesystem access with format-specific readers and writers.
 
-ETLRelay 0.6.0 also permits users to declare supported pipelines in YAML. Configuration parsing, schema validation, component registration lookup, pipeline construction, and execution remain separate responsibilities.
+ETLRelay also permits users to declare supported pipelines in YAML. Configuration parsing, schema validation, component registration lookup, pipeline construction, and execution remain separate responsibilities.
 
 ## Runtime and configuration diagrams
 

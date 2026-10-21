@@ -10,23 +10,20 @@ Source → Processor(s) → Sink
 
 A source produces batches, processors transform them, and a sink consumes the processed output. File workflows keep storage access independent of format-specific reading and writing.
 
-## Current release: 0.8.0
+## Development milestone: v0.9.0 (unreleased)
 
-ETLRelay v0.8.0 focuses on **security, operational reliability, and release readiness**.
+This documentation targets the feature-complete beta candidate on `dev`.
+The latest published release is v0.8.0; package metadata remains `0.8.0` until
+beta preparation assigns the release version. Use a locally built archive to
+verify candidate behavior rather than reinstalling the published package.
 
-Building on the YAML configuration and CLI functionality introduced in v0.6.0 and v0.7.0, this release strengthens:
+v0.9.0 freezes local CSV/Parquet and SQLite-based SQL workflows, the existing
+processors, YAML schema version 1, and CLI execution. It completes tabular
+protocol naming and reviews API contracts, failures, and installation.
 
-- Local filesystem path validation and documented security boundaries.
-- YAML configuration validation and SQL connection-reference preflight.
-- Operational logging, CLI error reporting, and sensitive-data disclosure controls.
-- Pipeline iterator cleanup and file/SQL resource ownership.
-- File overwrite behavior, SQL transaction boundaries, empty-batch handling, and schema compatibility.
-- Dependency auditing, built-distribution verification, and clean-environment installed-wheel testing.
-- Compatibility verification across supported Python versions and CI platforms.
-
-The release retains YAML schema version `1` and the existing Python and CLI interfaces.
-
-ETLRelay does not provide a general-purpose security sandbox, database authorization layer, atomic file replacement, or pipeline-wide transactions.
+Start with [Getting Started](getting-started.md),
+[Migration](development/migration-v0.9.0.md), and the
+[draft release notes](development/release-notes-v0.9.0.md).
 
 ## Current capabilities
 

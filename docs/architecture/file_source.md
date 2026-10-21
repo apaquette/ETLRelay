@@ -132,7 +132,7 @@ LocalFileSystem + CsvReader
 LocalFileSystem + ParquetReader
 ```
 
-Remote storage backends such as S3 and HDFS are not implemented in v0.6.0 and are not part of the planned v1.0.0 scope. Additional storage implementations may be reviewed after v1.0.0 if concrete requirements justify them; no particular backend or release date is promised.
+Remote storage backends such as S3 and HDFS are not implemented in the frozen v1.0 scope and are not part of the planned v1.0.0 scope. Additional storage implementations may be reviewed after v1.0.0 if concrete requirements justify them; no particular backend or release date is promised.
 
 ## Data Flow
 

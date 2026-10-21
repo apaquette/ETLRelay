@@ -2,7 +2,7 @@
 
 ETLRelay uses Nix flakes for its development environment, uv for Python dependencies and lockfiles, pytest for tests, Ruff for linting and formatting, Pyright for static typing, MkDocs for documentation, GitHub Actions for CI, and PyPI for distribution.
 
-Python 3.12 is the default development interpreter. ETLRelay v0.8.0 supports CPython 3.12, 3.13, and 3.14.
+Python 3.12 is the default development interpreter. ETLRelay supports CPython 3.12, 3.13, and 3.14.
 
 ## Development environment
 
@@ -135,7 +135,7 @@ The primary CI job runs on Ubuntu with Python 3.12 and checks:
 - Installed CLI behavior and a complete local CSV pipeline.
 - Selected CLI failure codes and sensitive-data disclosure regressions.
 
-The compatibility matrix verifies the same built wheel in these additional configurations:
+The compatibility matrix verifies the same built wheel and source distribution in these additional configurations:
 
 | Platform | Python | Verification |
 |---|---|---|
@@ -175,7 +175,7 @@ Before publishing a new version:
 3. Update the changelog, README, documentation homepage, and versioned documentation links.
 4. Run dependency checks and the full quality suite.
 5. Build fresh distribution artifacts and validate their contents.
-6. Test the built wheel in clean environments outside the repository checkout.
+6. Test both built artifacts in separate clean environments outside the repository checkout.
 7. Confirm the CI quality job and compatibility matrix pass.
 8. Review the changeset for unintended API, dependency, or behavioral changes.
 9. Follow the documented TestPyPI and production publication workflow.
@@ -197,3 +197,46 @@ ETLRelay follows incremental, test-driven development:
 6. Update relevant documentation.
 
 Prefer explicit component contracts and small abstractions. Avoid introducing new architectural layers without a demonstrated requirement.
+
+## Contributing
+
+Base focused pull requests on `dev`. During the feature freeze, changes must
+address correctness, security, compatibility, or release readiness; propose
+other features separately for post-v1.0 review.
+
+For a defect, include the affected version/commit, expected and observed
+behavior, and a minimal reproduction with synthetic data. Add focused regression
+coverage and update the relevant user guide and source docstrings. Run the test,
+quality, documentation, dependency, and packaging checks above before review.
+Use the private reporting procedure in the repository's `SECURITY.md` for
+suspected vulnerabilities rather than posting sensitive details publicly.
+
+Executable documentation is checked by
+`tests/functional/test_cli_installed.py::test_installed_candidate_runs_documented_examples`.
+It runs the quick-start snippets and repository examples against an installed
+wheel outside the checkout. Update its expected outputs when an intentional
+example change alters behavior. Do not substitute an editable install for this
+check.
+
+## Extending through Python protocols
+
+An application can pass its own `Source`, `Processor`, `Sink`, tabular reader,
+writer, or filesystem implementation directly to the corresponding constructors.
+No inheritance or registration is required for direct Python composition.
+Respect the documented signatures, schema compatibility, and resource ownership.
+
+`examples/custom_processor.py` implements `UppercaseNames.process(batch) -> Batch`
+using Arrow, then supplies it to `Pipeline` alongside the built-in CSV source
+and sink. It preserves field types/nullability and propagates invalid input
+errors. Run it with the installed candidate:
+
+```bash
+python examples/custom_processor.py
+```
+
+The existing explicit registry/factory/validator types also support deliberate
+application composition, as described in the
+[registry reference](architecture/component-registry.md). Such registrations do
+not modify the default CLI catalog. Automatic plugin discovery and YAML-driven
+arbitrary imports remain unsupported. Keep custom components trusted, document
+their failure/cleanup behavior, and test them independently.

@@ -46,6 +46,19 @@ usage contracts and limitations.
 
 ::: etlrelay.core.reader.KeyValueReader
 
+## Public import policy
+
+Use responsibility-level packages such as `etlrelay.core`, `etlrelay.readers`,
+`etlrelay.sources`, and `etlrelay.pipeline`. The root `etlrelay` package does not
+re-export all components. Configuration services use the module imports shown
+below. Protocol conformance is structural; runtime member checks do not prove
+stream ownership or return-value contracts.
+
+See [Migration](development/migration-v0.9.0.md) for renamed protocol imports,
+[Development](development.md#extending-through-python-protocols) for an executable
+custom-processor example, and [Configuration](configuration.md) for built-in YAML
+properties.
+
 ## Configuration construction
 
 ::: etlrelay.default_components.ComponentCatalog
@@ -55,6 +68,8 @@ usage contracts and limitations.
 ::: etlrelay.config.registry.ComponentRegistration
 
 ::: etlrelay.config.registry.ComponentRegistry
+
+::: etlrelay.config.component_factory.ComponentFactory
 
 ::: etlrelay.config.component_validator.ComponentConfigValidator
 

@@ -63,7 +63,7 @@ The component that opens a stream retains responsibility for its lifecycle; read
 
 ## Declarative Configuration
 
-ETLRelay 0.6.0 adds schema-versioned YAML configuration as an alternative to direct Python composition. The supported configuration surface is deliberately fixed: file and SQL sources/sinks, local storage, CSV/Parquet file formats, and the built-in column-selection, renaming, and row-filtering processors.
+ETLRelay supports schema-versioned YAML configuration as an alternative to direct Python composition. The supported configuration surface is deliberately fixed: file and SQL sources/sinks, local storage, CSV/Parquet file formats, and the built-in column-selection, renaming, and row-filtering processors.
 
 The workflow is:
 

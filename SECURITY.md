@@ -59,7 +59,7 @@ ETLRelay does not guarantee atomic file replacement, whole-pipeline transactions
 
 Evaluate ETLRelay in a controlled environment before using it with sensitive or production data.
 
-For implementation details, security boundaries, and current limitations, see the [Security documentation](https://apaquette.github.io/ETLRelay/0.8.0/security/).
+For implementation details, security boundaries, and current limitations, see the [Security documentation](https://apaquette.github.io/ETLRelay/0.9.0/security/).
 
 ## Policy maintenance
 

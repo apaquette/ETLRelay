@@ -67,9 +67,9 @@ completed successfully:
 | Windows / CPython 3.12 | [Installed-wheel smoke](https://github.com/apaquette/ETLRelay/actions/runs/39635472040/job/119345318978) |
 
 These are evidence for the baseline, not successful CI results for this change.
-The revised script and dependency metadata must pass the same jobs after
-integration. In particular, local Linux results do not establish macOS/Windows
-source-install success. This CI gate remains open until that run completes.
+The revised script and dependency metadata subsequently passed the same jobs
+after integration, as recorded below. Local Linux results alone would not
+establish macOS/Windows source-install success.
 
 Support is the five combinations above, not a full operating-system/Python
 Cartesian product. Other interpreters, OS releases, architectures, and database
@@ -138,9 +138,27 @@ Additional checks:
 - [x] Runtime metadata reflects the frozen implementation and exact constraints.
 - [x] Full local tests and required quality checks pass.
 - [x] Baseline CI evidence exists for all five declared combinations.
-- [ ] Revised wheel/sdist checks and dependency metadata pass all five CI jobs.
+- [x] Revised wheel/sdist checks and dependency metadata pass all five CI jobs at commit `4930087`.
 
-The last item is a release-blocking verification gate, not an identified runtime
-defect. This ticket must not be closed solely from local Linux results. After
-integration, record the successful CI run for the new source state and complete
-that checkbox before release sign-off.
+The integrated packaging verification gate is satisfied by the run below. Later
+changes and final release artifacts still require their own required CI checks.
+
+
+## Integrated CI confirmation
+
+On 2026-10-21, GitHub reported
+[CI run 39637775631](https://github.com/apaquette/ETLRelay/actions/runs/39637775631)
+completed successfully for commit `493008769ae5ca60daf4b2454c35d635e1793c5b`.
+All five required jobs passed:
+
+| Combination | Wheel and sdist CI evidence |
+| --- | --- |
+| Ubuntu / CPython 3.12 | [Quality](https://github.com/apaquette/ETLRelay/actions/runs/39637775631/job/119352913973) |
+| Ubuntu / CPython 3.13 | [Compatibility](https://github.com/apaquette/ETLRelay/actions/runs/39637775631/job/119353646228) |
+| Ubuntu / CPython 3.14 | [Compatibility](https://github.com/apaquette/ETLRelay/actions/runs/39637775631/job/119353646054) |
+| macOS / CPython 3.12 | [Compatibility](https://github.com/apaquette/ETLRelay/actions/runs/39637775631/job/119353646188) |
+| Windows / CPython 3.12 | [Compatibility](https://github.com/apaquette/ETLRelay/actions/runs/39637775631/job/119353646599) |
+
+This closes the prior packaging ticket's pending CI evidence requirement. It
+verifies the packaging source state, not subsequent documentation changes or a
+future versioned beta publication.

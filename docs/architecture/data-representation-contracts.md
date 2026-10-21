@@ -47,7 +47,7 @@ class KeyValueReader(Protocol):
 
 ### Row records
 
-A row record is an in-memory mapping such as `{"id": 1, "name": "Ada"}`. A sequence of such mappings is different from one configuration mapping and from an iterable of `Batch` objects. ETLRelay does not introduce a general conversion framework between these representations in v0.6.0.
+A row record is an in-memory mapping such as `{"id": 1, "name": "Ada"}`. A sequence of such mappings is different from one configuration mapping and from an iterable of `Batch` objects. ETLRelay does not introduce a general conversion framework between these representations in the frozen v1.0 scope.
 
 ## Configuration loading boundary
 
@@ -61,7 +61,7 @@ FileSystem.open_read(path)
 Binary stream
     │
     ▼
-KeyValueReader.read(stream)  ──> one root Mapping[str, object]
+KeyValueReader.read(stream)  ──> one root Mapping[str, Any]
     │
     ▼
 ConfigValidator.validate(mapping)
@@ -77,13 +77,17 @@ The loader must not construct sources, processors, sinks, SQLAlchemy engines, or
 
 ## Format registry boundaries
 
-`TabularFileFormatRegistry` contains reader and writer factories for tabular formats such as CSV and Parquet. It models reading and writing independently, because a format can be read-only or write-only. The v0.6.0 default catalog registers CSV and Parquet readers/writers.
+`TabularFileFormatRegistry` contains reader and writer factories for tabular formats such as CSV and Parquet. It models reading and writing independently, because a format can be read-only or write-only. The default catalog registers CSV and Parquet readers/writers.
 
-`YamlReader` is not a tabular format reader. It implements `KeyValueReader` and does not belong in the tabular registry. A future `JsonReader` could satisfy the same document-reader contract without changing the configuration schema, but JSON support is not included in v0.6.0.
+`YamlReader` is not a tabular format reader. It implements `KeyValueReader` and does not belong in the tabular registry. A future `JsonReader` could satisfy the same document-reader contract without changing the configuration schema, but JSON support is not included in the frozen v1.0 scope.
 
 ## Tabular/record conversion — deferred
 
 Tabular-to-records and records-to-tabular conversion are not required for v1.0. No conversion protocol or generic conversion framework is introduced.
+Before revisiting this decision, define a concrete consumer, eager/lazy row
+iteration, schema inference versus explicit schema, column order, missing/extra
+fields, empty input, null and Arrow-specific values, batching, and cleanup.
+Mapping-document parsing does not establish those row-conversion semantics.
 
 ## Protocol naming and mapping-document writing
 

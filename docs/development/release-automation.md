@@ -12,7 +12,7 @@ The production release workflow publishes a new version from `main`
 when publishing is enabled and that exact version has not already
 been released to PyPI.
 
-ETLRelay v0.8.0 retains the existing branch and publication strategy.
+ETLRelay retains the existing branch and publication strategy.
 The release-readiness checks verify the built distribution rather than
 relying solely on editable development installations.
 
@@ -40,7 +40,7 @@ Before opening or merging a release pull request:
 9. Validate the built artifacts using Twine and the distribution
    verification script.
 10. Verify clean-environment installation, CLI behavior, and a
-    representative pipeline execution using the built wheel.
+    representative pipeline execution using both built artifacts.
 11. Confirm the complete CI workflow and compatibility matrix pass.
 12. Review the changeset for unintended public API changes,
     unsupported security claims, or out-of-scope refactoring.
@@ -87,8 +87,9 @@ the compatibility matrix.
 
 ### Installed-artifact compatibility
 
-The compatibility jobs download the same wheel built by the quality job.
-They do not rebuild the project separately.
+The compatibility jobs download the same wheel and source distribution built by the quality job.
+The sdist is built in an isolated installation environment; the source checkout
+is never installed as a substitute.
 
 | Platform | Python |
 |---|---|
@@ -97,7 +98,7 @@ They do not rebuild the project separately.
 | macOS | 3.12 |
 | Windows | 3.12 |
 
-Each compatibility job installs the wheel into a clean environment,
+Each compatibility job installs each artifact into a separate clean environment,
 checks dependency consistency and import isolation, and exercises the
 installed CLI and a minimal supported CSV pipeline.
 
@@ -207,3 +208,18 @@ The shared compatibility smoke script now defaults to testing both artifacts
 in separate environments. TestPyPI and PyPI verification workflows use this
 same script before publication. See the
 [packaging verification record](packaging-verification.md) for commands and evidence.
+
+
+## v0.9.0 beta documentation handoff
+
+The [draft release notes](release-notes-v0.9.0.md) and
+[migration guide](migration-v0.9.0.md) describe the candidate. The beta ticket must
+assign a fresh package version, update `uv.lock`, set the changelog date, and
+replace candidate notices with released installation and documentation links.
+Do not change package metadata or deploy documentation merely to validate a
+local documentation draft.
+
+Before sign-off, check the [packaging record](packaging-verification.md) against
+the successful CI run for the integrated source state, review unresolved issues,
+and complete the release checklist. Documentation review does not certify that
+beta feedback has been gathered or that publication has occurred.

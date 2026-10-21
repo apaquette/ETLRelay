@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import ast
 import os
+import re
 import shutil
 import sqlite3
 import subprocess
@@ -11,6 +13,7 @@ from pathlib import Path
 from typing import Any
 
 import pyarrow as pa
+import pyarrow.csv as pacsv
 import pyarrow.parquet as pq
 import pytest
 import yaml
@@ -603,3 +606,136 @@ def test_installed_cli_run_does_not_leak_sql_url_or_query_values(
     assert _PAYLOAD_SENTINEL not in terminal_output
     assert connection_url not in terminal_output
     assert not (tmp_path / "output.csv").exists()
+
+
+def test_installed_candidate_runs_documented_examples(
+    installed_cli: Path,
+    tmp_path: Path,
+) -> None:
+    """Execute maintained snippets and example files outside the source checkout."""
+    project_root = Path(__file__).resolve().parents[2]
+    python = installed_cli.with_name("python.exe" if os.name == "nt" else "python")
+    work = tmp_path / "examples-work"
+    work.mkdir()
+    shutil.copytree(project_root / "examples", work / "examples")
+
+    def run_example(*arguments: str, cwd: Path = work):
+        result = _run([str(python), *arguments], cwd=cwd)
+        assert result.returncode == 0, (arguments, result.stdout, result.stderr)
+        assert result.stderr == ""
+        return result
+
+    for name in ("copy_csv", "transform_csv", "parquet_pipeline", "custom_processor"):
+        run_example(f"examples/{name}.py")
+    sql_result = run_example("examples/sqlite_pipeline.py")
+    assert ast.literal_eval(sql_result.stdout.strip()) == [
+        {"id": 1, "customer": "Avery", "total": 18.5},
+        {"id": 3, "customer": "Jordan", "total": 42.25},
+    ]
+    data = work / "examples/data"
+    assert pacsv.read_csv(data / "copy_output.csv").equals(pacsv.read_csv(data / "input.csv"))
+    expected_people = [
+        {"customer_name": "Bob", "age": 25},
+        {"customer_name": "Charlie", "age": 18},
+        {"customer_name": "Evan", "age": 42},
+    ]
+    assert pacsv.read_csv(data / "transformed.csv").to_pylist() == expected_people
+    parquet = pq.read_table(data / "output.parquet")
+    assert parquet.to_pylist() == expected_people
+    assert parquet.schema == pa.schema([("customer_name", pa.string()), ("age", pa.int64())])
+    upper = pacsv.read_csv(data / "uppercase_output.csv").to_pylist()
+    assert upper == [
+        {"name": row["name"].upper(), "age": row["age"]}
+        for row in pacsv.read_csv(data / "input.csv").to_pylist()
+    ]
+
+    configuration_data = work / "examples/configuration/data"
+    environment = {
+        "ETLRELAY_SOURCE_DATABASE_URL": f"sqlite:///{configuration_data / 'source.db'}",
+        "ETLRELAY_SINK_DATABASE_URL": f"sqlite:///{configuration_data / 'sink.db'}",
+    }
+    expected_records = [
+        {"record_id": 1, "amount": 18.5},
+        {"record_id": 2, "amount": 27.0},
+        {"record_id": 3, "amount": 0.0},
+    ]
+
+    def assert_output(config: dict[str, Any]) -> None:
+        sink = config["sink"]
+        if sink["type"] == "file":
+            path = work / sink["path"]
+            table = pacsv.read_csv(path) if sink["format"] == "csv" else pq.read_table(path)
+            assert table.schema == pa.schema([("record_id", pa.int64()), ("amount", pa.float64())])
+            assert table.to_pylist() == expected_records
+        else:
+            with sqlite3.connect(work / "examples/configuration/data/sink.db") as connection:
+                rows = connection.execute(
+                    "SELECT record_id, amount FROM processed_records ORDER BY record_id"
+                ).fetchall()
+            assert rows == [(1, 18.5), (2, 27.0), (3, 0.0)]
+
+    configurations = sorted((work / "examples/configuration").glob("*.yaml"))
+    assert len(configurations) == 9
+    for configuration in configurations:
+        run_example("examples/configuration/prepare_demo_data.py")
+        config = yaml.safe_load(configuration.read_text(encoding="utf-8"))
+        if config["sink"]["type"] == "file":
+            (work / config["sink"]["path"]).unlink(missing_ok=True)
+        validation = _run(
+            [str(installed_cli), "validate", str(configuration)], cwd=work, env=environment
+        )
+        assert validation.returncode == 0, (validation.stdout, validation.stderr)
+        assert validation.stderr == ""
+        if config["sink"]["type"] == "file":
+            assert not (work / config["sink"]["path"]).exists()
+        else:
+            with sqlite3.connect(work / "examples/configuration/data/sink.db") as connection:
+                assert connection.execute("SELECT COUNT(*) FROM processed_records").fetchone() == (
+                    0,
+                )
+        result = _run([str(installed_cli), "run", str(configuration)], cwd=work, env=environment)
+        assert result.returncode == 0, (configuration.name, result.stdout, result.stderr)
+        assert result.stderr == ""
+        assert_output(config)
+
+    for name in ("csv_to_parquet", "sql_to_sql"):
+        run_example("examples/configuration/prepare_demo_data.py")
+        configuration = work / f"examples/configuration/{name}.yaml"
+        config = yaml.safe_load(configuration.read_text(encoding="utf-8"))
+        if config["sink"]["type"] == "file":
+            (work / config["sink"]["path"]).unlink(missing_ok=True)
+        result = _run(
+            [str(python), "examples/configuration/run.py", str(configuration)],
+            cwd=work,
+            env=environment,
+        )
+        assert result.returncode == 0, (result.stdout, result.stderr)
+        assert result.stderr == ""
+        assert_output(config)
+
+
+def test_installed_candidate_runs_quick_start(installed_cli: Path, tmp_path: Path) -> None:
+    """Execute the actual quick-start fences against the installed candidate."""
+    project_root = Path(__file__).resolve().parents[2]
+    python = installed_cli.with_name("python.exe" if os.name == "nt" else "python")
+    quickstart = tmp_path / "quickstart"
+    quickstart.mkdir()
+    guide = (project_root / "docs/getting-started.md").read_text(encoding="utf-8")
+    for language, filename in (
+        ("csv", "input.csv"),
+        ("yaml", "pipeline.yaml"),
+        ("python", "pipeline.py"),
+    ):
+        match = re.search(rf"```{language}\n(.*?)\n```", guide, re.DOTALL)
+        assert match is not None, f"Missing quick-start {language} example"
+        (quickstart / filename).write_text(match.group(1) + "\n", encoding="utf-8")
+    validation = _run([str(installed_cli), "validate", "pipeline.yaml"], cwd=quickstart)
+    assert validation.returncode == 0, validation.stderr
+    assert not (quickstart / "output.csv").exists()
+    result = _run([str(installed_cli), "run", "pipeline.yaml"], cwd=quickstart)
+    assert result.returncode == 0, result.stderr
+    result = _run([str(python), "pipeline.py"], cwd=quickstart)
+    assert result.returncode == 0, result.stderr
+    expected = pa.table({"record_id": [1, 3], "amount": [10, 5]})
+    assert pacsv.read_csv(quickstart / "output.csv").equals(expected)
+    assert pacsv.read_csv(quickstart / "python-output.csv").equals(expected)

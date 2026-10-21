@@ -1,19 +1,32 @@
+## v0.9.0 documentation review
+
+Local evidence is recorded in `docs/development/documentation-review.md`.
+
+- [x] Candidate versus published installation and bounded support are explicit.
+- [x] Quick-start CSV/YAML/Python snippets execute against an isolated candidate wheel.
+- [x] Five Python examples, nine YAML configurations, and representative Python-runner examples pass with data/schema assertions.
+- [x] Migration, draft release notes, contribution guidance, and known limitations are documented.
+- [x] Full local suite: 736 passed, 100% configured coverage; strict documentation and quality checks pass.
+- [ ] Integrated documentation change passes required CI.
+- [ ] Beta preparation assigns the release version/date and finalizes published links and release notes.
+
 ## v0.9.0 packaging and compatibility gate
 
 Local evidence for the packaging change is recorded in
 `docs/development/packaging-verification.md`. The v0.8.0 checklist below is
-retained as historical release context.
+retained as historical release context. The integrated packaging source
+`4930087` passed CI run `39637775631` across all five combinations.
 
 - [x] Wheel/sdist metadata, dependency bounds, modules, licence, notice, and entry-point checks pass locally.
 - [x] Both artifacts install outside the checkout on Linux CPython 3.12, 3.13, and 3.14.
 - [x] Public imports, direct CSV/Parquet/SQLite pipelines, YAML validation, and CLI execution pass.
 - [x] Full local suite: 734 passed, 100% configured coverage; required quality checks pass.
-- [ ] Ubuntu / Python 3.12 required CI passes for the integrated packaging change.
-- [ ] Ubuntu / Python 3.13 wheel and sdist smoke passes for that change.
-- [ ] Ubuntu / Python 3.14 wheel and sdist smoke passes for that change.
-- [ ] macOS / Python 3.12 wheel and sdist smoke passes for that change.
-- [ ] Windows / Python 3.12 wheel and sdist smoke passes for that change.
-- [ ] Record the integrated commit and successful CI run in the verification record.
+- [x] Ubuntu / Python 3.12 required CI passes for the integrated packaging change.
+- [x] Ubuntu / Python 3.13 wheel and sdist smoke passes for that change.
+- [x] Ubuntu / Python 3.14 wheel and sdist smoke passes for that change.
+- [x] macOS / Python 3.12 wheel and sdist smoke passes for that change.
+- [x] Windows / Python 3.12 wheel and sdist smoke passes for that change.
+- [x] Record the integrated commit and successful CI run in the verification record.
 
 
 ## v0.8.0 release verification

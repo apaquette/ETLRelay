@@ -14,7 +14,7 @@ The pipeline executes only when the caller invokes `Pipeline.run()`.
 
 These responsibilities are shared by the direct Python APIs and the
 `etlrelay` CLI. Schema version `1` remains the supported configuration
-format in ETLRelay v0.8.0.
+format in ETLRelay.
 
 ## End-to-end boundary
 
@@ -75,7 +75,7 @@ A future document format does not need to be part of the tabular `TabularFileFor
 
 | Boundary | Examples | Error behavior |
 |---|---|---|
-| YAML parsing / shape | Malformed YAML, duplicate mapping keys, multiple documents | PyYAML error or `ValueError` from `YamlReader` for root-shape violations. |
+| YAML parsing / shape | Malformed YAML, duplicate mapping keys, multiple documents | `yaml.YAMLError`, or `YamlDocumentError` (a `ValueError` subclass) for root-shape violations. |
 | Root and component schema | Unsupported version, missing/unknown fields, invalid field types | `ConfigurationError` raised by `ConfigValidator`. |
 | Build and preflight | Unsupported/unregistered types, missing or empty SQL environment variables | `PipelineBuildError`. |
 | Runtime execution | File, query, schema, processor, or sink failures | Underlying runtime exceptions propagate unless a component contract explicitly translates them. |

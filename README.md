@@ -20,6 +20,17 @@ This separation allows file sources and sinks to compose storage and format impl
 
 ETLRelay is being developed incrementally, with test-driven development, explicit component contracts, and a focus on keeping the architecture small.
 
+## Development status
+
+The `dev` branch targets **v0.9.0 — feature-complete beta (unreleased)**.
+The latest published release is v0.8.0. Development API documentation describes
+this candidate, including the `TabularReader`/`TabularWriter` rename.
+
+See [Getting Started](docs/getting-started.md) for clean-environment candidate
+installation and a complete CSV/YAML/Python quick start, and
+[Migration to v0.9.0](docs/development/migration-v0.9.0.md) before updating imports.
+[Draft release notes](docs/development/release-notes-v0.9.0.md) summarize the milestone.
+
 ## Installation
 
 Install ETLRelay from PyPI:
@@ -81,10 +92,10 @@ variables, or execute the pipeline. It does not guarantee that runtime
 filesystem operations, database operations, or data transformations
 will succeed.
 
-See the [CLI Reference](https://apaquette.github.io/ETLRelay/0.8.0/cli-reference/)
+See the [CLI Reference](docs/cli-reference.md)
 for command syntax, exit codes, and error-output conventions.
 
-See [Getting Started](https://apaquette.github.io/ETLRelay/0.8.0/getting-started/)
+See [Getting Started](docs/getting-started.md)
 for a complete local CSV example.
 
 
@@ -111,11 +122,11 @@ Operational logs report pipeline progress, component activity, and resource
 lifecycle events without routinely exposing record contents, SQL parameters,
 or database credentials.
 
-See the [Logging documentation](https://apaquette.github.io/ETLRelay/0.8.0/logging/) for supported levels, examples, Python integration, and security limitations.
+See the [Logging documentation](docs/logging.md) for supported levels, examples, Python integration, and security limitations.
 
 ## Documentation
 
-See the [ETLRelay documentation](https://apaquette.github.io/ETLRelay/0.8.0) for usage instructions, examples, and API details.
+Read the [candidate documentation](docs/index.md) for current usage, contracts, and examples. The [published v0.8.0 documentation](https://apaquette.github.io/ETLRelay/0.8.0/) remains available for that release.
 
 
 
@@ -223,9 +234,9 @@ exceptions or application logging.
 
 For details, see:
 
-- [Security](https://apaquette.github.io/ETLRelay/0.8.0/security/)
-- [Logging](https://apaquette.github.io/ETLRelay/0.8.0/logging/)
-- [Pipeline Architecture](https://apaquette.github.io/ETLRelay/0.8.0/architecture/pipeline/)
+- [Security](docs/security.md)
+- [Logging](docs/logging.md)
+- [Pipeline Architecture](docs/architecture/pipeline.md)
 
 
 ## Architecture
@@ -313,7 +324,7 @@ The configuration lifecycle is `ConfigLoader` → `ConfigValidator` → `Pipelin
 
 For SQL configuration, YAML stores an environment-variable name such as `ETLRELAY_SOURCE_DATABASE_URL`, not the resolved connection URL. Missing/empty variables fail before component factories or source/sink I/O. The `PipelineBuilder` owns the lifecycle of engines created by the catalog's shared `SqlEngineFactory`; callers close the builder after execution. Direct Python `SqlSource`/`SqlSink` engine ownership remains unchanged.
 
-See the [YAML Configuration reference](https://apaquette.github.io/ETLRelay/0.8.0/configuration/) for the versioned schema, examples, supported combinations, and validation errors.
+See the [YAML Configuration reference](docs/configuration.md) for the versioned schema, examples, supported combinations, and validation errors.
 
 ### Common Data Representation
 

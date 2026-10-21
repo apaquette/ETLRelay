@@ -1,6 +1,6 @@
 # YAML Configuration
 
-ETLRelay v0.8.0 supports declarative pipelines using versioned YAML
+ETLRelay supports declarative pipelines using versioned YAML
 configuration. Schema version `1` defines a closed set of supported
 sources, processors, sinks, storage backends, and file formats.
 
@@ -14,7 +14,7 @@ but they do not guarantee successful filesystem access, database operations,
 data processing, or output persistence.
 
 Configuration schema version `1` is independent of the ETLRelay package
-version and remains unchanged in v0.8.0.
+version and remains unchanged for v0.9.0.
 
 Use this page as the canonical reference for the schema. [Getting Started](getting-started.md) demonstrates how to load, build, and execute a configuration; the [configuration architecture pages](architecture/configuration-loading.md) explain the internal boundaries.
 
@@ -76,7 +76,7 @@ The configuration document itself must be read during validation.
 Pipeline construction may allocate resources for configured components.
 
 `etlrelay validate` checks the configured pipeline without executing
-its data-processing run. It is not a comprehensive runtime-readiness
+its data-processing run. It also does not construct runtime components or resolve SQL environment variables; those steps belong to `run`. It is not a comprehensive runtime-readiness
 or security assessment.
 
 ## Root schema
@@ -135,7 +135,7 @@ Source and sink formats are selected independently, so all four file-to-file com
 | Property | Required | Type | Meaning |
 |---|---:|---|---|
 | `type` | Yes | string: `sql` | Selects `SqlSource`. |
-| `connection_url_env` | Yes | valid environment-variable identifier | Name of an environment variable containing a SQLAlchemy connection URL; literal URLs are not accepted in this field. |URL. |
+| `connection_url_env` | Yes | valid environment-variable identifier | Name of an environment variable containing a SQLAlchemy connection URL; literal URLs are not accepted in this field. |
 | `query` | Yes | non-empty string | Caller-authored SQL query. Use named bind parameters for query values. |
 | `parameters` | No | mapping | Named bind-parameter values. Keys must be strings; values may be strings, integers, floats, Booleans, or `null`. |
 
@@ -189,7 +189,7 @@ The `processors` property is an ordered list. Processor `n` receives the output 
 | `type` | Yes | string: `select_columns` | Processor discriminator. |
 | `columns` | Yes | list of strings | Names must be unique. The list determines output column order. |
 
-Column existence depends on the data schema and can fail during execution.
+Column existence and ambiguity depend on the data schema and can fail during execution. An empty column list is accepted; it produces a zero-column Arrow table, which some output formats or databases cannot serialize. Use a nonempty selection for portable file/SQL output.
 
 ### `rename_columns`
 
@@ -279,9 +279,9 @@ For detailed contracts, see [Pipeline](architecture/pipeline.md), [File Sink](ar
 
 The repository's `examples/configuration/` directory contains nine schema-v1 YAML files for the combinations above, a reusable runner, a data-preparation script, and input setup for local CSV, Parquet, and SQLite. See [Getting Started](getting-started.md) for setup and run commands. The examples use a small schema with `id`, `amount`, and `state` columns; the pipeline selects `id` and `amount`, filters `amount >= 0`, and renames `id` to `record_id`.
 
-- [Example runner](https://github.com/apaquette/ETLRelay/blob/v0.6.0/examples/configuration/run.py)
-- [Prepare example data](https://github.com/apaquette/ETLRelay/blob/v0.6.0/examples/configuration/prepare_demo_data.py)
-- [Configuration examples directory](https://github.com/apaquette/ETLRelay/tree/v0.6.0/examples/configuration)
+- [Example runner](https://github.com/apaquette/ETLRelay/blob/v0.9.0/examples/configuration/run.py)
+- [Prepare example data](https://github.com/apaquette/ETLRelay/blob/v0.9.0/examples/configuration/prepare_demo_data.py)
+- [Configuration examples directory](https://github.com/apaquette/ETLRelay/tree/v0.9.0/examples/configuration)
 
 The examples expect commands to be run from the repository root so relative paths are interpreted consistently. The SQL examples require the environment variables shown below to point at the SQLite demo databases created by `prepare_demo_data.py`:
 
@@ -326,7 +326,7 @@ Validation does not guarantee that source files exist, SQL parses or executes, d
 ## Schema security and scope
 
 - YAML is parsed with a safe loader; arbitrary Python object construction is not part of configuration loading.
-- Component types resolve only through explicit built-in registries. Schema v1 does not provide dynamic imports, user code evaluation, or arbitrary plugin loading.
+- The default CLI resolves component types through explicit built-in registries. Applications may deliberately compose their own registries in Python; YAML does not discover or import them. Schema v1 does not provide dynamic imports, user code evaluation, or arbitrary plugin loading.
 - SQL text remains caller-authored SQL. Bind values rather than interpolating untrusted values, and validate/allowlist dynamic identifiers separately.
 - Local path validation is a containment check, not a full OS sandbox or authorization policy.
-- JSON configuration, remote storage, additional formats, additional processors, a general plugin system, a CLI, schema migrations, and SQL table-creation modes are not part of the v0.6.0 YAML contract.
+- JSON configuration, remote storage, additional formats/processors, dynamic plugin loading, schema migrations, and SQL table-creation modes are outside the frozen v1.0 scope. The CLI supports the same built-in schema described here.
