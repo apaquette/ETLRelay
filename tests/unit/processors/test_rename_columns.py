@@ -25,6 +25,13 @@ def make_batch() -> Batch:
 
 
 class TestRenameColumns:
+    @pytest.mark.parametrize("mapping", [{"id": "record_id"}, {"name": "label"}, {}])
+    def test_rejects_duplicate_final_names_from_duplicate_input(self, mapping):
+        batch = Batch(pa.table([[1], [2], ["Ada"]], names=["id", "id", "name"]))
+
+        with pytest.raises(ValueError, match="Duplicate columns"):
+            RenameColumns(mapping=mapping).process(batch)
+
     def test_renames_single_column(self):
         batch = make_batch()
 

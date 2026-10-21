@@ -16,6 +16,55 @@ from etlrelay.storage.local import LocalFileSystem
 runner = CliRunner()
 
 
+def test_validate_does_not_build_or_preflight_sql(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Validation accepts SQL reference names without resolving their values."""
+    config = _valid_config(tmp_path)
+    config["source"] = {
+        "type": "sql",
+        "connection_url_env": "ETLRELAY_REVIEW_MISSING_DATABASE",
+        "query": "SELECT id FROM input",
+    }
+    monkeypatch.delenv("ETLRELAY_REVIEW_MISSING_DATABASE", raising=False)
+    pipeline = tmp_path / "pipeline.yaml"
+    _write_config(pipeline, config)
+
+    def fail_build(**_kwargs: object) -> None:
+        pytest.fail("validate constructed a PipelineBuilder")
+
+    monkeypatch.setattr(cli, "PipelineBuilder", fail_build)
+    result = runner.invoke(app, ["validate", str(pipeline)])
+
+    assert result.exit_code == 0
+    assert not (tmp_path / "output.csv").exists()
+
+
+@pytest.mark.parametrize("command", ["validate", "run"])
+@pytest.mark.parametrize("document", ["", "[]", "1: SECRET_DOCUMENT_VALUE", "true: value"])
+def test_invalid_document_shape_is_a_safe_configuration_failure(
+    tmp_path: Path,
+    command: str,
+    document: str,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    pipeline = tmp_path / "pipeline.yaml"
+    pipeline.write_text(document, encoding="utf-8")
+
+    def fail_build(**_kwargs: object) -> None:
+        pytest.fail("Invalid document reached pipeline construction")
+
+    monkeypatch.setattr(cli, "PipelineBuilder", fail_build)
+    result = runner.invoke(app, [command, str(pipeline)])
+
+    assert result.exit_code == 3
+    assert "Invalid YAML document" in result.stderr
+    assert result.stdout == ""
+    assert "SECRET_DOCUMENT_VALUE" not in result.stderr
+    assert "Traceback" not in result.stderr
+
+
 def _valid_config(base_path: Path) -> dict[str, object]:
     """Return a valid file-to-file pipeline configuration."""
     return {
@@ -296,16 +345,18 @@ def test_validate_path_validation_error_is_reported_safely(
     assert "internal path detail" not in result.output
 
 
+@pytest.mark.parametrize("error_type", [RuntimeError, ValueError])
 def test_validate_unexpected_error_returns_code_1_without_details(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
+    error_type: type[Exception],
 ) -> None:
     """Hide unexpected internal exception details from CLI output."""
     pipeline = tmp_path / "pipeline.yml"
     pipeline.write_text("placeholder", encoding="utf-8")
     _patch_config_loader_failure(
         monkeypatch,
-        RuntimeError("sensitive internal detail"),
+        error_type("sensitive internal detail"),
     )
 
     result = CliRunner().invoke(cli.app, ["validate", str(pipeline)])

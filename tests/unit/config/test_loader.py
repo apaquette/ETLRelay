@@ -1,10 +1,58 @@
 import logging
+from collections.abc import Mapping
 from io import BytesIO
+from pathlib import Path
+from typing import BinaryIO
 from unittest.mock import Mock
 
 import pytest
 
 from etlrelay.config.loader import ConfigLoader
+from etlrelay.core import KeyValueReader
+from etlrelay.default_components import create_default_component_catalog
+from etlrelay.security import PathValidator
+from etlrelay.storage import LocalFileSystem
+
+
+def test_load_accepts_a_non_yaml_key_value_reader(tmp_path: Path) -> None:
+    """Document parsing is substitutable independently of schema validation."""
+    config: Mapping[str, object] = {
+        "version": 1,
+        "source": {
+            "type": "file",
+            "path": "input.csv",
+            "format": "csv",
+            "storage": {"type": "local"},
+        },
+        "processors": [],
+        "sink": {
+            "type": "file",
+            "path": "output.csv",
+            "format": "csv",
+            "storage": {"type": "local"},
+        },
+    }
+    document = b"This is deliberately not a YAML mapping."
+    (tmp_path / "pipeline.custom").write_bytes(document)
+
+    class MappingReader:
+        stream: BinaryIO | None = None
+
+        def read(self, stream: BinaryIO) -> Mapping[str, object]:
+            self.stream = stream
+            assert stream.read() == document
+            return config
+
+    reader = MappingReader()
+    protocol_reader: KeyValueReader = reader
+    loader = ConfigLoader(
+        LocalFileSystem(PathValidator(tmp_path)),
+        protocol_reader,
+        create_default_component_catalog().config_validator,
+    )
+
+    assert loader.load("pipeline.custom") is config
+    assert reader.stream is not None and reader.stream.closed
 
 
 def test_load_opens_stream_reads_validates_and_returns_mapping() -> None:
