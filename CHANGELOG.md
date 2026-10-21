@@ -25,6 +25,15 @@ This project follows the principles of [Keep a Changelog](https://keepachangelog
 - Correct tabular protocol references, validation behavior, and SQL resource
   ownership documentation; restore strict API documentation builds.
 
+### Testing
+
+- Verify processed Parquet-to-SQLite and SQLite-to-Parquet pipelines through
+  the built and installed CLI, reusing the existing isolated-wheel fixture.
+- Strengthen schema assertions for the existing YAML source/sink matrix and
+  the direct Parquet processor chain, including types, nullability, and nulls.
+- Record the representative Python, YAML, and installed-CLI pipeline coverage
+  matrix without duplicating every combination at each test layer.
+
 ### Scope Decisions
 
 - Deferred `KeyValueWriter` because the v1.0 feature set does not require
