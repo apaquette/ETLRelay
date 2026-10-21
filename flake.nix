@@ -30,6 +30,7 @@
               # Development tooling
               pkgs.uv
               pkgs.git
+              pkgs.ripgrep
               pkgs.nodejs
               pkgs.ruff
               pkgs.pyright
