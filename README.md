@@ -53,12 +53,14 @@ are not independently verified by CI.
 Python 3.15 is not currently supported because ETLRelay's pinned
 PyArrow major version does not provide Python 3.15 support.
 
+
 ## CLI Quick Start
 
-Install the v0.7.1 package and inspect the available commands:
+Install ETLRelay v0.8.0 and inspect the available commands:
 
 ```bash
-python -m pip install etlrelay==0.7.1
+python -m pip install etlrelay==0.8.0
+
 etlrelay --help
 etlrelay version
 ```
@@ -70,7 +72,20 @@ etlrelay validate pipeline.yaml
 etlrelay run pipeline.yaml
 ```
 
-See the [CLI Reference](https://apaquette.github.io/ETLRelay/0.7.1/cli-reference/) for command syntax, exit codes, and error-output conventions, and [Getting Started](https://apaquette.github.io/ETLRelay/0.7.1/getting-started/) for a complete local CSV example.
+The CLI supports configuration validation, pipeline execution, version
+reporting, and command help.
+
+`validate` checks the configuration and constructs the pipeline without
+executing its data-processing run. It does not guarantee that runtime
+filesystem operations, database operations, or data transformations
+will succeed.
+
+See the [CLI Reference](https://apaquette.github.io/ETLRelay/0.8.0/cli-reference/)
+for command syntax, exit codes, and error-output conventions.
+
+See [Getting Started](https://apaquette.github.io/ETLRelay/0.8.0/getting-started/)
+for a complete local CSV example.
+
 
 
 ## Logging
@@ -99,27 +114,46 @@ See the [Logging documentation](https://apaquette.github.io/ETLRelay/0.8.0/loggi
 
 ## Documentation
 
-See the [ETLRelay documentation](https://apaquette.github.io/ETLRelay/0.7.1) for usage instructions, examples, and API details.
+See the [ETLRelay documentation](https://apaquette.github.io/ETLRelay/0.8.0) for usage instructions, examples, and API details.
+
 
 
 ## Project Status
 
-**Current release: `0.7.1` — documentation correction**
+**Current release: `0.8.0` — Security and operational readiness**
 
-ETLRelay v0.7.1 corrects the documentation to reflect the CLI introduced in v0.7.0. This is a documentation-only release with no runtime code, public API, CLI behavior, or YAML configuration schema changes.
+ETLRelay v0.8.0 strengthens the security, reliability, and
+release-verification foundations established in previous releases.
 
-The v0.7.0 release adds the installed `etlrelay` command with `run`, `validate`, `version`, and `help`. CLI command handling is organized in `CliApplication`; the implementation reuses the YAML loader, component catalog, `PipelineBuilder`, and `Pipeline` APIs. Unit, integration, and installed-package functional tests cover command behavior and local CSV execution.
+Highlights include:
 
-Unit tests validate individual components. Integration and functional tests exercise their composition.
+- Hardened local path validation and explicit filesystem security
+  limitations.
+- Strengthened configuration validation and SQL connection-reference
+  preflight.
+- Controlled operational logging and CLI error reporting.
+- Deterministic cleanup of active pipeline iterators and owned
+  file/SQL resources.
+- Verified failure, transaction, overwrite, empty-batch, and
+  schema-compatibility contracts.
+- Dependency auditing, distribution-content verification, and
+  clean-environment installed-wheel testing.
+- Compatibility verification for CPython 3.12, 3.13, and 3.14.
 
-The current implementation establishes the foundation for further
-development. ETLRelay is not yet a complete ETL product, and its public
-API may evolve before `1.0.0`.
+The existing YAML configuration schema remains version `1`.
+Direct Python composition, supported source/sink interfaces, and
+CLI commands remain available.
 
-The v0.4.0 milestone stabilizes and documents the local storage contract,
-including stream ownership, path containment, error propagation, output
-creation, overwrite behavior, and resource cleanup. It does not introduce
-a new storage backend.
+This release does not introduce new storage backends, distributed
+execution, scheduling, or a general-purpose plugin system.
+
+ETLRelay remains experimental pre-1.0 software. Public APIs may evolve,
+and applications must evaluate its security and operational limitations
+before processing sensitive or production data.
+
+Unit tests validate individual components. Integration and functional
+tests exercise component composition and complete pipeline workflows.
+
 
 ### Implemented Components
 
@@ -164,6 +198,37 @@ S3, HDFS, and other remote-storage backends are not part of the current implemen
 Features will be added when requirements justify them. The project will
 not introduce scheduling, distributed execution, or other orchestration
 infrastructure merely to anticipate future needs.
+
+
+## Operational Contracts
+
+ETLRelay processes batches synchronously and validates output-schema
+compatibility during pipeline execution.
+
+An entirely empty source does not invoke its sink. Zero-row batches
+still participate in processing and schema validation.
+
+Pipeline execution attempts to close active source and processing
+iterators when they expose callable `close()` methods. File sources
+and sinks manage the streams they open; readers and writers borrow
+caller-provided streams.
+
+Local file writes are not atomic. Opening an existing output file for
+writing truncates it, and a failed write may leave partial output.
+
+SQL sinks append to existing tables using one transaction per nonempty
+batch. Previously committed batches are not rolled back by a later
+pipeline failure.
+
+ETLRelay provides controlled operational logging and CLI diagnostics,
+but it does not guarantee the sanitization of arbitrary third-party
+exceptions or application logging.
+
+For details, see:
+
+- [Security](https://apaquette.github.io/ETLRelay/0.8.0/security/)
+- [Logging](https://apaquette.github.io/ETLRelay/0.8.0/logging/)
+- [Pipeline Architecture](https://apaquette.github.io/ETLRelay/0.8.0/architecture/pipeline/)
 
 
 ## Architecture
@@ -251,7 +316,7 @@ The configuration lifecycle is `ConfigLoader` → `ConfigValidator` → `Pipelin
 
 For SQL configuration, YAML stores an environment-variable name such as `ETLRELAY_SOURCE_DATABASE_URL`, not the resolved connection URL. Missing/empty variables fail before component factories or source/sink I/O. The `PipelineBuilder` owns the lifecycle of engines created by the catalog's shared `SqlEngineFactory`; callers close the builder after execution. Direct Python `SqlSource`/`SqlSink` engine ownership remains unchanged.
 
-See the [YAML Configuration reference](https://apaquette.github.io/ETLRelay/0.7.1/configuration/) for the versioned schema, examples, supported combinations, and validation errors.
+See the [YAML Configuration reference](https://apaquette.github.io/ETLRelay/0.8.0/configuration/) for the versioned schema, examples, supported combinations, and validation errors.
 
 ### Common Data Representation
 
@@ -305,19 +370,20 @@ Enter the development shell:
 nix develop
 ```
 
-The environment provides:
+The Nix development shell provides:
 
-* Python 3.12
-* uv
-* Ruff
-* Pyright
-* Git
+- Python 3.12 as the default development interpreter.
+- Python 3.13 and 3.14 for compatibility verification.
+- uv for Python dependency and environment management.
+- Node.js for Pyright.
+- Ruff, Pyright, Git, and other configured development tools.
 
-Nix provides system-level development tools and executables, while uv manages the Python project environment and Python dependencies.
+The repository's `.python-version` file selects Python 3.12 by default.
+The supported package range is CPython 3.12–3.14.
 
-The Python virtual environment is managed by uv in `.venv/`.
-
-The project uses Nix-provided versions of command-line development tools such as Ruff and Pyright to avoid relying on generic Linux executables that may be incompatible with NixOS.
+The development shell uses Nix-provided executables while uv manages
+the project's Python dependencies. CI independently verifies built
+distribution artifacts using GitHub-hosted runners.
 
 ## Getting Started
 

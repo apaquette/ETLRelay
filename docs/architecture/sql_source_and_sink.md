@@ -85,6 +85,19 @@ The application creates the engine and remains responsible for its lifecycle, in
 
 A typical application can share one engine between a source and a sink, including components in one pipeline, then dispose it once the pipeline and any verification queries are complete.
 
+`SqlSource` explicitly closes its SQLAlchemy result after row retrieval,
+including when result validation or iteration fails. Its connection is
+released on successful completion and failure.
+
+`SqlSink` releases its per-batch transaction resources when the
+transaction context exits.
+
+Neither component disposes a caller-supplied `Engine`.
+
+A configured pipeline instead uses the shared SQL engine factory.
+`PipelineBuilder.close()` is responsible for releasing the engines
+owned by that factory after the pipeline has finished.
+
 ## Database support
 
 The API accepts a SQLAlchemy `Engine`, so the actual connection URL, dialect, and DBAPI driver determine which database can be connected to. SQLite is the reference backend used by the automated integration tests because it is self-contained and repeatable.
@@ -135,6 +148,21 @@ therefore does not establish or validate the destination schema.
 Pipeline-level schema validation remains separate and includes zero-row
 batches.
 
+A SQL sink batch is considered successfully committed only after
+SQLAlchemy's transaction context exits successfully.
+
+Commit-related errors propagate to the caller. ETLRelay does not emit a
+successful batch-commit event for a transaction whose commit fails.
+
+Zero-row batches are skipped before table reflection, column validation,
+or transaction creation.
+
+When `SqlSink` is called directly, a zero-row batch therefore does not
+validate the destination table or establish a destination schema.
+
+When called through `Pipeline`, zero-row batches still participate in
+the pipeline's separate output-schema compatibility checks.
+
 ## Limitations and out-of-scope behavior
 
 - **No replace mode:** writes append rows only. There is no `replace` argument or table truncation behavior.
@@ -150,7 +178,16 @@ These limits are deliberate. Additional write modes, ORM support, migrations, re
 
 ## SQL components in YAML configuration
 
-ETLRelay 0.6.0 supports the SQL source and sink through schema-v1 YAML configuration as well as direct Python construction. The YAML properties are `connection_url_env`, `query`, and optional scalar `parameters` for a source; a sink uses `connection_url_env`, `table_name`, and optional `schema`.
+ETLRelay supports SQL sources and sinks through schema-version-1 YAML
+configuration and through direct Python construction.
+
+In YAML, SQL components use environment-variable references rather than
+literal connection URLs. `PipelineBuilder` resolves the configured
+component registrations and preflights required connection-variable
+references before invoking component factories.
+
+The v0.8.0 release retains these configuration properties and clarifies
+their validation, error-reporting, and resource-lifecycle contracts.
 
 Unlike the direct Python API, the configuration builder does not receive an `Engine` argument. It receives the name of an environment variable containing the SQLAlchemy connection URL. `PipelineBuilder` first resolves all component registrations and calls the shared `SqlEngineFactory.preflight()` for the referenced variable names. If a variable is missing or empty, building fails before SQL component factories, engine creation, or configured source/sink I/O.
 
