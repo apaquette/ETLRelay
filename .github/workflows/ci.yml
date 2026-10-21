@@ -30,8 +30,17 @@ jobs:
       - name: Install Python
         run: uv python install 3.12
 
+      - name: Verify dependency lockfile
+        run: uv lock --check
+
+      - name: Audit dependencies
+        run: uv audit --locked --preview-features audit-command
+
       - name: Install locked project and development dependencies
         run: uv sync --locked --all-groups
+
+      - name: Verify installed dependency consistency
+        run: uv pip check --python .venv/bin/python
 
       - name: Build documentation
         run: uv run mkdocs build --strict
@@ -55,10 +64,22 @@ jobs:
         run: uv run pyright
 
       - name: Build source distribution and wheel
-        run: uv build
+        run: |
+          rm -rf dist
+          uv build
 
       - name: Validate distribution metadata
         run: uvx --from 'twine>=7,<8' twine check dist/*
+
+      - name: Verify distribution contents
+        run: uv run python tests/packaging/check_distributions.py
+
+      - name: Upload verified distributions
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: etlrelay-distributions
+          path: dist/
+          if-no-files-found: error
 
       - name: Verify installed CLI release contract
         shell: bash
@@ -123,28 +144,73 @@ jobs:
           cli="${venv_dir}/bin/etlrelay"
           python="${venv_dir}/bin/python"
 
+          uv pip check --python "${venv_dir}/bin/python" \
+          || fail "Installed wheel has incompatible dependencies."
+
+          [[ -x "$cli" ]] \
+            || fail "Installed wheel did not provide the etlrelay executable."
+
           # Execute outside the checkout and verify package import isolation.
           cd "$work_dir"
 
-          "$python" - <<'PY'
+          unset PYTHONPATH
+          unset PYTHONHOME
+          export PYTHONNOUSERSITE=1
+
+          "$python" -I - "$expected_version" <<'PY'
           import os
           import sys
+          from importlib.metadata import version
           from pathlib import Path
 
           import etlrelay
 
+          expected_version = sys.argv[1]
+
           package_path = Path(etlrelay.__file__).resolve()
           venv_path = Path(sys.prefix).resolve()
           checkout_path = Path(os.environ["GITHUB_WORKSPACE"]).resolve()
+          work_dir = (
+              Path(os.environ["RUNNER_TEMP"]).resolve()
+              / "etlrelay-cli-release-smoke"
+          )
+
+          assert Path.cwd().resolve() == work_dir, (
+              "Installed package verification was not run in the isolated workspace."
+          )
+
+          assert not work_dir.is_relative_to(checkout_path), (
+              "Smoke-test working directory is inside the repository checkout."
+          )
 
           assert package_path.is_relative_to(venv_path), (
               f"ETLRelay did not load from the test environment: {package_path}"
           )
+
           assert not package_path.is_relative_to(checkout_path), (
               f"ETLRelay unexpectedly loaded from the repository: {package_path}"
           )
 
+          for entry in sys.path:
+              if not entry:
+                  continue
+
+              entry_path = Path(entry).resolve()
+
+              assert not entry_path.is_relative_to(checkout_path), (
+                  f"Repository path unexpectedly present in sys.path: {entry_path}"
+              )
+
+          installed_version = version("etlrelay")
+
+          assert installed_version == expected_version, (
+              f"Installed version {installed_version} does not match "
+              f"project version {expected_version}."
+          )
+
           print(f"Installed package: {package_path}")
+          print(f"Installed version: {installed_version}")
+          print("Import isolation verified.")
           PY
 
           # Root help.
@@ -331,3 +397,20 @@ jobs:
             || fail "Failed pipeline unexpectedly created output."
 
           echo "Installed ${distribution_name} ${expected_version} CLI checks passed."
+  compatibility:
+    name: wheel / ${{ matrix.os }} / Python ${{ matrix.python }}
+    needs: quality
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            python: "3.13"
+          - os: ubuntu-latest
+            python: "3.14"
+          - os: macos-latest
+            python: "3.12"
+          - os: windows-latest
+            python: "3.12"
