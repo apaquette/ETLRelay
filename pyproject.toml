@@ -14,7 +14,7 @@ authors = [
 ]
 dependencies = [
     "pyarrow>=23.0.1,<24",
-    "polars>=1.0,<2",
+    "polars>=1.0,<3",
     "pyyaml>=6,<7",
     "sqlalchemy>=2,<3",
     "typer>=0.16,<1"
