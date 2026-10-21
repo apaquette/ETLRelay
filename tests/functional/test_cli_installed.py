@@ -4,11 +4,14 @@ from __future__ import annotations
 
 import os
 import shutil
+import sqlite3
 import subprocess
 import sys
 from pathlib import Path
 from typing import Any
 
+import pyarrow as pa
+import pyarrow.parquet as pq
 import pytest
 import yaml
 
@@ -422,6 +425,109 @@ def test_installed_cli_run_executes_csv_pipeline(
     assert f"Pipeline completed: {config_path}" in result.stdout
     assert result.stderr == ""
     assert output_path.read_text(encoding="utf-8") == ('"record_id","amount"\n1,10\n')
+
+
+@pytest.mark.parametrize(("source_kind", "sink_kind"), [("parquet", "sql"), ("sql", "parquet")])
+def test_installed_cli_runs_processed_parquet_sql_pipeline(
+    installed_cli: Path,
+    tmp_path: Path,
+    source_kind: str,
+    sink_kind: str,
+) -> None:
+    """Verify both non-CSV boundaries through the installed YAML CLI."""
+    records = [
+        {"id": 1, "amount": 5.5, "label": "alpha"},
+        {"id": 2, "amount": None, "label": "beta"},
+        {"id": 3, "amount": 25.5, "label": "gamma"},
+    ]
+    config = _file_pipeline_config(
+        tmp_path,
+        processors=[
+            {"type": "select_columns", "columns": ["id", "amount"]},
+            {"type": "rename_columns", "mapping": {"id": "record_id"}},
+            # The renamed field makes processor order observable.
+            {"type": "filter_rows", "column": "record_id", "operator": ">", "value": 1},
+        ],
+    )
+    environment: dict[str, str] = {}
+    if source_kind == "parquet":
+        pq.write_table(
+            pa.Table.from_pylist(
+                records,
+                schema=pa.schema(
+                    [
+                        pa.field("id", pa.int64(), nullable=False),
+                        pa.field("amount", pa.float64(), nullable=True),
+                        pa.field("label", pa.string(), nullable=False),
+                    ]
+                ),
+            ),
+            tmp_path / "input.parquet",
+        )
+        config["source"].update(path="input.parquet", format="parquet")
+    else:
+        with sqlite3.connect(tmp_path / "source.db") as connection:
+            connection.execute("CREATE TABLE source_records (id INTEGER, amount REAL, label TEXT)")
+            connection.executemany(
+                "INSERT INTO source_records VALUES (:id, :amount, :label)", records
+            )
+        environment["ETLRELAY_TEST_SOURCE_URL"] = f"sqlite:///{tmp_path / 'source.db'}"
+        config["source"] = {
+            "type": "sql",
+            "connection_url_env": "ETLRELAY_TEST_SOURCE_URL",
+            "query": "SELECT id, amount, label FROM source_records WHERE id >= :first ORDER BY id",
+            "parameters": {"first": 1},
+        }
+
+    if sink_kind == "sql":
+        with sqlite3.connect(tmp_path / "sink.db") as connection:
+            connection.execute(
+                "CREATE TABLE processed_records (record_id INTEGER PRIMARY KEY, amount REAL)"
+            )
+            connection.execute("INSERT INTO processed_records VALUES (0, -1.0)")
+        environment["ETLRELAY_TEST_SINK_URL"] = f"sqlite:///{tmp_path / 'sink.db'}"
+        config["sink"] = {
+            "type": "sql",
+            "connection_url_env": "ETLRELAY_TEST_SINK_URL",
+            "table_name": "processed_records",
+        }
+    else:
+        config["sink"].update(path="output.parquet", format="parquet")
+
+    config_path = _write_config(tmp_path, config)
+    validation = _run(
+        [str(installed_cli), "validate", str(config_path)], cwd=tmp_path, env=environment
+    )
+    assert validation.returncode == 0, (validation.stdout, validation.stderr)
+    assert validation.stderr == ""
+    if sink_kind == "sql":
+        with sqlite3.connect(tmp_path / "sink.db") as connection:
+            assert connection.execute("SELECT * FROM processed_records").fetchall() == [(0, -1.0)]
+    else:
+        assert not (tmp_path / "output.parquet").exists()
+
+    result = _run([str(installed_cli), "run", str(config_path)], cwd=tmp_path, env=environment)
+    assert result.returncode == 0, (result.stdout, result.stderr)
+    assert f"Pipeline completed: {config_path}" in result.stdout
+    assert result.stderr == ""
+
+    if sink_kind == "sql":
+        with sqlite3.connect(tmp_path / "sink.db") as connection:
+            result_rows = connection.execute(
+                "SELECT record_id, amount FROM processed_records ORDER BY record_id"
+            ).fetchall()
+        # Existing rows survive; selected values and nulls are appended.
+        assert result_rows == [(0, -1.0), (2, None), (3, 25.5)]
+    else:
+        table = pq.read_table(tmp_path / "output.parquet")
+        assert table.schema.equals(
+            pa.schema([pa.field("record_id", pa.int64()), pa.field("amount", pa.float64())]),
+            check_metadata=False,
+        )
+        assert table.to_pylist() == [
+            {"record_id": 2, "amount": None},
+            {"record_id": 3, "amount": 25.5},
+        ]
 
 
 def test_installed_cli_run_failure_does_not_leak_payload(
