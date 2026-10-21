@@ -1,0 +1,1996 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="A lightweight, composable Python framework for batch-oriented ETL pipelines.">
+      
+      
+      
+        <link rel="canonical" href="https://apaquette.github.io/ETLRelay/1.0.0/development/packaging-verification/">
+      
+      
+        <link rel="prev" href="../failure-matrix/">
+      
+      
+        <link rel="next" href="../documentation-review/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Packaging verification - ETLRelay</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/_mkdocstrings.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    <body dir="ltr">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#v090-packaging-and-compatibility-verification" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+      </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="ETLRelay" class="md-header__button md-logo" aria-label="ETLRelay" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            ETLRelay
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Packaging verification
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="ETLRelay" class="md-nav__button md-logo" aria-label="ETLRelay" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    ETLRelay
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../cli-reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CLI Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Concepts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../configuration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    YAML Configuration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../security/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Security
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../logging/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Logging
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api-reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../compatibility/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Compatibility Policy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_10" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_10" id="__nav_10_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Development
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_10_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_10">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Development
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../release-notes-v1.0.0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    v1.0.0 release notes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../release-v1.0.0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    v1.0.0 readiness
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../migration-v0.9.0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Migration to v0.9.0
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../release-notes-v0.9.0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    v0.9.0 release notes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../v1-scope/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    v1.0 scope
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api-review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API review
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pipeline-coverage/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pipeline coverage
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../failure-matrix/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Failure matrix
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Packaging verification
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Packaging verification
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#audit-and-changes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Audit and changes
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#runtime-dependencies-and-metadata" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Runtime dependencies and metadata
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#existing-ci-evidence" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Existing CI evidence
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#reproducible-checks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Reproducible checks
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#local-verification-results" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Local verification results
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#acceptance-status" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Acceptance status
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#integrated-ci-confirmation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Integrated CI confirmation
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../documentation-review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Documentation review
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../release-verification-v0.9.0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    v0.9.0 release verification
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../beta-readiness/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Beta readiness and feedback
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../release-automation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Release automation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../roadmap/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Roadmap
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_12" >
+        
+          
+          <label class="md-nav__link" for="__nav_12" id="__nav_12_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_12_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_12">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Architecture
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/overview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/pipeline/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_12_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_12_3" id="__nav_12_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_12_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_12_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Configuration
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/configuration-loading/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Loading
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/configuration-validation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Validation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/component-registry/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Component registry
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/data-representation-contracts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data representation contracts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_12_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_12_4" id="__nav_12_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Processors
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_12_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_12_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Processors
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/select_columns_and_rename_columns/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Column selection and renaming
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/filter_rows_processor/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Row filtering
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/file_source/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    File source
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/file_sink/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    File sink
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/sql_source_and_sink/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SQL source and sink
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/local_filesystem/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Local filesystem
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/path_validator/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Path validator
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/reader_and_writer/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reader and writer
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#audit-and-changes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Audit and changes
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#runtime-dependencies-and-metadata" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Runtime dependencies and metadata
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#existing-ci-evidence" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Existing CI evidence
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#reproducible-checks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Reproducible checks
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#local-verification-results" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Local verification results
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#acceptance-status" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Acceptance status
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#integrated-ci-confirmation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Integrated CI confirmation
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="v090-packaging-and-compatibility-verification">v0.9.0 Packaging and Compatibility Verification<a class="headerlink" href="#v090-packaging-and-compatibility-verification" title="Permanent link">&para;</a></h1>
+<p>Ticket: <strong>0.9.0-06 — Verify package installation and supported environments</strong>.
+Reviewed baseline: <code>dev</code> commit <code>3d266d4d7fbe9f3fc595f96b67a3fbddb2fc7889</code>.</p>
+<h2 id="audit-and-changes">Audit and changes<a class="headerlink" href="#audit-and-changes" title="Permanent link">&para;</a></h2>
+<p>The baseline builds both distributions and checks metadata, modules, and CLI
+entry points. Its compatibility jobs install only the wheel. The dependency
+check compares names but can miss changed version bounds or extra dependencies;
+it does not compare sdist dependency metadata.</p>
+<p>This change reuses those scripts and adds:</p>
+<ul>
+<li>Separate wheel and source-distribution installations outside the checkout.
+  Source installation builds from the archive using build isolation.</li>
+<li>Complete dependency-requirement comparison for both archive metadata sets,
+  including bounds, extras, and environment markers; regression tests reject
+  missing dependencies, changed/missing bounds, and extra dependencies.</li>
+<li>Required Apache licence and notice files in both archive types.</li>
+<li>Public component imports and direct CSV-to-Parquet-to-SQLite pipelines,
+  including SQL source readback with data/schema assertions.</li>
+<li>The existing installed CLI version/help, YAML validation, and CSV execution
+  checks for each artifact.</li>
+<li>Both-artifact smoke checks in the quality job, all compatibility jobs, and
+  the existing TestPyPI/PyPI verification workflows.</li>
+</ul>
+<p>There is no new support-matrix combination or runtime feature. Existing CI job
+names are retained; the compatibility steps now test both archive types.</p>
+<h2 id="runtime-dependencies-and-metadata">Runtime dependencies and metadata<a class="headerlink" href="#runtime-dependencies-and-metadata" title="Permanent link">&para;</a></h2>
+<p>Runtime imports require PyArrow, PyYAML, SQLAlchemy, and Typer. Their existing
+version constraints remain unchanged. Standard-library SQLite supplies the
+reference database driver; other drivers are not bundled or claimed as tested.</p>
+<p>Polars had no imports in the runtime implementation and no frozen-feature use
+case. It is removed from runtime metadata and the lockfile. <code>packaging</code> is an
+explicit CI-tool dependency for standards-aware requirement comparison, not a
+new runtime dependency. Remaining locked package versions are unchanged.</p>
+<p>At the packaging-review baseline, metadata declared <code>0.8.0</code> and CPython
+<code>&gt;=3.12,&lt;3.15</code>; those verification archives did not replace the published files.
+Beta preparation sets version <code>0.9.0</code> without changing the supported Python range.
+See the <a href="../beta-readiness/">final readiness record</a> for release-build results and
+integrated CI requirements.</p>
+<p>The archive checker verifies the 64 source Python modules, distribution name,
+version, Python requirement, runtime requirements, licence/notice inclusion,
+and the <code>etlrelay = etlrelay.cli:main</code> wheel entry point. Installation from the
+sdist independently exercises its build metadata and generated entry point.</p>
+<p>Checks validate selected resolved dependency versions within the declared
+ranges; they do not test every possible dependency-version combination.</p>
+<h2 id="existing-ci-evidence">Existing CI evidence<a class="headerlink" href="#existing-ci-evidence" title="Permanent link">&para;</a></h2>
+<p>The baseline commit's
+<a href="https://github.com/apaquette/ETLRelay/actions/runs/39635472040">successful CI run</a>
+was inspected through GitHub's public run and job records. Each listed job
+completed successfully:</p>
+<table>
+<thead>
+<tr>
+<th>Declared combination</th>
+<th>Baseline evidence</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Ubuntu / CPython 3.12</td>
+<td><a href="https://github.com/apaquette/ETLRelay/actions/runs/39635472040/job/119344625828">Quality, full suite, packaging, installed wheel</a></td>
+</tr>
+<tr>
+<td>Ubuntu / CPython 3.13</td>
+<td><a href="https://github.com/apaquette/ETLRelay/actions/runs/39635472040/job/119345318931">Installed-wheel smoke</a></td>
+</tr>
+<tr>
+<td>Ubuntu / CPython 3.14</td>
+<td><a href="https://github.com/apaquette/ETLRelay/actions/runs/39635472040/job/119345318992">Installed-wheel smoke</a></td>
+</tr>
+<tr>
+<td>macOS / CPython 3.12</td>
+<td><a href="https://github.com/apaquette/ETLRelay/actions/runs/39635472040/job/119345318707">Installed-wheel smoke</a></td>
+</tr>
+<tr>
+<td>Windows / CPython 3.12</td>
+<td><a href="https://github.com/apaquette/ETLRelay/actions/runs/39635472040/job/119345318978">Installed-wheel smoke</a></td>
+</tr>
+</tbody>
+</table>
+<p>These are evidence for the baseline, not successful CI results for this change.
+The revised script and dependency metadata subsequently passed the same jobs
+after integration, as recorded below. Local Linux results alone would not
+establish macOS/Windows source-install success.</p>
+<p>Support is the five combinations above, not a full operating-system/Python
+Cartesian product. Other interpreters, OS releases, architectures, and database
+dialects are not independently verified. The getting-started prerequisite now
+states the bounded Python range instead of claiming all Python versions newer
+than 3.12.</p>
+<h2 id="reproducible-checks">Reproducible checks<a class="headerlink" href="#reproducible-checks" title="Permanent link">&para;</a></h2>
+<p>Install development, documentation, and CI tools, then build/check archives:</p>
+<div class="highlight"><pre><span></span><code>uv<span class="w"> </span>sync<span class="w"> </span>--locked<span class="w"> </span>--all-groups
+uv<span class="w"> </span>lock<span class="w"> </span>--check
+uv<span class="w"> </span>audit<span class="w"> </span>--locked<span class="w"> </span>--preview-features<span class="w"> </span>audit-command
+uv<span class="w"> </span>pip<span class="w"> </span>check<span class="w"> </span>--python<span class="w"> </span>.venv/bin/python
+uv<span class="w"> </span>build
+uvx<span class="w"> </span>--from<span class="w"> </span><span class="s1">'twine&gt;=7,&lt;8'</span><span class="w"> </span>twine<span class="w"> </span>check<span class="w"> </span>dist/*
+uv<span class="w"> </span>run<span class="w"> </span>python<span class="w"> </span>tests/packaging/check_distributions.py
+</code></pre></div>
+<p>Use each interpreter without changing the primary development environment:</p>
+<div class="highlight"><pre><span></span><code>uv<span class="w"> </span>python<span class="w"> </span>install<span class="w"> </span><span class="m">3</span>.12<span class="w"> </span><span class="m">3</span>.13<span class="w"> </span><span class="m">3</span>.14
+uv<span class="w"> </span>run<span class="w"> </span>--no-project<span class="w"> </span>--python<span class="w"> </span><span class="m">3</span>.12<span class="w"> </span>python<span class="w"> </span>tests/packaging/smoke_compatibility.py<span class="w"> </span>dist
+uv<span class="w"> </span>run<span class="w"> </span>--no-project<span class="w"> </span>--python<span class="w"> </span><span class="m">3</span>.13<span class="w"> </span>python<span class="w"> </span>tests/packaging/smoke_compatibility.py<span class="w"> </span>dist
+uv<span class="w"> </span>run<span class="w"> </span>--no-project<span class="w"> </span>--python<span class="w"> </span><span class="m">3</span>.14<span class="w"> </span>python<span class="w"> </span>tests/packaging/smoke_compatibility.py<span class="w"> </span>dist
+</code></pre></div>
+<p>The default is <code>--artifact both</code>; use <code>--artifact wheel</code> or <code>--artifact sdist</code>
+for a targeted retry. Each selected artifact gets its own fresh environment and
+working directory. Python inspection uses <code>-I</code>, checks import paths/version,
+and verifies that no repository directory is present in <code>sys.path</code>.</p>
+<p>Run the ordinary full test suite, coverage gate, Ruff lint/format, Pyright, and
+strict MkDocs build as required by the release checklist. Existing installed-CLI
+functional tests continue to exercise richer CSV, Parquet, SQLite, and failure
+workflows without being duplicated throughout the platform matrix.</p>
+<h2 id="local-verification-results">Local verification results<a class="headerlink" href="#local-verification-results" title="Permanent link">&para;</a></h2>
+<p>The working change was verified on Linux x86_64 with uv 0.12.23:</p>
+<table>
+<thead>
+<tr>
+<th>Interpreter</th>
+<th>Wheel install/API/CLI</th>
+<th>Sdist build/install/API/CLI</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>CPython 3.12.14</td>
+<td>Passed</td>
+<td>Passed</td>
+</tr>
+<tr>
+<td>CPython 3.13.16</td>
+<td>Passed</td>
+<td>Passed</td>
+</tr>
+<tr>
+<td>CPython 3.14.8</td>
+<td>Passed</td>
+<td>Passed</td>
+</tr>
+</tbody>
+</table>
+<p>Additional checks:</p>
+<ul>
+<li>Full unit/integration/functional suite on CPython 3.12.14: <strong>734 passed</strong>.</li>
+<li>Configured statement/branch coverage: <strong>100%</strong>.</li>
+<li>Nine dependency-metadata regression cases: passed.</li>
+<li>Wheel and source-distribution builds, Twine, and archive checks: passed.</li>
+<li>Lockfile check and installed dependency consistency: passed.</li>
+<li>Dependency audit: no known vulnerabilities; one existing archived-project
+  status for the documentation dependency <code>verspec</code> was reported.</li>
+<li>Ruff lint/format, Pyright, strict documentation build, and diff checks: passed.</li>
+</ul>
+<h2 id="acceptance-status">Acceptance status<a class="headerlink" href="#acceptance-status" title="Permanent link">&para;</a></h2>
+<ul>
+<li>[x] Wheel and source distribution build and archive checks pass.</li>
+<li>[x] Both artifacts install outside the checkout and exercise public APIs/CLI.</li>
+<li>[x] Runtime metadata reflects the frozen implementation and exact constraints.</li>
+<li>[x] Full local tests and required quality checks pass.</li>
+<li>[x] Baseline CI evidence exists for all five declared combinations.</li>
+<li>[x] Revised wheel/sdist checks and dependency metadata pass all five CI jobs at commit <code>4930087</code>.</li>
+</ul>
+<p>The integrated packaging verification gate is satisfied by the run below. Later
+changes and final release artifacts still require their own required CI checks.</p>
+<h2 id="integrated-ci-confirmation">Integrated CI confirmation<a class="headerlink" href="#integrated-ci-confirmation" title="Permanent link">&para;</a></h2>
+<p>On 2026-10-21, GitHub reported
+<a href="https://github.com/apaquette/ETLRelay/actions/runs/39637775631">CI run 39637775631</a>
+completed successfully for commit <code>493008769ae5ca60daf4b2454c35d635e1793c5b</code>.
+All five required jobs passed:</p>
+<table>
+<thead>
+<tr>
+<th>Combination</th>
+<th>Wheel and sdist CI evidence</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Ubuntu / CPython 3.12</td>
+<td><a href="https://github.com/apaquette/ETLRelay/actions/runs/39637775631/job/119352913973">Quality</a></td>
+</tr>
+<tr>
+<td>Ubuntu / CPython 3.13</td>
+<td><a href="https://github.com/apaquette/ETLRelay/actions/runs/39637775631/job/119353646228">Compatibility</a></td>
+</tr>
+<tr>
+<td>Ubuntu / CPython 3.14</td>
+<td><a href="https://github.com/apaquette/ETLRelay/actions/runs/39637775631/job/119353646054">Compatibility</a></td>
+</tr>
+<tr>
+<td>macOS / CPython 3.12</td>
+<td><a href="https://github.com/apaquette/ETLRelay/actions/runs/39637775631/job/119353646188">Compatibility</a></td>
+</tr>
+<tr>
+<td>Windows / CPython 3.12</td>
+<td><a href="https://github.com/apaquette/ETLRelay/actions/runs/39637775631/job/119353646599">Compatibility</a></td>
+</tr>
+</tbody>
+</table>
+<p>This closes the prior packaging ticket's pending CI evidence requirement. It
+verifies the packaging source state, not subsequent documentation changes or a
+future versioned beta publication.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.sections", "navigation.top", "content.code.copy"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "latest", "provider": "mike"}}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>

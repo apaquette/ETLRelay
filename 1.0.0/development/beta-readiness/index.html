@@ -1,0 +1,2000 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="A lightweight, composable Python framework for batch-oriented ETL pipelines.">
+      
+      
+      
+        <link rel="canonical" href="https://apaquette.github.io/ETLRelay/1.0.0/development/beta-readiness/">
+      
+      
+        <link rel="prev" href="../release-verification-v0.9.0/">
+      
+      
+        <link rel="next" href="../release-automation/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Beta readiness and feedback - ETLRelay</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/_mkdocstrings.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    <body dir="ltr">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#v090-beta-readiness-and-feedback" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+      </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="ETLRelay" class="md-header__button md-logo" aria-label="ETLRelay" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            ETLRelay
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Beta readiness and feedback
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="ETLRelay" class="md-nav__button md-logo" aria-label="ETLRelay" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    ETLRelay
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../cli-reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CLI Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Concepts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../configuration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    YAML Configuration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../security/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Security
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../logging/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Logging
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api-reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../compatibility/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Compatibility Policy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_10" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_10" id="__nav_10_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Development
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_10_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_10">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Development
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../release-notes-v1.0.0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    v1.0.0 release notes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../release-v1.0.0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    v1.0.0 readiness
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../migration-v0.9.0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Migration to v0.9.0
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../release-notes-v0.9.0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    v0.9.0 release notes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../v1-scope/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    v1.0 scope
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api-review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API review
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pipeline-coverage/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pipeline coverage
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../failure-matrix/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Failure matrix
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../packaging-verification/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Packaging verification
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../documentation-review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Documentation review
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../release-verification-v0.9.0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    v0.9.0 release verification
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Beta readiness and feedback
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Beta readiness and feedback
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#release-completion" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Release completion
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#decision" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Decision
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#completed-ticket-evidence" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Completed ticket evidence
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#support-verification" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Support verification
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#local-v090-verification" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Local v0.9.0 verification
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#issue-review-and-remaining-work" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Issue review and remaining work
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#focused-beta-feedback" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Focused beta feedback
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../release-automation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Release automation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../roadmap/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Roadmap
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_12" >
+        
+          
+          <label class="md-nav__link" for="__nav_12" id="__nav_12_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_12_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_12">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Architecture
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/overview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/pipeline/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_12_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_12_3" id="__nav_12_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_12_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_12_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Configuration
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/configuration-loading/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Loading
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/configuration-validation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Validation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/component-registry/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Component registry
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/data-representation-contracts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data representation contracts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_12_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_12_4" id="__nav_12_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Processors
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_12_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_12_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Processors
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/select_columns_and_rename_columns/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Column selection and renaming
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/filter_rows_processor/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Row filtering
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/file_source/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    File source
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/file_sink/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    File sink
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/sql_source_and_sink/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SQL source and sink
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/local_filesystem/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Local filesystem
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/path_validator/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Path validator
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/reader_and_writer/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reader and writer
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#release-completion" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Release completion
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#decision" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Decision
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#completed-ticket-evidence" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Completed ticket evidence
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#support-verification" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Support verification
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#local-v090-verification" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Local v0.9.0 verification
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#issue-review-and-remaining-work" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Issue review and remaining work
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#focused-beta-feedback" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Focused beta feedback
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="v090-beta-readiness-and-feedback">v0.9.0 Beta Readiness and Feedback<a class="headerlink" href="#v090-beta-readiness-and-feedback" title="Permanent link">&para;</a></h1>
+<p>Ticket: <strong>0.9.0-08</strong>, <a href="https://github.com/apaquette/ETLRelay/issues/139">#139</a>.
+Review date and target release date: <strong>2026-10-21</strong>.
+Integrated baseline: <code>1b0993b1b5bc012754c5c3960c6b79f21d36f189</code>.</p>
+<h2 id="release-completion">Release completion<a class="headerlink" href="#release-completion" title="Permanent link">&para;</a></h2>
+<p>v0.9.0 was published on 2026-10-21. The completed
+<a href="../release-verification-v0.9.0/">release verification record</a> contains final CI,
+TestPyPI, PyPI, GitHub release, and documentation evidence. Tickets #139 and #37
+are closed. The preparation review below remains historical evidence; its
+then-pending publication gates have been completed.</p>
+<p>External beta feedback is optional, and none is claimed to have been collected.
+Maintainer verification establishes v1.0.0 readiness without a mandatory waiting
+period or RC cycle. See the <a href="../release-v1.0.0/">stable-release record</a> and
+<a href="../../compatibility/">compatibility policy</a>. Future enhancements belong to a
+separate post-v1.0 roadmap review.</p>
+<h2 id="decision">Decision<a class="headerlink" href="#decision" title="Permanent link">&para;</a></h2>
+<p>The intended v1.0 feature set is implemented and frozen. Preceding tickets
+0.9.0-01 through 0.9.0-07 are closed, their reviews and tests are integrated,
+and no unresolved product release blocker was found in the public issue review.
+The source is prepared as <strong>v0.9.0 — feature-complete beta</strong>, using the existing
+release process. Release-facing documentation describes v0.9.0; it is not a
+claim that publication jobs have already run.</p>
+<p>The reviewed product is synchronous local CSV/Parquet and SQLite-backed SQL
+pipelines, the existing select/rename/filter processors, direct Python
+composition, YAML schema version 1, and CLI execution. Mapping-shaped documents
+use <code>KeyValueReader</code>; tabular protocols use <code>TabularReader</code> and <code>TabularWriter</code>.
+No required runtime feature remains incomplete. A beta milestone does not make
+the pre-1.0 public API a stable v1.0 compatibility promise.</p>
+<h2 id="completed-ticket-evidence">Completed ticket evidence<a class="headerlink" href="#completed-ticket-evidence" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Ticket</th>
+<th>Outcome and evidence</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="https://github.com/apaquette/ETLRelay/issues/132">0.9.0-01 / #132</a></td>
+<td>Closed; <a href="../v1-scope/">frozen inventory and support policy</a></td>
+</tr>
+<tr>
+<td><a href="https://github.com/apaquette/ETLRelay/issues/133">0.9.0-02 / #133</a></td>
+<td>Closed; <a href="../../architecture/data-representation-contracts/">representation contracts</a>, <a href="../../architecture/reader_and_writer/">stream protocols</a>, and <a href="../migration-v0.9.0/">migration</a></td>
+</tr>
+<tr>
+<td><a href="https://github.com/apaquette/ETLRelay/issues/134">0.9.0-03 / #134</a></td>
+<td>Closed; <a href="../api-review/">API review outcomes</a>, focused regression tests, and <a href="../../api-reference/">public reference</a></td>
+</tr>
+<tr>
+<td><a href="https://github.com/apaquette/ETLRelay/issues/135">0.9.0-04 / #135</a></td>
+<td>Closed; <a href="../pipeline-coverage/">pipeline coverage matrix</a>, including installed CLI boundaries</td>
+</tr>
+<tr>
+<td><a href="https://github.com/apaquette/ETLRelay/issues/136">0.9.0-05 / #136</a></td>
+<td>Closed; <a href="../failure-matrix/">failure matrix</a>, resource cleanup, redaction, and partial-write regression tests</td>
+</tr>
+<tr>
+<td><a href="https://github.com/apaquette/ETLRelay/issues/137">0.9.0-06 / #137</a></td>
+<td>Closed; <a href="../packaging-verification/">packaging verification</a>, independent wheel/sdist installation, and the five-job CI matrix below</td>
+</tr>
+<tr>
+<td><a href="https://github.com/apaquette/ETLRelay/issues/138">0.9.0-07 / #138</a></td>
+<td>Closed; <a href="../documentation-review/">documentation review</a>, executable examples/quick start, migration, and strict documentation build</td>
+</tr>
+<tr>
+<td>0.9.0-08 / #139</td>
+<td>This review, v0.9.0 metadata/lockfile, finalized <a href="../release-notes-v0.9.0/">release notes</a>, release checklist, and feedback process</td>
+</tr>
+</tbody>
+</table>
+<h2 id="support-verification">Support verification<a class="headerlink" href="#support-verification" title="Permanent link">&para;</a></h2>
+<p>The integrated documentation baseline passed
+<a href="https://github.com/apaquette/ETLRelay/actions/runs/39642253494">CI run 39642253494</a>.
+Each job completed successfully. Both wheel and source distribution are installed
+separately outside the checkout; public imports, direct CSV/Parquet/SQLite
+pipelines, dependency consistency, and installed CLI/YAML operation are exercised.</p>
+<table>
+<thead>
+<tr>
+<th>Supported combination</th>
+<th>Verification evidence</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Ubuntu / CPython 3.12</td>
+<td><a href="https://github.com/apaquette/ETLRelay/actions/runs/39642253494/job/119368522094">Full suite, coverage, quality, documentation, distributions, installed artifacts</a></td>
+</tr>
+<tr>
+<td>Ubuntu / CPython 3.13</td>
+<td><a href="https://github.com/apaquette/ETLRelay/actions/runs/39642253494/job/119368991368">Both-artifact compatibility smoke</a></td>
+</tr>
+<tr>
+<td>Ubuntu / CPython 3.14</td>
+<td><a href="https://github.com/apaquette/ETLRelay/actions/runs/39642253494/job/119368991439">Both-artifact compatibility smoke</a></td>
+</tr>
+<tr>
+<td>macOS / CPython 3.12</td>
+<td><a href="https://github.com/apaquette/ETLRelay/actions/runs/39642253494/job/119368991380">Both-artifact compatibility smoke</a></td>
+</tr>
+<tr>
+<td>Windows / CPython 3.12</td>
+<td><a href="https://github.com/apaquette/ETLRelay/actions/runs/39642253494/job/119368991355">Both-artifact compatibility smoke</a></td>
+</tr>
+</tbody>
+</table>
+<p>These are the five declared combinations, not a cross-product of all Python
+versions and operating systems. Full tests run on Ubuntu/3.12; the other entries
+provide artifact smoke coverage. SQLite is the tested database. Other SQLAlchemy
+dialects require drivers and independent verification and are not guaranteed.</p>
+<p>The version/lockfile and final release-documentation changes must pass their own
+integrated CI run before promotion. The baseline result is supporting evidence,
+not a substitute for verification of the release commit. Record its commit and
+run URL in <code>RELEASE_CHECKS.md</code> when complete.</p>
+<h2 id="local-v090-verification">Local v0.9.0 verification<a class="headerlink" href="#local-v090-verification" title="Permanent link">&para;</a></h2>
+<p>The release-preparation checkout passed checks with locked dependencies on Linux
+CPython 3.12.14:</p>
+<ul>
+<li><strong>736 tests passed, 100% configured statement/branch coverage</strong>, including
+  installed-example and quick-start execution.</li>
+<li>Lockfile consistency, installed dependency consistency, Ruff lint/format,
+  Pyright, strict MkDocs, and diff checks passed.</li>
+<li>Fresh v0.9.0 wheel/sdist builds, Twine metadata/content checks, and isolated
+  installation/execution of both artifacts passed.</li>
+<li>The dependency audit exited successfully with <strong>no known vulnerabilities</strong>.
+  It also reported archived <code>verspec</code>, a transitive documentation dependency of
+  <code>mike</code>; this is recorded as later tooling-maintenance work below.</li>
+</ul>
+<p>Commands are recorded in <code>RELEASE_CHECKS.md</code>. Local results do not replace the
+macOS/Windows CI checks above or final integrated CI.</p>
+<h2 id="issue-review-and-remaining-work">Issue review and remaining work<a class="headerlink" href="#issue-review-and-remaining-work" title="Permanent link">&para;</a></h2>
+<p>The public open-issue list was reviewed on 2026-10-21. It contained only the
+<a href="https://github.com/apaquette/ETLRelay/issues/37">parent milestone #37</a> and this
+final review ticket #139; neither reported a separate unresolved defect.
+All seven prerequisite tickets were confirmed closed. This is a dated review,
+not a guarantee against newly reported defects; repeat the check before merge.</p>
+<table>
+<thead>
+<tr>
+<th>Classification</th>
+<th>Remaining work and disposition</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Required release gate</td>
+<td>Pass CI for the integrated v0.9.0 commit, record its SHA/run, review any newly opened defects, and complete <code>RELEASE_CHECKS.md</code>. Do not promote a failing candidate.</td>
+</tr>
+<tr>
+<td>Required publication work</td>
+<td>Run the existing TestPyPI rehearsal, promote reviewed <code>dev</code> to <code>main</code>, verify PyPI, generated <code>v0.9.0</code> tag/GitHub release and hosted <code>0.9.0</code> documentation. These actions have not been performed by this source review.</td>
+</tr>
+<tr>
+<td>Required fix if discovered</td>
+<td>Incorrect data/schema results, resource leaks, credential exposure in controlled diagnostics, supported-environment installation failures, or documented API/CLI regressions block release until fixed and regression-tested.</td>
+</tr>
+<tr>
+<td>Known limitation</td>
+<td>Non-atomic/truncating file writes and partial or unreadable output after failure; SQL append-only output to existing tables and per-batch commits; SQL result materialization; path containment is not a sandbox; no universal third-party exception/log redaction. These remain explicit in <a href="../../security/">security</a> and <a href="../api-review/">API</a> references.</td>
+</tr>
+<tr>
+<td>Later release work</td>
+<td>S3/HDFS, additional formats/processors/databases, dynamic plugins, scheduling/retries/distributed execution, SQL creation/upsert/pipeline-wide transactions, mapping-document writing, and generic row-record conversion remain outside the frozen boundary. A feature request does not become a v0.9.0 blocker.</td>
+</tr>
+<tr>
+<td>Later tooling maintenance</td>
+<td>Review <code>mike</code>/<code>verspec</code> dependency maintenance before future releases. The current audit reports <code>verspec</code> archived but no known vulnerability and exits successfully; it is documentation tooling, not a runtime dependency. No dependency-ignore rule or unsupported security claim is introduced.</td>
+</tr>
+<tr>
+<td>Feedback follow-up</td>
+<td>Gather the focused feedback below, correct defects within scope, then perform final v1.0 release-candidate validation. Feedback is not claimed to have been collected by this review.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="focused-beta-feedback">Focused beta feedback<a class="headerlink" href="#focused-beta-feedback" title="Permanent link">&para;</a></h2>
+<p>Use the <a href="../../getting-started/">v0.9.0 quick start</a>, maintained
+<a href="https://github.com/apaquette/ETLRelay/tree/v0.9.0/examples">examples</a>, and
+<a href="../migration-v0.9.0/">migration guide</a>. Check a small representative workflow:</p>
+<ul>
+<li><strong>Installation:</strong> Does <code>etlrelay==0.9.0</code> install in a clean environment on a
+  declared combination? Do imports, <code>etlrelay version</code>, and help work?</li>
+<li><strong>Usability:</strong> Can you follow the quick start, validate YAML, execute the job,
+  and understand an invalid-configuration diagnostic and exit code?</li>
+<li><strong>API clarity:</strong> Are tabular batches versus mapping documents, constructor
+  arguments, schema rules, stream ownership, and engine cleanup clear?</li>
+<li><strong>Correctness:</strong> Do output records, types, column order, null behavior, and
+  processor ordering match expectations? Are empty inputs and failures
+  consistent with documented persistence and cleanup behavior?</li>
+</ul>
+<p>Report non-sensitive defects through
+<a href="https://github.com/apaquette/ETLRelay/issues">GitHub Issues</a>. Include the package
+version, Python/OS, artifact/install method, minimal synthetic input/configuration,
+reproduction commands, expected versus actual output, and exit code. Include the
+source commit when testing an unpublished archive. Remove credentials, resolved
+connection URLs, production records, and sensitive logs before posting.
+Report suspected vulnerabilities privately following the
+<a href="https://github.com/apaquette/ETLRelay/blob/v0.9.0/SECURITY.md">Security Policy</a>.</p>
+<p>For each report, reproduce it and classify it as a required fix, documented known
+limitation, or deferred enhancement. A release-blocking defect needs a focused
+regression test and a rerun of affected checks; published fixes require a new
+version rather than replacing v0.9.0 files. Track enhancements separately without
+expanding the beta scope. Do not mark feedback collected until actual reports
+or review sessions have been recorded.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.sections", "navigation.top", "content.code.copy"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "latest", "provider": "mike"}}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>

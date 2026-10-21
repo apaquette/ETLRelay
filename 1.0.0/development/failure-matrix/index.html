@@ -1,0 +1,1930 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="A lightweight, composable Python framework for batch-oriented ETL pipelines.">
+      
+      
+      
+        <link rel="canonical" href="https://apaquette.github.io/ETLRelay/1.0.0/development/failure-matrix/">
+      
+      
+        <link rel="prev" href="../pipeline-coverage/">
+      
+      
+        <link rel="next" href="../packaging-verification/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Failure matrix - ETLRelay</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/_mkdocstrings.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    <body dir="ltr">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#v090-failure-and-cleanup-matrix" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+      </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="ETLRelay" class="md-header__button md-logo" aria-label="ETLRelay" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            ETLRelay
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Failure matrix
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="ETLRelay" class="md-nav__button md-logo" aria-label="ETLRelay" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    ETLRelay
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../cli-reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CLI Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Concepts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../configuration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    YAML Configuration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../security/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Security
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../logging/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Logging
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api-reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../compatibility/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Compatibility Policy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_10" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_10" id="__nav_10_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Development
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_10_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_10">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Development
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../release-notes-v1.0.0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    v1.0.0 release notes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../release-v1.0.0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    v1.0.0 readiness
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../migration-v0.9.0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Migration to v0.9.0
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../release-notes-v0.9.0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    v0.9.0 release notes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../v1-scope/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    v1.0 scope
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api-review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API review
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pipeline-coverage/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pipeline coverage
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Failure matrix
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Failure matrix
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#matrix" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Matrix
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#defect-found-and-corrected" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Defect found and corrected
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#test-design-and-limits" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Test design and limits
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#verification-and-acceptance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Verification and acceptance
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../packaging-verification/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Packaging verification
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../documentation-review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Documentation review
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../release-verification-v0.9.0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    v0.9.0 release verification
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../beta-readiness/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Beta readiness and feedback
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../release-automation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Release automation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../roadmap/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Roadmap
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_12" >
+        
+          
+          <label class="md-nav__link" for="__nav_12" id="__nav_12_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_12_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_12">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Architecture
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/overview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/pipeline/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_12_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_12_3" id="__nav_12_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_12_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_12_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Configuration
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/configuration-loading/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Loading
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/configuration-validation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Validation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/component-registry/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Component registry
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/data-representation-contracts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data representation contracts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_12_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_12_4" id="__nav_12_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Processors
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_12_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_12_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Processors
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/select_columns_and_rename_columns/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Column selection and renaming
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/filter_rows_processor/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Row filtering
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/file_source/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    File source
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/file_sink/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    File sink
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/sql_source_and_sink/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SQL source and sink
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/local_filesystem/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Local filesystem
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/path_validator/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Path validator
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/reader_and_writer/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reader and writer
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#matrix" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Matrix
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#defect-found-and-corrected" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Defect found and corrected
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#test-design-and-limits" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Test design and limits
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#verification-and-acceptance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Verification and acceptance
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="v090-failure-and-cleanup-matrix">v0.9.0 Failure and Cleanup Matrix<a class="headerlink" href="#v090-failure-and-cleanup-matrix" title="Permanent link">&para;</a></h1>
+<p>Ticket: <strong>0.9.0-05 — Complete failure, edge-case, and cleanup coverage</strong>.
+Reviewed baseline: <code>dev</code> commit <code>31541b9</code>.</p>
+<p>This audit covers the <a href="../v1-scope/">frozen feature scope</a>: local CSV/Parquet,
+SQLite, built-in processors, YAML, and the CLI. It reuses existing coverage and
+adds targeted cases where behavior or ownership lacked direct evidence.
+Successful pipeline combinations are recorded in the
+<a href="../pipeline-coverage/">pipeline coverage matrix</a>.</p>
+<p>All test paths below are relative to <code>tests/</code>. File names identify the focused
+suite; specific test names identify important additions or cross-component cases.</p>
+<h2 id="matrix">Matrix<a class="headerlink" href="#matrix" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Condition</th>
+<th>Expected behavior</th>
+<th>Automated evidence</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Entirely empty source</td>
+<td>No processors/sink calls; existing destination preserved</td>
+<td><code>unit/pipeline/test_pipeline.py</code>: <code>test_pipeline_handles_empty_source</code>, <code>test_empty_pipeline_preserves_existing_file</code>; <code>functional/test_sql_pipeline.py</code></td>
+</tr>
+<tr>
+<td>Zero-row batch</td>
+<td>Process and validate its schema; CSV writes a header, Parquet writes an empty file, SQL skips inserts/reflection/transactions</td>
+<td><code>unit/pipeline/test_pipeline.py</code>, <code>unit/writers/test_csv.py</code>, <code>unit/writers/test_parquet.py</code>, <code>unit/sinks/test_sql.py</code>; <code>functional/test_sql_pipeline.py</code></td>
+</tr>
+<tr>
+<td>Cross-batch schema mismatch</td>
+<td>Reject changed names/order/types/nullability before yielding that batch; zero rows also participate</td>
+<td><code>unit/pipeline/test_pipeline.py</code>: <code>test_rejects_incompatible_output_schema_before_sink_write</code>, <code>test_rejects_incompatible_schema_on_zero_row_batch</code>, <code>test_zero_row_first_batch_establishes_output_schema</code></td>
+</tr>
+<tr>
+<td>Metadata-only schema difference</td>
+<td>Accept compatible fields despite schema/field metadata differences</td>
+<td><code>unit/pipeline/test_pipeline.py</code>, <code>unit/writers/test_parquet.py</code>: metadata-difference cases</td>
+</tr>
+<tr>
+<td>Empty or malformed CSV bytes</td>
+<td>Zero-byte input and malformed rows raise Arrow errors; borrowed input remains open. Header-only CSV yields no batches</td>
+<td><code>unit/readers/test_csv.py</code>: <code>test_reader_raises_error_for_malformed_csv</code>, <code>test_reader_handles_csv_with_header_and_no_rows</code></td>
+</tr>
+<tr>
+<td>Malformed Parquet</td>
+<td>Raise Arrow error and leave the borrowed input open</td>
+<td><code>unit/readers/test_parquet.py</code>: <code>test_reader_raises_arrow_error_for_malformed_parquet</code></td>
+</tr>
+<tr>
+<td>Malformed/unsafe YAML</td>
+<td>Reject syntax, duplicate/unhashable keys, multiple documents, and unsafe tags; preserve borrowed-stream ownership</td>
+<td><code>unit/readers/test_yaml.py</code>; CLI syntax tests in <code>unit/test_cli_validate.py</code> and <code>functional/test_cli_installed.py</code></td>
+</tr>
+<tr>
+<td>Invalid YAML root shape</td>
+<td>Reject empty/non-mapping/non-string-key roots; CLI returns 3 without document values</td>
+<td><code>unit/readers/test_yaml.py</code>; <code>unit/test_cli_validate.py</code>: <code>test_invalid_document_shape_is_a_safe_configuration_failure</code></td>
+</tr>
+<tr>
+<td>Invalid schema/components or missing SQL references</td>
+<td>Reject before runtime factories or data I/O; controlled errors omit resolved connection values</td>
+<td><code>integration/test_configuration_preflight.py</code>, <code>unit/config/test_pipeline_builder.py</code>, <code>unit/config/test_sql_engine_factory.py</code></td>
+</tr>
+<tr>
+<td>Missing paths, traversal, symlink escape</td>
+<td>Missing input becomes <code>FileSystemError</code>; containment failures reject before opening; outside contents unchanged</td>
+<td><code>unit/storage/test_local.py</code>, <code>unit/security/test_path.py</code></td>
+</tr>
+<tr>
+<td>Inaccessible resources or I/O failure</td>
+<td>Preserve permission/I/O exceptions at the storage layer; CLI emits controlled failures</td>
+<td><code>unit/storage/test_local.py::TestLocalFileSystemErrorPropagation</code>; <code>unit/test_cli_validate.py</code>, <code>unit/test_cli_run.py</code></td>
+</tr>
+<tr>
+<td>SQL engine creation failure</td>
+<td>Controlled factory error without resolved URL/driver message</td>
+<td><code>unit/config/test_sql_engine_factory.py</code>: creation-error and credential-log tests</td>
+</tr>
+<tr>
+<td>SQL connection acquisition failure</td>
+<td>Native error propagates to library caller; borrowed engine is not disposed. CLI returns 4 and closes builder resources without exposing credentials</td>
+<td><code>unit/sources/test_sql.py</code>: <code>test_connection_failure_propagates_without_disposing_borrowed_engine</code>; <code>unit/test_cli_run.py</code>: <code>test_sql_connection_failure_is_safe_and_closes_builder</code> (source and sink)</td>
+</tr>
+<tr>
+<td>Invalid SQL syntax</td>
+<td>Raise native database error and return the acquired connection to its pool; no query payload in ETLRelay logs</td>
+<td><code>integration/sources/test_sql.py</code>: <code>test_malformed_sql_returns_connection_to_pool_without_logging_query</code></td>
+</tr>
+<tr>
+<td>SQL execution, duplicate result names, or fetch iteration failure</td>
+<td>Close result and connection when acquired; preserve borrowed engine</td>
+<td><code>unit/sources/test_sql.py</code>; <code>unit/sinks/test_sql.py</code>: <code>test_sql_source_closes_result_and_connection_when_iteration_fails</code></td>
+</tr>
+<tr>
+<td>SQL-to-Arrow conversion failure</td>
+<td>Result and connection have already been closed before conversion is attempted</td>
+<td><code>unit/sources/test_sql.py</code>: <code>test_arrow_conversion_failure_occurs_after_sql_resources_are_closed</code></td>
+</tr>
+<tr>
+<td>Processor failure before/after first output</td>
+<td>Close active input. Before the first processed batch, preserve the destination; during writing, close output and retain the serialized prefix</td>
+<td><code>unit/pipeline/test_pipeline.py</code>: <code>test_processor_failure_closes_streams_and_preserves_output_prefix</code> (CSV/Parquet, first/second batch)</td>
+</tr>
+<tr>
+<td>Sink failure and partial file writes</td>
+<td>Propagate writer/storage failure, close owned output, retain empty/partial output rather than restoring previous contents</td>
+<td><code>unit/sinks/test_file.py</code>; <code>unit/pipeline/test_pipeline.py</code>: <code>test_schema_failure_preserves_partially_written_file</code></td>
+</tr>
+<tr>
+<td>Borrowed writer stream after I/O or upstream failure</td>
+<td>Preserve exception identity and leave the supplied stream open; a successfully finalized prefix remains readable</td>
+<td><code>unit/writers/test_csv.py</code>, <code>unit/writers/test_parquet.py</code>; <code>unit/writers/test_iteration_failures.py</code></td>
+</tr>
+<tr>
+<td>Parquet finalization failure</td>
+<td>Preserve an existing upstream/serialization error over footer failure; otherwise propagate footer failure; secondary logs omit exception messages</td>
+<td><code>unit/writers/test_parquet.py</code>: <code>test_parquet_writer_handles_footer_failure_without_masking_primary_error</code></td>
+</tr>
+<tr>
+<td>SQL failed batch or later-batch failure</td>
+<td>Roll back the failed batch; preserve prior commits; release transaction resources</td>
+<td><code>integration/sinks/test_sql.py</code>: <code>test_failed_batch_rolls_back_all_rows</code>, <code>test_previous_batch_commit_survives_later_batch_failure</code>, <code>test_sql_sink_rolls_back_failed_batch_but_preserves_prior_commit</code>; unit transaction-context tests</td>
+</tr>
+<tr>
+<td>Early sink return or pipeline iterator cleanup failure</td>
+<td>Close active iterators; execution failure takes precedence; first cleanup-only failure propagates; attempt remaining cleanup</td>
+<td><code>unit/pipeline/test_pipeline.py</code>: early-stop and iterator-cleanup tests</td>
+</tr>
+<tr>
+<td>Builder/factory cleanup after success or failure</td>
+<td>Dispose owned engines, attempt all disposals, keep cleanup idempotent, preserve primary build/execution failure</td>
+<td><code>unit/config/test_sql_engine_factory.py</code>, <code>unit/config/test_pipeline_builder.py</code>, <code>unit/test_cli_run.py</code></td>
+</tr>
+<tr>
+<td>Secret redaction at user-facing boundaries</td>
+<td>Tested connection/password/query/record sentinels absent from controlled CLI output and ETLRelay logs</td>
+<td><code>unit/test_cli.py</code>, <code>unit/test_cli_run.py</code>, <code>functional/test_cli_installed.py</code>, SQL engine factory tests, and the new Parquet secondary-cleanup test</td>
+</tr>
+</tbody>
+</table>
+<h2 id="defect-found-and-corrected">Defect found and corrected<a class="headerlink" href="#defect-found-and-corrected" title="Permanent link">&para;</a></h2>
+<p>Previously, the native Parquet writer's context-manager exit could replace an
+upstream processing error with an error writing the footer. A regression test
+reproduced this against a real PyArrow writer and a deterministic failing stream.</p>
+<p><code>ParquetWriter</code> now explicitly attempts finalization after failure, retains the
+original exception, and logs a secondary finalization error using its type only.
+A finalization error after otherwise successful serialization still propagates.
+There is no public signature, configuration-schema, or CLI exit-code change.</p>
+<p>This does not make file output atomic. A failed footer may leave unreadable
+output. Successfully finalized earlier batches may remain readable after an
+upstream failure; they are still partial results from a failed run.</p>
+<h2 id="test-design-and-limits">Test design and limits<a class="headerlink" href="#test-design-and-limits" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Permission failures use patched file opening rather than chmod assumptions;
+  behavior stays deterministic under privileged users and across platforms.</li>
+<li>Connection refusal uses SQLAlchemy engine doubles rather than external
+  services. Actual SQLite syntax and transaction failures use local databases.</li>
+<li>The processor/output test uses a two-batch reader double and real CSV/Parquet
+  serialization, retaining stream references so garbage collection cannot hide
+  missing cleanup.</li>
+<li>Normal-path stream, SQL result/connection, and engine cleanup tests remain in
+  place. New assertions supplement those existing tests rather than duplicating
+  a complete source/sink combination matrix.</li>
+<li>Redaction evidence concerns ETLRelay-controlled diagnostics. Native library
+  exceptions can contain sensitive data; arbitrary third-party exceptions,
+  application handlers, filenames, and configuration keys are not universally
+  sanitized. Test sentinels do not establish universal sanitization.</li>
+<li>Resource release means closure/disposal is attempted at the owning boundary.
+  A failing underlying close/dispose operation cannot be guaranteed to release
+  an external resource. The tested contracts establish exception precedence and
+  continued cleanup attempts where documented.</li>
+</ul>
+<p>The Parquet precedence defect is addressed in this change. No other unresolved
+release-blocking defect was identified by this audit. Required CI and integration
+into <code>dev</code> remain prerequisites for closing the ticket. Supported-platform
+installation verification remains assigned to 0.9.0-06.</p>
+<h2 id="verification-and-acceptance">Verification and acceptance<a class="headerlink" href="#verification-and-acceptance" title="Permanent link">&para;</a></h2>
+<p>Verified locally on Linux / CPython 3.12.14 using locked dependencies:</p>
+<ul>
+<li>Full unit, integration, and functional suite: <strong>725 passed</strong>.</li>
+<li>Configured statement/branch coverage: <strong>100%</strong>.</li>
+<li>Ruff lint and formatting checks: passed.</li>
+<li>Pyright: zero errors and warnings.</li>
+<li>Strict MkDocs build and <code>git diff --check</code>: passed.</li>
+</ul>
+<p>The change adds 15 test cases and strengthens existing failure assertions.
+The primary-error/footer-error regression was demonstrated failing before the
+Parquet writer correction.</p>
+<ul>
+<li>[x] Failure categories and expected behavior map to automated evidence.</li>
+<li>[x] Applicable categories have meaningful unit, integration, or functional coverage.</li>
+<li>[x] Normal and relevant failure-path resource ownership is verified.</li>
+<li>[x] Tested secrets are absent from controlled CLI output and logs.</li>
+<li>[x] Propagation, transaction boundaries, and partial outputs match the documented contracts.</li>
+<li>[x] The release-blocking defect found by this audit is fixed and regression-tested.</li>
+</ul>
+<p>These are local results for this change, not certification of the full supported
+platform matrix or confirmation that the patch has been merged.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.sections", "navigation.top", "content.code.copy"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "latest", "provider": "mike"}}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>
