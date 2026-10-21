@@ -5,6 +5,28 @@ Notable changes to ETLRelay are documented here.
 This project follows the principles of [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and [Semantic Versioning](https://semver.org/).
 
 
+## [1.0.0] - 2026-10-21
+
+### Stable Release
+
+- Establish the stable public Python, YAML schema version 1, and CLI contracts
+  for the verified v0.9.0 feature set. No runtime API or configuration migration
+  is required from v0.9.0.
+- Publish the compatibility, versioning, and deprecation policy, including
+  public import boundaries and documented operational behavior.
+- Retain the five declared CPython/platform combinations and SQLite reference
+  backend, with independent wheel and source-distribution verification.
+
+### Documentation and Release Readiness
+
+- Update installation commands, package metadata, lockfile, documentation,
+  security policy, release notes, and release-content links for v1.0.0.
+- Complete the v0.9.0 release record with integrated CI and publication evidence.
+- Base stable-release acceptance on maintainer verification. External beta
+  feedback and a release-candidate cycle are optional.
+- Preserve known limitations and deferred capabilities; evaluate additional
+  features through a separate post-v1.0 roadmap.
+
 ## [0.9.0] - 2026-10-21
 
 ### Changed
