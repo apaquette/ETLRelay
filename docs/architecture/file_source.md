@@ -199,6 +199,17 @@ class FileSource:
 
 Exceptions are propagated rather than wrapped in a new `FileSource` exception hierarchy.
 
+When `FileSource.read()` is consumed directly, the caller must explicitly
+close the returned generator if iteration stops early and deterministic
+cleanup is required.
+
+When the source is used by `Pipeline`, the pipeline closes the active
+source iterator on termination. This includes early sink termination and
+failures during processing or writing.
+
+`FileSource` owns the stream it opens, but does not own the injected
+`FileSystem` or `Reader` instances.
+
 ## SOLID Considerations
 
 ### Single Responsibility Principle

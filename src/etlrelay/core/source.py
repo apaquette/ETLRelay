@@ -14,21 +14,31 @@ from etlrelay.core import Batch
 class Source(Protocol):
     """Define the interface for components that produce data batches.
 
-    Concrete source implementations are responsible for obtaining data from
-    their respective data sources and exposing it as an iterable of Batch
-    objects.
+    Sources expose batches through an iterable. Implementations determine
+    how underlying resources are acquired and released.
 
-    The protocol is runtime-checkable, allowing implementations to be checked
-    for protocol conformance using isinstance().
+    The Pipeline consumes the iterator returned by read() and explicitly
+    closes it on termination if it provides a callable close() method.
+    Source implementations that retain resources during iteration should
+    support deterministic cleanup when iteration completes, fails, or
+    is explicitly closed.
     """
 
     def read(self) -> Iterable[Batch]:
-        """Return an iterable of batches obtained from the data source.
+        """Return an iterable of batches obtained from the source.
 
-        Concrete implementations may raise implementation-specific
-        exceptions when the underlying data cannot be accessed or read.
+        Resource acquisition may be lazy and occur during iteration rather
+        than when this method is called.
+
+        Direct consumers are responsible for closing active closeable
+        iterators when they stop consumption early. Pipeline manages this
+        cleanup when executing the source.
 
         Returns:
-            An iterable of Batch objects produced by the source.
+            An iterable producing Batch objects.
+
+        Raises:
+            Exception: Implementation-specific access, reading, or
+                parsing failures propagate to the caller.
         """
         ...

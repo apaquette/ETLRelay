@@ -61,6 +61,25 @@ class SqlSink:
                 that do not exist in the target table.
             SQLAlchemyError: If table reflection or database execution fails,
                 including missing tables and database constraint violations.
+
+        Note:
+            SqlSink borrows the supplied SQLAlchemy Engine and does not
+            dispose it.
+
+            Each nonempty batch is written in a separate transaction.
+            A transaction commits only after its context manager exits
+            successfully. Failed transactions are rolled back by SQLAlchemy,
+            while previously committed batches remain committed.
+
+            Zero-row batches are skipped before reflection, column validation,
+            or transaction creation.
+
+            Batch columns must be unique and exist in the destination table.
+            Omitted destination columns are permitted when supported by
+            database defaults, nullability, or other database rules.
+
+            SqlSink does not create tables, migrate schemas, upsert rows,
+            or provide a transaction spanning multiple batches.
         """
         target_table: Table | None = None
 
@@ -79,10 +98,10 @@ class SqlSink:
                 self._validate_columns(column_names, target_table)
                 connection.execute(target_table.insert(), rows)
 
-                logger.debug(
-                    "SQL sink committed batch (%d rows).",
-                    len(rows),
-                )
+            logger.debug(
+                "SQL sink committed batch (%d rows).",
+                len(rows),
+            )
 
     def _reflect_table(self, connection: Connection) -> Table:
         """Reflect the target table's metadata using an active connection.

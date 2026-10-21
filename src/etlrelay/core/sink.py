@@ -13,26 +13,34 @@ from etlrelay.core import Batch
 
 @runtime_checkable
 class Sink(Protocol):
-    """Define the interface for components that consume batches.
+    """Define the interface for components that consume data batches.
 
-    Concrete implementations are responsible for delivering batches to
-    their destination, such as a file or database. The protocol is
-    independent of any particular storage backend or output format.
+    Concrete sinks deliver batches to their destinations and manage
+    resources they acquire for the write operation.
+
+    Persistence, transaction, overwrite, and empty-batch semantics are
+    defined by each sink implementation rather than this protocol.
     """
 
     def write(self, batches: Iterable[Batch]) -> None:
-        """Write an iterable of batches to the configured destination.
+        """Consume batches and write them to the destination.
 
-        The storage implementation may create or truncate the destination before
-        serialization begins. If writing fails, the stream is closed but the output
-        is not rolled back; a partial or empty file may remain. The original writer
-        exception propagates to the caller.
+        Implementations may consume batches lazily. They must release
+        resources they own when writing completes or fails.
+
+        A sink is not required to consume every batch before returning.
+        The Pipeline manages cleanup of active source iterators when
+        execution terminates.
 
         Args:
-            batches: An iterable of batches to consume and write.
+            batches: An iterable of batches to consume.
 
         Raises:
-            Exception: If writing fails. Concrete implementations may raise
-                more specific exceptions for their respective failure cases.
+            Exception: Implementation-specific validation, serialization,
+                storage, or database failures propagate to the caller.
+
+        Note:
+            Atomicity, rollback, overwrite behavior, and handling of
+            empty batches depend on the concrete sink implementation.
         """
         ...

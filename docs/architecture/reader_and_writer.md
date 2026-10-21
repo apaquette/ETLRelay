@@ -79,6 +79,73 @@ A future JSON document reader could implement `KeyValueReader` without changing 
 | `ConfigValidator` | Schema version, fields, component types, and property constraints | File/DB I/O or runtime component construction |
 | `ConfigLoader` | Coordinates config-file reading and validation | Building or running a pipeline |
 
+## Stream ownership
+
+Readers and writers borrow streams supplied by their callers.
+
+- `Reader.read(stream)` must not close the supplied input stream.
+- `Writer.write(batches, stream)` must not close the supplied output stream.
+- This ownership rule applies to successful operations and failures.
+- Direct callers must manage the streams they supply.
+- `FileSource` and `FileSink` manage the streams they obtain through
+  their configured `FileSystem`.
+
+Format-specific requirements remain the responsibility of each reader
+or writer. For example, Parquet reading requires an appropriately
+seekable binary stream.
+
+Readers and writers do not create directories, open paths independently,
+or manage storage-backend lifetimes.
+
+## Empty-input and schema behavior
+
+Readers and writers implement format-specific serialization contracts.
+Consequently, empty inputs and schema compatibility may behave differently
+between CSV and Parquet.
+
+| Input | `CsvWriter` | `ParquetWriter` |
+|---|---|---|
+| No batches | Writes no bytes | Raises `WriterError` |
+| One schema-bearing zero-row batch | Writes the CSV header | Writes a valid empty Parquet file |
+| Compatible batches with metadata differences | Uses CSV field names and values without preserving Arrow metadata | Accepts metadata-only differences |
+| Incompatible batch schemas | Behavior depends on CSV writer validation and serialization requirements | Raises `WriterError` |
+
+### CSV
+
+CSV is a text-based format and does not preserve Arrow data types, field
+nullability, or schema metadata.
+
+A zero-row batch with named columns produces a CSV header without data rows.
+
+An entirely empty iterable produces no serialized content.
+
+### Parquet
+
+Parquet preserves structured schema information, including Arrow data types.
+
+The first batch establishes the output schema. Subsequent batches must
+have compatible field names, order, types, and nullability.
+
+Schema metadata differences are permitted, but the output uses the schema
+established by the first batch.
+
+A schema-bearing zero-row batch produces a valid Parquet file containing
+no data rows.
+
+An entirely empty iterable cannot establish an output schema and raises
+`WriterError`.
+
+### Pipeline validation
+
+When readers and writers are used through `Pipeline`, the pipeline applies
+its own schema compatibility checks before yielding batches to the sink.
+
+Zero-row batches participate in this validation, and schema metadata
+differences are ignored.
+
+Writer-specific serialization requirements remain in effect even when
+batches have passed pipeline validation.
+
 ## Related documentation
 
 - [YAML Configuration](../configuration.md)

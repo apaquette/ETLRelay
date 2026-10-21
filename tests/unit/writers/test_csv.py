@@ -68,3 +68,30 @@ class TestCsvWriter:
         writer.write(iter([]), stream)
 
         assert stream.getvalue() == b""
+
+
+def test_csv_writer_does_not_close_caller_owned_stream() -> None:
+    """CSV serialization must leave stream cleanup to the caller."""
+    batch = Batch(
+        table=pa.table(
+            {
+                "id": [1, 2],
+                "name": ["Alice", "Bob"],
+            }
+        )
+    )
+
+    stream = BytesIO()
+    writer = CsvWriter()
+
+    writer.write([batch], stream)
+
+    assert not stream.closed
+    assert stream.getvalue()
+
+    # The caller can continue using the stream.
+    stream.write(b"\n")
+    assert stream.getvalue().endswith(b"\n")
+
+    stream.close()
+    assert stream.closed

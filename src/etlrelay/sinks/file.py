@@ -57,6 +57,17 @@ class FileSink:
             OSError: If the storage implementation cannot open or write to
                 the destination.
             Exception: Any exception raised by the writer is propagated.
+        Note:
+            FileSink owns and closes the stream returned by FileSystem.open_write().
+            It does not close or otherwise manage the supplied FileSystem or Writer
+            instances.
+
+            With LocalFileSystem, an existing destination is truncated when
+            opened for writing. If serialization fails, an empty or partially
+            written file may remain. Previous contents are not restored.
+
+            File writes are not atomic and are not rolled back.
+            Format-specific empty-input behavior is determined by the Writer.
         """
         logger.debug("File sink write started.")
 
