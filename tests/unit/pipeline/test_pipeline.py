@@ -877,20 +877,25 @@ def test_zero_row_first_batch_establishes_output_schema() -> None:
     assert sink.batches[0] is first_batch
     assert sink.batches[0].table.num_rows == 0
 
+
 def test_schema_failure_preserves_partially_written_file(
     tmp_path: Path,
 ) -> None:
     """A later schema failure does not roll back earlier file output."""
     first_batch = Batch(
-        table=pa.table({
-            "id": pa.array([1], type=pa.int64()),
-        })
+        table=pa.table(
+            {
+                "id": pa.array([1], type=pa.int64()),
+            }
+        )
     )
 
     incompatible_batch = Batch(
-        table=pa.table({
-            "id": pa.array(["two"], type=pa.string()),
-        })
+        table=pa.table(
+            {
+                "id": pa.array(["two"], type=pa.string()),
+            }
+        )
     )
 
     output_path = tmp_path / "output.csv"
