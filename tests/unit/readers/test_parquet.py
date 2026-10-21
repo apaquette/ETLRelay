@@ -5,7 +5,7 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 import pytest
 
-from etlrelay.core import Reader
+from etlrelay.core import TabularReader
 from etlrelay.readers import ParquetReader
 
 
@@ -21,7 +21,7 @@ class TestParquetReader:
     def test_reader_meets_protocol(self):
         reader = ParquetReader()
 
-        assert isinstance(reader, Reader)
+        assert isinstance(reader, TabularReader)
 
     def test_reader_can_read_valid_parquet_data(self):
         table = pa.table(
@@ -120,13 +120,15 @@ class TestParquetReader:
         assert batches[0].table.num_rows == 0
         assert batches[0].table.schema == schema
 
-    def test_reader_raises_reader_error_for_malformed_parquet(self):
+    def test_reader_raises_arrow_error_for_malformed_parquet(self):
         stream = BytesIO(b"this is not a valid Parquet file")
 
         reader = ParquetReader()
 
         with pytest.raises(pa.ArrowInvalid):
             list(reader.read(stream))
+
+        assert not stream.closed
 
     def test_reader_does_not_close_caller_owned_stream(self):
         table = pa.table({"id": [1, 2, 3]})

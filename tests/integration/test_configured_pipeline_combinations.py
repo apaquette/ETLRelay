@@ -69,12 +69,12 @@ def _seed_resources(base_path: Path) -> list[dict[str, object]]:
     return records
 
 
-def _read_file(path: Path, file_format: str) -> list[dict[str, object]]:
+def _read_file(path: Path, file_format: str) -> pa.Table:
     if file_format == "csv":
         table = pacsv.read_csv(str(path))
     else:
         table = pq.read_table(str(path))
-    return table.to_pylist()
+    return table
 
 
 def _build_runtime(base_path: Path, getenv: EnvironmentLookup):
@@ -164,6 +164,11 @@ def test_supported_source_sink_combination_runs_end_to_end(
             ).fetchall()
         actual_records = [{"id": row[0], "amount": row[1], "label": row[2]} for row in rows]
     else:
-        actual_records = _read_file(tmp_path / f"output.{sink_kind}", sink_kind)
+        table = _read_file(tmp_path / f"output.{sink_kind}", sink_kind)
+        assert table.schema.equals(
+            pa.schema([("id", pa.int64()), ("amount", pa.int64()), ("label", pa.string())]),
+            check_metadata=False,
+        )
+        actual_records = table.to_pylist()
 
     assert actual_records == expected_records

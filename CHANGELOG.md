@@ -4,6 +4,76 @@ Notable changes to ETLRelay are documented here.
 
 This project follows the principles of [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and [Semantic Versioning](https://semver.org/).
 
+
+## [0.9.0] - 2026-10-21
+
+### Changed
+
+- Remove the unused Polars runtime dependency; the frozen implementation uses PyArrow.
+- Verify wheel and source-distribution installation in separate environments across
+  the declared CI matrix and existing release workflows.
+- Renamed the public `Reader` and `Writer` protocols to `TabularReader`
+  and `TabularWriter`. The modules remain `etlrelay.core.reader` and
+  `etlrelay.core.writer`; the former class names are removed without aliases.
+  Applications must update imported class names and type annotations.
+- Retained `KeyValueReader` as the separate contract for mapping-shaped
+  documents. Configuration loading continues to depend on this abstraction.
+- Update the locked SQLAlchemy dependency from 2.1.3 to 2.1.5.
+- Update Ruff to 0.17.1 and mkdocstrings to 1.0.7, allowing
+  mkdocstrings 1.x in the documentation dependency constraints.
+- Update GitHub Actions dependencies for environment setup, artifact
+  downloads, and GitHub Pages configuration, artifact upload, and deployment.
+
+### Fixed
+
+- Preserve the original serialization or upstream batch failure when Parquet
+  finalization also fails; log secondary cleanup failures without their messages.
+  Finalization-only failures continue to propagate.
+- Report invalid YAML document shapes as configuration failures (CLI exit code
+  `3`) through `YamlDocumentError`, a backward-compatible `ValueError` subclass.
+- Reject ambiguous requested columns in `SelectColumns` with `ValueError`.
+- Reject duplicate final names in `RenameColumns`, including duplicate input fields.
+- Correct tabular protocol references, validation behavior, and SQL resource
+  ownership documentation; restore strict API documentation builds.
+
+### Testing
+
+- Compare complete runtime dependency constraints in wheel and sdist metadata,
+  verify licence/notice inclusion, and exercise public imports and direct
+  CSV/Parquet/SQLite composition from installed artifacts.
+- Audit the failure and cleanup matrix; cover borrowed streams after failures,
+  processor failures before and during output, SQL connection/conversion failures,
+  malformed SQL connection check-in, and controlled CLI connection diagnostics.
+- Verify processed Parquet-to-SQLite and SQLite-to-Parquet pipelines through
+  the built and installed CLI, reusing the existing isolated-wheel fixture.
+- Strengthen schema assertions for the existing YAML source/sink matrix and
+  the direct Parquet processor chain, including types, nullability, and nulls.
+- Record the representative Python, YAML, and installed-CLI pipeline coverage
+  matrix without duplicating every combination at each test layer.
+
+### Documentation
+
+- Complete a self-contained YAML/Python quick start with version-pinned
+  release installation instructions and bounded CPython requirements.
+- Add v0.9.0 migration guidance and release notes; retain schema version 1
+  and document removed protocol names, corrected failures, and dependency changes.
+- Verify all maintained Python/YAML examples and the quick-start code against a
+  built, installed candidate outside the checkout using the existing CLI fixture.
+- Add an application-defined processor example, contributor guidance, expected
+  demo outputs, SQL reset instructions, and troubleshooting guidance.
+- Align API, architecture, configuration, logging, security, and release docs;
+  consolidate duplicate release instructions into the existing canonical page.
+
+- Finalize v0.9.0 metadata, release checklist, readiness evidence, and focused
+  beta feedback/defect triage guidance using the existing release workflow.
+
+### Scope Decisions
+
+- Deferred `KeyValueWriter` because the v1.0 feature set does not require
+  mapping-document serialization.
+- Deferred public tabular/row-record conversion utilities pending a
+  concrete use case and defined conversion semantics.
+
 ## [0.8.0] - 2026-10-20
 
 ### Security

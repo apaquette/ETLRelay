@@ -1,4 +1,4 @@
-"""Protocols and exceptions for serializing ETLRelay batches."""
+"""Protocol and exception for serializing ETLRelay tabular batches."""
 
 from collections.abc import Iterable
 from typing import BinaryIO, Protocol, runtime_checkable
@@ -7,31 +7,33 @@ from etlrelay.core import Batch
 
 
 class WriterError(Exception):
-    """Raised when a writer cannot serialize the supplied batches."""
+    """Represent a serialization failure normalized by a writer implementation."""
 
 
 @runtime_checkable
-class Writer(Protocol):
-    """Define the interface for serializing batches to a binary stream.
+class TabularWriter(Protocol):
+    """Define the interface for writing tabular batches to a binary stream.
 
-    Implementations are responsible for format-specific serialization.
-    They do not manage filesystem access or the lifecycle of the supplied
-    stream.
+    Implementations perform format-specific serialization independently of
+    filesystem access. The supplied stream remains owned by the caller.
     """
 
     def write(self, batches: Iterable[Batch], stream: BinaryIO) -> None:
-        """Serialize batches and write the resulting data to a stream.
+        """Serialize batches into one output stream.
 
         Args:
-            batches: An iterable of batches to serialize into one output.
-            stream: A writable binary stream that receives the serialized
-                data. The caller is responsible for closing the stream.
+            batches: An iterable of batches to serialize.
+            stream: An open, writable binary stream receiving serialized data.
 
         Note:
-            The caller retains ownership of the supplied output stream.
-            Writers must not close it, including when serialization fails.
+            The caller owns the output stream. Implementations must not
+            close it, including when serialization or batch iteration fails.
 
-            Empty-input behavior, schema compatibility, and serialization
-            constraints depend on the concrete writer implementation.
+            The method consumes batches synchronously. It may leave partial
+            output if serialization or iteration fails; this protocol does
+            not provide atomic writes or rollback.
+
+            Empty-input behavior, schema compatibility, stream requirements,
+            and serialization errors are documented by each implementation.
         """
         ...

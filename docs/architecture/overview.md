@@ -4,7 +4,7 @@
 
 ETLRelay is organized around composable runtime contracts and a separate configuration-construction layer. `Pipeline` coordinates batch processing; sources obtain data, processors transform batches, and sinks consume the processed output. File sources and sinks compose filesystem access with format-specific readers and writers.
 
-ETLRelay 0.6.0 also permits users to declare supported pipelines in YAML. Configuration parsing, schema validation, component registration lookup, pipeline construction, and execution remain separate responsibilities.
+ETLRelay also permits users to declare supported pipelines in YAML. Configuration parsing, schema validation, component registration lookup, pipeline construction, and execution remain separate responsibilities.
 
 ## Runtime and configuration diagrams
 
@@ -40,7 +40,7 @@ The configuration loader and validator do not construct runtime components. `Pip
 | `Pipeline` | Applies processors in order and validates processed output schemas during a run. |
 | `FileSource` / `FileSink` | Compose storage access with reading or writing. |
 | `FileSystem` | Opens readable or writable binary streams. |
-| `Reader` / `Writer` | Convert between serialized tabular formats and batches. |
+| `TabularReader` / `TabularWriter` | Convert between serialized tabular formats and batches. |
 | `KeyValueReader` / `YamlReader` | Parse one mapping-shaped configuration document; does not produce batches. |
 | `ConfigLoader` | Coordinates configuration-file reading, parsing, and validation. |
 | `ConfigValidator` | Validates version 1 of the YAML configuration schema. |
@@ -57,7 +57,7 @@ FileSystem.open_read(path)
       BinaryIO stream
           │
           ▼
-       Reader.read(stream)
+       TabularReader.read(stream)
           │
           ▼
         Iterable[Batch]
@@ -81,7 +81,7 @@ Direct Python `SqlSource` and `SqlSink` components borrow the SQLAlchemy engine 
 
 - [Pipeline](pipeline.md) — execution order, schema compatibility, empty data, and exception propagation.
 - [File source](file_source.md) and [File sink](file_sink.md) — storage and format composition.
-- [Reader and writer contracts](reader_and_writer.md) — tabular and mapping-shaped input boundaries.
+- [TabularReader and writer contracts](reader_and_writer.md) — tabular and mapping-shaped input boundaries.
 - [Configuration loading](configuration-loading.md), [validation](configuration-validation.md), and [component registry](component-registry.md).
 - [Local filesystem](local_filesystem.md) and [Path validator](path_validator.md).
 - [SQL source and sink](sql_source_and_sink.md).
@@ -115,10 +115,10 @@ classDiagram
     class FileSource
     class FileSink
     class LocalFileSystem
-    class Reader {
+    class TabularReader {
         <<protocol>>
     }
-    class Writer {
+    class TabularWriter {
         <<protocol>>
     }
     class ConfigLoader {
@@ -149,9 +149,9 @@ classDiagram
     Pipeline o-- Processor
     Pipeline o-- Sink
     FileSource --> LocalFileSystem
-    FileSource --> Reader
+    FileSource --> TabularReader
     FileSink --> LocalFileSystem
-    FileSink --> Writer
+    FileSink --> TabularWriter
     ConfigLoader --> ConfigValidator
     ComponentCatalog --> ConfigValidator : exposes root validator
     ComponentCatalog o-- ComponentRegistry : exposes shared registries

@@ -92,3 +92,8 @@ class RenameColumns:
         for update_name in self._mapping.values():
             if update_name in existing_columns and update_name not in mapping_keys:
                 raise ValueError(f"Column already exists and is not being renamed: {update_name}")
+
+        final_names = [self._mapping.get(name, name) for name in table.column_names]
+        duplicates = sorted(name for name, count in Counter(final_names).items() if count > 1)
+        if duplicates:
+            raise ValueError(f"Duplicate columns are not allowed: {', '.join(duplicates)}")

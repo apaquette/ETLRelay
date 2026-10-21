@@ -45,7 +45,7 @@ classDiagram
 
 `SelectColumns` selects the configured columns in the order supplied to its constructor. It preserves the selected columns' values, Arrow data types, and nullability.
 
-It raises `ValueError` for duplicate requested names or names that are not present in the input batch. A zero-row table retains the selected schema.
+It raises `ValueError` for duplicate requested names or requested names that are missing or ambiguous in the input batch. A zero-row table retains the selected schema.
 
 ### `RenameColumns`
 

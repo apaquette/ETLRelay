@@ -38,7 +38,7 @@ from etlrelay.config.storage.local import (
     LocalFileSystemConfigValidator,
 )
 from etlrelay.config.validator import ConfigValidator
-from etlrelay.core import Processor, Reader, Sink, Source, Writer
+from etlrelay.core import Processor, Sink, Source, TabularReader, TabularWriter
 from etlrelay.file_formats import TabularFileFormatRegistry
 from etlrelay.readers import CsvReader, ParquetReader
 from etlrelay.storage.filesystem import FileSystem
@@ -117,7 +117,7 @@ def create_default_component_catalog(
 
     # Tabular serialization formats are distinct from key-value document
     # readers such as YamlReader, which are not part of this registry.
-    tabular_file_format_registry: TabularFileFormatRegistry[Reader, Writer] = (
+    tabular_file_format_registry: TabularFileFormatRegistry[TabularReader, TabularWriter] = (
         TabularFileFormatRegistry(
             readers={
                 "csv": CsvReader,

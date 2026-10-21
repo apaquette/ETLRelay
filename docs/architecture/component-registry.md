@@ -2,9 +2,9 @@
 
 ## Purpose
 
-ETLRelay 0.6.0 uses explicit registries to associate each supported configuration `type` with both its configuration validator and runtime factory. The validator and `PipelineBuilder` consume the same registrations, reducing the risk that a type is accepted during validation but unavailable during construction.
+ETLRelay uses explicit registries to associate each supported configuration `type` with both its configuration validator and runtime factory. The validator and `PipelineBuilder` consume the same registrations, reducing the risk that a type is accepted during validation but unavailable during construction.
 
-The registry is an internal composition mechanism, not a public dynamic-plugin system. The v0.6.0 default catalog defines a small fixed set of built-in components.
+The registry supports explicit application composition; it is not an automatic discovery or dynamic-plugin system. The default catalog defines a small fixed set of built-in components.
 
 ## Supported families
 
@@ -29,7 +29,7 @@ Component-specific validators own their own property schema. The dispatcher does
 
 ## Default composition root
 
-`create_default_component_catalog()` in `etlrelay.default_component` creates the shared registrations and services. It wires them in dependency order:
+`create_default_component_catalog()` in `etlrelay.default_components` creates the shared registrations and services. It wires them in dependency order:
 
 1. Create the `TabularFileFormatRegistry` with CSV and Parquet readers and writers.
 2. Create the local storage registry and storage dispatcher.
@@ -52,7 +52,7 @@ After all registrations and SQL references pass preflight, the builder construct
 
 Adding support for a component requires a runtime implementation, its component-specific configuration validator and factory, and one explicit registration in the default composition. It should not require changes to the generic registry, common dispatcher, unrelated validators, or `ConfigValidator` root rules, provided the root schema and supported component contract remain the same.
 
-No automatic discovery, import-by-string, reflection-based construction, arbitrary user code execution, or mutable global service locator is provided in v0.6.0. New types must be intentionally added to the built-in configuration contract.
+No automatic discovery, import-by-string, reflection-based construction, arbitrary user code execution, or mutable global service locator is provided in the frozen v1.0 scope. Applications can assemble their own explicit registries in Python. The default CLI catalog remains limited to the built-in types; custom registration does not automatically extend it.
 
 ## Related documentation
 

@@ -22,7 +22,7 @@ Keep documentation tooling in the existing documentation/development dependency 
 - Keep `docs/api-reference.md` import paths aligned with the actual modules under `src/etlrelay`.
 - Treat architecture diagrams as descriptions of implemented classes and contracts. Mark future possibilities as such, and do not present unimplemented storage backends or APIs as available features.
 - Preserve relevant flow, data-flow, and class diagrams when updating an architecture page. Quote Mermaid node labels that contain punctuation which Mermaid could otherwise interpret as syntax.
-- Keep executable examples consistent with the v0.6.0 configuration contract and test them against the current package where practical.
+- Keep executable examples consistent with configuration schema version 1 and test them against the current package where practical.
 
 The site uses `pymdownx.superfences` for fenced code and Mermaid blocks. A Markdown file's presence on disk does not automatically add it to the navigation; update `mkdocs.yml` intentionally.
 
@@ -46,8 +46,21 @@ A strict build checks MkDocs navigation, internal references, and API-reference 
 
 ## Documentation release check
 
-For a release candidate, run the repository's full quality and packaging checks, including the strict documentation build. The current v0.6.0 release checklist is maintained in `docs/development/release-automation.md` and `RELEASE_CHECKS.md`. Record results from the exact checkout intended for release; do not reuse a previous release's successful result as evidence for later documentation changes.
+For a release candidate, run the repository's full quality and packaging checks, including the strict documentation build. The current release checklist is maintained in `docs/development/release-automation.md` and `RELEASE_CHECKS.md`. Record results from the exact checkout intended for release; do not reuse a previous release's successful result as evidence for later documentation changes.
 
 ## Hosting and versioned documentation
 
 The MkDocs configuration includes the `mike` plugin for versioned documentation. Use the repository's documented publishing workflow and verify the target branch, version, and hosting settings before deploying. Do not create a second deployment workflow or assume that a local build has published the site.
+
+Release documentation must match the target package version, including
+installation examples, CLI output, migration guidance, and release notes. During
+preparation, record publication checks separately from local verification. Run
+the installed-candidate example test in addition to the strict documentation build.
+
+Pin release-content links to the target release: use the `v0.9.0` Git tag
+for repository files and examples, and `/ETLRelay/0.9.0/` for absolute
+documentation URLs. Do not link release content to moving branches such as
+`dev` or `main`, or to a moving documentation alias such as `latest`. Relative
+links between documentation pages stay within the deployed version. Keep
+explicitly historical release links and immutable CI evidence tied to their
+original versions or runs.

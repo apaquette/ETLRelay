@@ -5,15 +5,58 @@ from types import SimpleNamespace
 from typing import NoReturn
 from unittest.mock import Mock
 
+import pyarrow as pa
 import pytest
 import yaml
+from sqlalchemy.engine import Engine
+from sqlalchemy.exc import OperationalError
 from typer.testing import CliRunner
 
 import etlrelay.cli as cli
+from etlrelay.core import Batch
+from etlrelay.pipeline import Pipeline
 from etlrelay.security.path import PathValidationError
+from etlrelay.sinks import SqlSink
+from etlrelay.sources import SqlSource
 from etlrelay.storage.filesystem import FileSystemError
 
 runner = CliRunner()
+
+
+@pytest.mark.parametrize("stage", ["source", "sink"])
+def test_sql_connection_failure_is_safe_and_closes_builder(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    stage: str,
+) -> None:
+    """Do not rely on network reachability or driver-specific connection errors."""
+    secret_url = "postgresql://user:SECRET_PASSWORD@host/database"
+    failure = OperationalError(None, None, OSError(f"Connection refused: {secret_url}"))
+    engine = Mock(spec=Engine)
+    if stage == "source":
+        engine.connect.side_effect = failure
+        source = SqlSource(engine, "SELECT id FROM records")
+        sink = Mock()
+    else:
+        engine.begin.side_effect = failure
+        source = Mock()
+        source.read.return_value = [Batch(pa.table({"id": [1]}))]
+        sink = SqlSink(engine, "records")
+
+    builder = Mock()
+    builder.build.return_value = Pipeline(source, [], sink)
+    _patch_run_dependencies(monkeypatch, builder)
+    result = runner.invoke(cli.app, ["--log-level", "debug", "run", str(tmp_path / "job.yaml")])
+
+    assert result.exit_code == 4
+    assert result.stdout == ""
+    assert "Pipeline execution failed" in result.stderr
+    assert "OperationalError" in result.stderr
+    assert "SECRET_PASSWORD" not in result.stderr
+    assert secret_url not in result.stderr
+    assert "Traceback" not in result.stderr
+    builder.close.assert_called_once_with()
+    engine.dispose.assert_not_called()
 
 
 def _write_file_pipeline_config(

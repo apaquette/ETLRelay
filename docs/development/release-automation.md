@@ -12,7 +12,7 @@ The production release workflow publishes a new version from `main`
 when publishing is enabled and that exact version has not already
 been released to PyPI.
 
-ETLRelay v0.8.0 retains the existing branch and publication strategy.
+ETLRelay retains the existing branch and publication strategy.
 The release-readiness checks verify the built distribution rather than
 relying solely on editable development installations.
 
@@ -40,7 +40,7 @@ Before opening or merging a release pull request:
 9. Validate the built artifacts using Twine and the distribution
    verification script.
 10. Verify clean-environment installation, CLI behavior, and a
-    representative pipeline execution using the built wheel.
+    representative pipeline execution using both built artifacts.
 11. Confirm the complete CI workflow and compatibility matrix pass.
 12. Review the changeset for unintended public API changes,
     unsupported security claims, or out-of-scope refactoring.
@@ -85,10 +85,11 @@ sensitive-output regression checks.
 The quality job uploads the verified distribution artifacts for use by
 the compatibility matrix.
 
-### Installed-wheel compatibility
+### Installed-artifact compatibility
 
-The compatibility jobs download the same wheel built by the quality job.
-They do not rebuild the project separately.
+The compatibility jobs download the same wheel and source distribution built by the quality job.
+The sdist is built in an isolated installation environment; the source checkout
+is never installed as a substitute.
 
 | Platform | Python |
 |---|---|
@@ -97,7 +98,7 @@ They do not rebuild the project separately.
 | macOS | 3.12 |
 | Windows | 3.12 |
 
-Each compatibility job installs the wheel into a clean environment,
+Each compatibility job installs each artifact into a separate clean environment,
 checks dependency consistency and import isolation, and exercises the
 installed CLI and a minimal supported CSV pipeline.
 
@@ -114,7 +115,7 @@ vulnerabilities covered by the audit; it does not guarantee the absence
 of undiscovered vulnerabilities.
 
 Distribution metadata checks confirm expected archive contents and
-declared metadata. Installed-wheel smoke tests independently verify
+declared metadata. Wheel and source-distribution smoke tests independently verify
 that representative runtime functionality works without the
 repository checkout.
 
@@ -202,3 +203,29 @@ For releases that change declarative configuration, include these documentation 
 ## Manual release recovery
 
 If publication succeeds but GitHub release creation fails, do not change the published package version. Check whether the `vX.Y.Z` tag already exists and create the missing GitHub release manually for that same tag/commit. If the PyPI version exists but is wrong, publish a new version; PyPI files cannot be replaced in place.
+
+The shared compatibility smoke script now defaults to testing both artifacts
+in separate environments. TestPyPI and PyPI verification workflows use this
+same script before publication. See the
+[packaging verification record](packaging-verification.md) for commands and evidence.
+
+
+## v0.9.0 beta promotion
+
+The package version is `0.9.0`; the changelog and [release notes](release-notes-v0.9.0.md)
+use the target release date 2026-10-21. If publication moves to a different day,
+update both dates before promotion. The term "beta" names this roadmap milestone;
+the distribution version remains `0.9.0`, not `0.9.0b1`.
+
+Use the existing TestPyPI procedure on `dev`, then promote the same reviewed
+source to `main`. Do not create the tag manually before the production workflow:
+it creates `v0.9.0` after publication and uses the reviewed release-notes file
+for the GitHub release body. Versioned documentation deploys under `0.9.0`;
+repository examples and policy links are pinned to `v0.9.0`.
+
+Complete `RELEASE_CHECKS.md` against the integrated release commit. The
+[beta readiness record](beta-readiness.md) separates the completed source review
+and existing support evidence from checks still required for promotion and
+publication. A local build does not establish that PyPI, the GitHub release,
+or hosted documentation has been published. Gather feedback using that record's
+checklist and preserve the frozen feature boundary.

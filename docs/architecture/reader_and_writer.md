@@ -1,31 +1,31 @@
-# Reader and Writer Contracts
+# TabularReader and TabularWriter Contracts
 
 ## Purpose
 
 ETLRelay uses separate contracts for tabular data and mapping-shaped documents. This distinction matters now that YAML configuration is supported: a tabular reader produces `Batch` objects, while a key-value reader produces one configuration document mapping.
 
-The current public `Reader` and `Writer` protocols remain the tabular stream contracts in v0.6.0. The pre-v1.0 roadmap contains a separate API naming review for these protocols; this release does not rename them.
+The public tabular protocols are `TabularReader` and `TabularWriter`. The former `Reader` and `Writer` class names are removed without aliases. Their modules remain `etlrelay.core.reader` and `etlrelay.core.writer`; `KeyValueReader` remains in `etlrelay.core.reader`.
 
-## Tabular `Reader` and `Writer`
+## Tabular `TabularReader` and `TabularWriter`
 
-`Reader` consumes a binary stream and produces an iterable of `Batch` objects. `Writer` consumes an iterable of batches and serializes them to a binary stream. The protocols separate format-specific parsing/serialization from storage access.
+`TabularReader` consumes a binary stream and produces an iterable of `Batch` objects. `TabularWriter` consumes an iterable of batches and serializes them to a binary stream. The protocols separate format-specific parsing/serialization from storage access.
 
 ```mermaid
 flowchart LR
     A[FileSystem.open_read] --> B[BinaryIO]
-    B --> C[Reader.read]
+    B --> C[TabularReader.read]
     C --> D[Iterable of Batch]
     D --> E[Processor pipeline]
-    E --> F[Writer.write]
+    E --> F[TabularWriter.write]
     F --> G[BinaryIO]
     G --> H[FileSystem.open_write]
 ```
 
-`FileSource` composes a filesystem with a `Reader`; `FileSink` composes a filesystem with a `Writer`. Readers and writers do not locate paths or validate filesystem containment. The component that opens a stream remains responsible for closing it.
+`FileSource` composes a filesystem with a `TabularReader`; `FileSink` composes a filesystem with a `TabularWriter`. Readers and writers do not locate paths or validate filesystem containment. The component that opens a stream remains responsible for closing it.
 
 Built-in tabular implementations:
 
-| Format | Reader | Writer | Notes |
+| Format | TabularReader | TabularWriter | Notes |
 |---|---|---|---|
 | CSV | `CsvReader` | `CsvWriter` | Text format; Arrow types are inferred on reading, so exact schema round trips are not guaranteed. |
 | Parquet | `ParquetReader` | `ParquetWriter` | Columnar format preserving supported Arrow schema/type information. The reader requires a seekable binary stream. The writer needs a first batch to establish schema; an empty iterable raises `WriterError`, while a zero-row batch with a schema is valid. |
@@ -34,7 +34,7 @@ Built-in tabular implementations:
 
 ## `KeyValueReader` and `YamlReader`
 
-`KeyValueReader` is a separate protocol used for mapping-shaped documents. Its contract returns one root mapping with string keys; it does not return batches and is not substitutable for the tabular `Reader` protocol.
+`KeyValueReader` is a separate protocol used for mapping-shaped documents. Its contract returns one root mapping with string keys; it does not return batches and is not substitutable for the tabular `TabularReader` protocol.
 
 `YamlReader` implements `KeyValueReader` and lives in `etlrelay.readers.yaml`. It uses PyYAML's safe loader and owns document-format concerns:
 
@@ -63,7 +63,7 @@ The configuration file is read through the filesystem abstraction just like othe
 
 ## What this interface does not do
 
-Neither tabular `Reader`/`Writer` nor `KeyValueReader` converts arbitrary row records to/from batches. A mapping-shaped document, a sequence of row mappings, and an iterable of `Batch` objects are different representations with different contracts. Generic tabular-to-record conversion remains a separate design topic for a later API review and is not implied by YAML configuration support.
+Neither tabular `TabularReader`/`TabularWriter` nor `KeyValueReader` converts arbitrary row records to/from batches. A mapping-shaped document, a sequence of row mappings, and an iterable of `Batch` objects are different representations with different contracts. Generic tabular-to-record conversion is deferred beyond v1.0 and is not implied by YAML configuration support.
 
 A future JSON document reader could implement `KeyValueReader` without changing `ConfigLoader` or the configuration schema validator. It would not need to join `TabularFileFormatRegistry`.
 
@@ -72,8 +72,8 @@ A future JSON document reader could implement `KeyValueReader` without changing 
 | Component | Responsibility | Does not own |
 |---|---|---|
 | `FileSystem` | Opens resource streams by path | Format parsing or transformation |
-| `Reader` | Parses a tabular stream into batches | Opening/closing the stream or validating the path |
-| `Writer` | Serializes batches to a stream | Opening/closing the stream or choosing destination paths |
+| `TabularReader` | Parses a tabular stream into batches | Opening/closing the stream or validating the path |
+| `TabularWriter` | Serializes batches to a stream | Opening/closing the stream or choosing destination paths |
 | `KeyValueReader` | Reads one mapping-shaped document | ETLRelay configuration schema validation |
 | `YamlReader` | Safe YAML syntax and root mapping contract | ETL component construction or execution |
 | `ConfigValidator` | Schema version, fields, component types, and property constraints | File/DB I/O or runtime component construction |
@@ -83,8 +83,8 @@ A future JSON document reader could implement `KeyValueReader` without changing 
 
 Readers and writers borrow streams supplied by their callers.
 
-- `Reader.read(stream)` must not close the supplied input stream.
-- `Writer.write(batches, stream)` must not close the supplied output stream.
+- `TabularReader.read(stream)` must not close the supplied input stream.
+- `TabularWriter.write(batches, stream)` must not close the supplied output stream.
 - This ownership rule applies to successful operations and failures.
 - Direct callers must manage the streams they supply.
 - `FileSource` and `FileSink` manage the streams they obtain through
@@ -119,6 +119,10 @@ A zero-row batch with named columns produces a CSV header without data rows.
 
 An entirely empty iterable produces no serialized content.
 
+On input, a header-only CSV produces no batches. A zero-byte CSV file is
+invalid and raises `pyarrow.ArrowInvalid`; it is not treated as a successful
+empty source.
+
 ### Parquet
 
 Parquet preserves structured schema information, including Arrow data types.
@@ -135,6 +139,17 @@ no data rows.
 An entirely empty iterable cannot establish an output schema and raises
 `WriterError`.
 
+After batch serialization or upstream iteration fails, `ParquetWriter` still
+attempts to finalize its native writer. The original failure takes precedence
+if finalization also fails. A secondary finalization failure is logged using
+only its exception type. If serialization otherwise succeeds, a finalization
+failure propagates to the caller.
+
+The supplied stream remains caller-owned on both paths. Successfully finalized
+partial output can contain earlier batches; if finalization fails, the output
+may be unreadable. Neither outcome constitutes a successful pipeline run or
+provides rollback.
+
 ### Pipeline validation
 
 When readers and writers are used through `Pipeline`, the pipeline applies
@@ -143,7 +158,7 @@ its own schema compatibility checks before yielding batches to the sink.
 Zero-row batches participate in this validation, and schema metadata
 differences are ignored.
 
-Writer-specific serialization requirements remain in effect even when
+TabularWriter-specific serialization requirements remain in effect even when
 batches have passed pipeline validation.
 
 ## Related documentation
@@ -160,11 +175,11 @@ The diagram below summarizes the principal types and dependencies described on t
 classDiagram
     direction TB
 
-    class Reader {
+    class TabularReader {
         <<protocol>>
         +read(stream) Iterable~Batch~
     }
-    class Writer {
+    class TabularWriter {
         <<protocol>>
         +write(batches, stream) None
     }
@@ -180,12 +195,12 @@ classDiagram
     }
     class FileSource {
         -storage: FileSystem
-        -reader: Reader
+        -reader: TabularReader
         +read() Iterable~Batch~
     }
     class FileSink {
         -storage: FileSystem
-        -writer: Writer
+        -writer: TabularWriter
         +write(batches) None
     }
     class KeyValueReader {
@@ -194,15 +209,15 @@ classDiagram
     }
     class YamlReader
 
-    Reader <|.. CsvReader
-    Reader <|.. ParquetReader
-    Writer <|.. CsvWriter
-    Writer <|.. ParquetWriter
+    TabularReader <|.. CsvReader
+    TabularReader <|.. ParquetReader
+    TabularWriter <|.. CsvWriter
+    TabularWriter <|.. ParquetWriter
     KeyValueReader <|.. YamlReader
     FileSource --> FileSystem
-    FileSource --> Reader
+    FileSource --> TabularReader
     FileSink --> FileSystem
-    FileSink --> Writer
-    Reader ..> Batch : produces
-    Writer ..> Batch : serializes
+    FileSink --> TabularWriter
+    TabularReader ..> Batch : produces
+    TabularWriter ..> Batch : serializes
 ```

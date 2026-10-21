@@ -4,7 +4,7 @@
 
 ETLRelay is experimental pre-1.0 software.
 
-Security reports are assessed against the latest released version, currently **v0.8.0**. Security fixes and backports for older releases are not guaranteed unless maintainers explicitly announce otherwise.
+Security reports are assessed against the latest released version, currently **v0.9.0**. Security fixes and backports for older releases are not guaranteed unless maintainers explicitly announce otherwise.
 
 Public APIs and security-related implementation details may change before v1.0.0.
 
@@ -28,7 +28,7 @@ Reports will be reviewed as promptly as reasonably possible. No fixed acknowledg
 
 ## Security scope
 
-ETLRelay v0.8.0 includes security-related controls for:
+ETLRelay v0.9.0 includes security-related controls for:
 
 - Local filesystem path containment, including resolved path traversal and symlink escapes.
 - Safe YAML configuration parsing and strict schema validation.
@@ -59,7 +59,7 @@ ETLRelay does not guarantee atomic file replacement, whole-pipeline transactions
 
 Evaluate ETLRelay in a controlled environment before using it with sensitive or production data.
 
-For implementation details, security boundaries, and current limitations, see the [Security documentation](https://apaquette.github.io/ETLRelay/0.8.0/security/).
+For implementation details, security boundaries, and current limitations, see the [Security documentation](https://apaquette.github.io/ETLRelay/0.9.0/security/).
 
 ## Policy maintenance
 

@@ -39,7 +39,7 @@ See the [API Reference](../api-reference.md) for the generated public signatures
 
 `SqlSource` executes a caller-provided SQL text query through SQLAlchemy. Optional `parameters` supplies a mapping of parameter names to values, bound through SQLAlchemy rather than interpolated into the query string.
 
-For a query that returns rows, `SqlSource.read()` converts the result into one `Batch`. All rows are materialized before the connection is closed; the source is therefore batch-oriented, not a streaming or paginated database reader. A query returning no rows produces an empty iterable, not a zero-row batch. Duplicate result-column names are rejected because an Arrow table requires unambiguous column names.
+For a query that returns rows, `SqlSource.read()` converts the result into one `Batch`. All rows are materialized before the connection is closed; the source is therefore batch-oriented, not a streaming or paginated database reader. A query returning no rows produces an empty iterable, not a zero-row batch. Duplicate result-column names are rejected because conversion through row mappings would otherwise make the result ambiguous. Arrow itself can represent duplicate field names.
 
 Use named bind parameters for values:
 
@@ -186,7 +186,7 @@ literal connection URLs. `PipelineBuilder` resolves the configured
 component registrations and preflights required connection-variable
 references before invoking component factories.
 
-The v0.8.0 release retains these configuration properties and clarifies
+The v0.9.0 release retains these configuration properties and documents
 their validation, error-reporting, and resource-lifecycle contracts.
 
 Unlike the direct Python API, the configuration builder does not receive an `Engine` argument. It receives the name of an environment variable containing the SQLAlchemy connection URL. `PipelineBuilder` first resolves all component registrations and calls the shared `SqlEngineFactory.preflight()` for the referenced variable names. If a variable is missing or empty, building fails before SQL component factories, engine creation, or configured source/sink I/O.

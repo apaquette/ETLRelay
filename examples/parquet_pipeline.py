@@ -3,6 +3,7 @@
 Run from the repository root after installing the project:
     uv run python examples/parquet_pipeline.py
 """
+
 from pathlib import Path
 
 import pyarrow as pa
@@ -19,7 +20,7 @@ from etlrelay.writers import ParquetWriter
 
 
 def main() -> None:
-    data_dir = Path("data").resolve()
+    data_dir = Path(__file__).resolve().parent / "data"
     data_dir.mkdir(parents=True, exist_ok=True)
     storage = LocalFileSystem(
         path_validator=PathValidator(base_path=data_dir),

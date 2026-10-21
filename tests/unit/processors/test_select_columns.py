@@ -25,6 +25,12 @@ def make_batch() -> Batch:
 
 
 class TestSelectColumns:
+    def test_rejects_ambiguous_requested_column(self):
+        batch = Batch(pa.table([[1], [2]], names=["id", "id"]))
+
+        with pytest.raises(ValueError, match="ambiguous.*id"):
+            SelectColumns(columns=["id"]).process(batch)
+
     def test_selects_single_column(self):
         batch = make_batch()
 

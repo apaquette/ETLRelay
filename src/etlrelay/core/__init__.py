@@ -1,17 +1,17 @@
 from .batch import Batch
 from .processor import Processor
-from .reader import KeyValueReader, Reader
+from .reader import KeyValueReader, TabularReader
 from .sink import Sink
 from .source import Source
-from .writer import Writer, WriterError
+from .writer import TabularWriter, WriterError
 
 __all__ = [
     "Batch",
     "Processor",
-    "Reader",
+    "TabularReader",
     "Sink",
     "Source",
-    "Writer",
+    "TabularWriter",
     "WriterError",
     "KeyValueReader",
 ]

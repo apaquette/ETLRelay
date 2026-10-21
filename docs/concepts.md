@@ -37,9 +37,9 @@ A `Sink` consumes an iterable of processed batches. A file sink composes a stora
 Storage provides binary streams; readers and writers handle file formats.
 
 ```text
-FileSource → FileSystem → BinaryIO → Reader → Batch
+FileSource → FileSystem → BinaryIO → TabularReader → Batch
 
-Batch iterable → Writer → BinaryIO → FileSystem → Destination
+Batch iterable → TabularWriter → BinaryIO → FileSystem → Destination
 ```
 
 `FileSource` composes a filesystem with a reader. `FileSink` composes a filesystem with a writer. This separates resource access from format-specific parsing and serialization.
@@ -55,7 +55,7 @@ The built-in local storage and tabular formats are `LocalFileSystem`, CSV, and P
 | Multiple batches | Serializes batches in order; a CSV stream has one header written by the first batch | Serializes batches in order into one Parquet file |
 | Zero-row batch with schema | Can write a header-only CSV | Writes a valid schema-bearing zero-row Parquet file; the reader yields an empty batch with the schema |
 | Empty batch iterable | Writes no bytes | Raises `WriterError` because no schema is available to initialize the file |
-| Stream requirements | Binary stream | Reader requires a seekable binary stream; writer requires a writable binary stream supported by PyArrow |
+| Stream requirements | Binary stream | TabularReader requires a seekable binary stream; writer requires a writable binary stream supported by PyArrow |
 
 A zero-row batch and an empty batch iterable are different: the former still carries an Arrow schema; the latter carries no batch from which a schema can be obtained. `ParquetWriter` uses the first batch's schema and requires following batches to have the same schema. ETLRelay does not merge incompatible schemas or automatically cast batches.
 
@@ -63,7 +63,7 @@ The component that opens a stream retains responsibility for its lifecycle; read
 
 ## Declarative Configuration
 
-ETLRelay 0.6.0 adds schema-versioned YAML configuration as an alternative to direct Python composition. The supported configuration surface is deliberately fixed: file and SQL sources/sinks, local storage, CSV/Parquet file formats, and the built-in column-selection, renaming, and row-filtering processors.
+ETLRelay supports schema-versioned YAML configuration as an alternative to direct Python composition. The supported configuration surface is deliberately fixed: file and SQL sources/sinks, local storage, CSV/Parquet file formats, and the built-in column-selection, renaming, and row-filtering processors.
 
 The workflow is:
 
@@ -83,7 +83,7 @@ Pipeline
 Pipeline.run()
 ```
 
-A mapping-shaped configuration document is not a tabular `Batch` stream. `KeyValueReader` is a separate protocol from the current tabular `Reader` protocol. `YamlReader` handles YAML syntax and document shape; `ConfigValidator` handles ETLRelay's schema; `PipelineBuilder` resolves explicit registrations and constructs runtime components. Neither loading nor schema validation builds or executes a pipeline.
+A mapping-shaped configuration document is not a tabular `Batch` stream. `KeyValueReader` is a separate protocol from the current tabular `TabularReader` protocol. `YamlReader` handles YAML syntax and document shape; `ConfigValidator` handles ETLRelay's schema; `PipelineBuilder` resolves explicit registrations and constructs runtime components. Neither loading nor schema validation builds or executes a pipeline.
 
 Configuration schema version `1` requires exactly `version`, `source`, `processors`, and `sink`. Unknown fields and unsupported component types are rejected. SQL source/sink connection URLs are referenced by environment-variable name, then checked during builder preflight before component factories and source/sink I/O begin. See [YAML Configuration](configuration.md) for properties, combinations, errors, and examples.
 

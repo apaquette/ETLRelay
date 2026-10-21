@@ -13,19 +13,32 @@ A source produces batches of data, processors transform those batches, and a sin
 For file-based pipelines, ETLRelay separates storage access from format parsing and serialization:
 
 ```text
-FileSystem → Reader → Batch → Processor(s) → Writer → FileSystem
+FileSystem → TabularReader → Batch → Processor(s) → TabularWriter → FileSystem
 ```
 
 This separation allows file sources and sinks to compose storage and format implementations independently. CSV and Parquet readers/writers use the same file source/sink abstractions without format-specific branches in those components.
 
 ETLRelay is being developed incrementally, with test-driven development, explicit component contracts, and a focus on keeping the architecture small.
 
+## v0.9.0 — Feature-complete beta
+
+The intended v1.0 feature set is frozen. This release completes the public API
+review, including the `TabularReader`/`TabularWriter` rename, and verifies the
+supported pipelines, failures, examples, and distribution artifacts.
+
+See [Getting Started](https://apaquette.github.io/ETLRelay/0.9.0/getting-started/)
+for a complete CSV/YAML/Python quick start and
+[Migration to v0.9.0](https://apaquette.github.io/ETLRelay/0.9.0/development/migration-v0.9.0/)
+before updating imports. [Release notes](https://apaquette.github.io/ETLRelay/0.9.0/development/release-notes-v0.9.0/)
+and [beta feedback guidance](https://apaquette.github.io/ETLRelay/0.9.0/development/beta-readiness/)
+describe the milestone and focused review criteria.
+
 ## Installation
 
 Install ETLRelay from PyPI:
 
 ```bash
-pip install etlrelay
+pip install etlrelay==0.9.0
 ```
 
 ### Supported Python Versions and Platforms
@@ -36,16 +49,16 @@ The following configurations are verified in CI:
 
 | Platform | Python | Verification |
 |---|---|---|
-| Ubuntu | 3.12 | Full test suite, quality checks, and installed-wheel smoke test |
-| Ubuntu | 3.13 | Installed-wheel smoke test |
-| Ubuntu | 3.14 | Installed-wheel smoke test |
-| macOS | 3.12 | Installed-wheel smoke test |
-| Windows | 3.12 | Installed-wheel smoke test |
+| Ubuntu | 3.12 | Full test suite, quality checks, and installed wheel/sdist smoke tests |
+| Ubuntu | 3.13 | Installed wheel/sdist smoke tests |
+| Ubuntu | 3.14 | Installed wheel/sdist smoke tests |
+| macOS | 3.12 | Installed wheel/sdist smoke tests |
+| Windows | 3.12 | Installed wheel/sdist smoke tests |
 
-Compatibility testing installs the built wheel into a clean virtual
-environment outside the source checkout. It verifies package imports,
-dependency consistency, CLI operation, configuration validation, and
-a minimal CSV ETL pipeline.
+Compatibility testing installs the built wheel and source distribution into
+separate clean virtual environments outside the source checkout. It verifies
+public imports, dependency consistency, direct CSV/Parquet/SQLite composition,
+CLI operation, YAML validation, and a minimal CSV CLI pipeline.
 
 Other operating-system and Python-version combinations may work but
 are not independently verified by CI.
@@ -56,10 +69,10 @@ PyArrow major version does not provide Python 3.15 support.
 
 ## CLI Quick Start
 
-Install ETLRelay v0.8.0 and inspect the available commands:
+Install ETLRelay v0.9.0 and inspect the available commands:
 
 ```bash
-python -m pip install etlrelay==0.8.0
+python -m pip install etlrelay==0.9.0
 
 etlrelay --help
 etlrelay version
@@ -75,15 +88,16 @@ etlrelay run pipeline.yaml
 The CLI supports configuration validation, pipeline execution, version
 reporting, and command help.
 
-`validate` checks the configuration and constructs the pipeline without
-executing its data-processing run. It does not guarantee that runtime
+`validate` parses the configuration and validates schema and component settings.
+It does not build runtime components, resolve SQL connection environment
+variables, or execute the pipeline. It does not guarantee that runtime
 filesystem operations, database operations, or data transformations
 will succeed.
 
-See the [CLI Reference](https://apaquette.github.io/ETLRelay/0.8.0/cli-reference/)
+See the [CLI Reference](https://apaquette.github.io/ETLRelay/0.9.0/cli-reference/)
 for command syntax, exit codes, and error-output conventions.
 
-See [Getting Started](https://apaquette.github.io/ETLRelay/0.8.0/getting-started/)
+See [Getting Started](https://apaquette.github.io/ETLRelay/0.9.0/getting-started/)
 for a complete local CSV example.
 
 
@@ -110,35 +124,32 @@ Operational logs report pipeline progress, component activity, and resource
 lifecycle events without routinely exposing record contents, SQL parameters,
 or database credentials.
 
-See the [Logging documentation](https://apaquette.github.io/ETLRelay/0.8.0/logging/) for supported levels, examples, Python integration, and security limitations.
+See the [Logging documentation](https://apaquette.github.io/ETLRelay/0.9.0/logging/) for supported levels, examples, Python integration, and security limitations.
 
 ## Documentation
 
-See the [ETLRelay documentation](https://apaquette.github.io/ETLRelay/0.8.0) for usage instructions, examples, and API details.
+Read the [v0.9.0 documentation](https://apaquette.github.io/ETLRelay/0.9.0/) for usage, contracts, and examples.
 
 
 
 ## Project Status
 
-**Current release: `0.8.0` — Security and operational readiness**
+**Current release: `0.9.0` — Feature-complete beta and API review**
 
-ETLRelay v0.8.0 strengthens the security, reliability, and
-release-verification foundations established in previous releases.
+The v1.0 feature boundary is complete: synchronous local CSV/Parquet and SQLite
+pipelines, the three existing processors, YAML configuration, and CLI execution.
+Only correctness, security, compatibility, and release-readiness fixes are
+accepted during beta and release-candidate review.
 
 Highlights include:
 
-- Hardened local path validation and explicit filesystem security
-  limitations.
-- Strengthened configuration validation and SQL connection-reference
-  preflight.
-- Controlled operational logging and CLI error reporting.
-- Deterministic cleanup of active pipeline iterators and owned
-  file/SQL resources.
-- Verified failure, transaction, overwrite, empty-batch, and
-  schema-compatibility contracts.
-- Dependency auditing, distribution-content verification, and
-  clean-environment installed-wheel testing.
-- Compatibility verification for CPython 3.12, 3.13, and 3.14.
+- Explicit tabular protocols and separate mapping-document reading.
+- Reviewed public constructors, schemas, exceptions, and resource ownership.
+- Corrected YAML configuration errors, ambiguous column selection, duplicate
+  rename targets, and Parquet cleanup exception precedence.
+- Verified Python, YAML, and installed-CLI pipelines and executable examples.
+- Independent wheel/sdist installation across the five supported environments.
+- Documented migration steps, limitations, and focused beta feedback criteria.
 
 The existing YAML configuration schema remains version `1`.
 Direct Python composition, supported source/sink interfaces, and
@@ -167,10 +178,10 @@ tests exercise component composition and complete pipeline workflows.
 | `FileSystem`      | Defines the interface for opening binary streams                |
 | `LocalFileSystem` | Provides local filesystem access                                |
 | `PathValidator`   | Enforces local filesystem path containment                      |
-| `Reader`          | Defines the contract for reading data from a binary stream      |
+| `TabularReader`          | Defines the contract for reading data from a binary stream      |
 | `CsvReader`       | Parses CSV data into ETLRelay batches                          |
 | `ParquetReader`   | Parses Parquet data into ETLRelay batches                      |
-| `Writer`          | Defines the contract for serializing batches to a binary stream |
+| `TabularWriter`          | Defines the contract for serializing batches to a binary stream |
 | `CsvWriter`       | Serializes ETLRelay batches as CSV                             |
 | `ParquetWriter`   | Serializes ETLRelay batches as Parquet                         |
 | `FileSource`      | Composes a filesystem and reader to produce batches             |
@@ -185,19 +196,15 @@ tests exercise component composition and complete pipeline workflows.
 | `PipelineBuilder` | Builds runtime pipelines from validated configuration mappings   |
 
 
-### Planned Capabilities
+### v1.0 Scope and Feature Freeze
 
-The following remain possible future work and are not included in the current release scope:
+The intended v1.0 feature set is frozen: synchronous pipelines using local CSV/Parquet files or SQL, the existing built-in processors, YAML configuration, and CLI execution.
 
-- Additional document and tabular formats, including a JSON configuration reader.
-- Additional built-in data transformation processors.
-- Additional runtime integrations if concrete use cases justify their maintenance cost.
+Development during v0.9.0 focuses on correctness, security, compatibility, public API review, testing, documentation, and release readiness.
 
-S3, HDFS, and other remote-storage backends are not part of the current implementation or the planned v1.0.0 scope. Additional storage and platform integrations may be reviewed after v1.0.0 if concrete requirements justify them. No particular backend, implementation, or release date is promised.
+S3, HDFS, additional formats and processors, dynamic plugin loading, scheduling, retries, and distributed execution are deferred. Future consideration does not promise implementation or a release date.
 
-Features will be added when requirements justify them. The project will
-not introduce scheduling, distributed execution, or other orchestration
-infrastructure merely to anticipate future needs.
+See the [v1.0 Feature Scope and Support Policy](https://apaquette.github.io/ETLRelay/0.9.0/development/v1-scope/) for the feature inventory, exact support matrix, operational boundaries, and required readiness work.
 
 
 ## Operational Contracts
@@ -226,9 +233,9 @@ exceptions or application logging.
 
 For details, see:
 
-- [Security](https://apaquette.github.io/ETLRelay/0.8.0/security/)
-- [Logging](https://apaquette.github.io/ETLRelay/0.8.0/logging/)
-- [Pipeline Architecture](https://apaquette.github.io/ETLRelay/0.8.0/architecture/pipeline/)
+- [Security](https://apaquette.github.io/ETLRelay/0.9.0/security/)
+- [Logging](https://apaquette.github.io/ETLRelay/0.9.0/logging/)
+- [Pipeline Architecture](https://apaquette.github.io/ETLRelay/0.9.0/architecture/pipeline/)
 
 
 ## Architecture
@@ -306,7 +313,7 @@ For file-based pipelines, the current implementation supports the local filesyst
 
 ### SQL Sources and Sinks
 
-`SqlSource` and `SqlSink` implement the core source/sink contracts using SQLAlchemy. They are separate from file storage and file-format readers/writers. Query values can be supplied as bound parameters; the sink appends to an existing table using one transaction per non-empty batch. The caller owns the SQLAlchemy engine. SQLite is the reference integration-test backend; see [SQL source and sink](docs/architecture/sql_source_and_sink.md) for identifier handling, empty-data behavior, transaction boundaries, and limitations.
+`SqlSource` and `SqlSink` implement the core source/sink contracts using SQLAlchemy. They are separate from file storage and file-format readers/writers. Query values can be supplied as bound parameters; the sink appends to an existing table using one transaction per non-empty batch. The caller owns the SQLAlchemy engine. SQLite is the reference integration-test backend; see [SQL source and sink](https://apaquette.github.io/ETLRelay/0.9.0/architecture/sql_source_and_sink/) for identifier handling, empty-data behavior, transaction boundaries, and limitations.
 
 ### Declarative YAML Configuration
 
@@ -316,7 +323,7 @@ The configuration lifecycle is `ConfigLoader` → `ConfigValidator` → `Pipelin
 
 For SQL configuration, YAML stores an environment-variable name such as `ETLRELAY_SOURCE_DATABASE_URL`, not the resolved connection URL. Missing/empty variables fail before component factories or source/sink I/O. The `PipelineBuilder` owns the lifecycle of engines created by the catalog's shared `SqlEngineFactory`; callers close the builder after execution. Direct Python `SqlSource`/`SqlSink` engine ownership remains unchanged.
 
-See the [YAML Configuration reference](https://apaquette.github.io/ETLRelay/0.8.0/configuration/) for the versioned schema, examples, supported combinations, and validation errors.
+See the [YAML Configuration reference](https://apaquette.github.io/ETLRelay/0.9.0/configuration/) for the versioned schema, examples, supported combinations, and validation errors.
 
 ### Common Data Representation
 
@@ -326,7 +333,7 @@ Readers convert external data into batches. Processors operate on batches, and w
 
 This provides a common data boundary between file formats and pipeline components.
 
-Polars is a potential transformation tool for future processors; its use is not required by the current core pipeline implementation.
+The frozen feature set uses PyArrow for tabular representation and transformations. Polars is not a runtime dependency.
 
 ### Component Contracts
 
@@ -351,10 +358,10 @@ For file-based operations:
 FileSystem
     Opens binary streams
 
-Reader
+TabularReader
     Converts stream data into batches
 
-Writer
+TabularWriter
     Serializes batches to a stream
 ```
 

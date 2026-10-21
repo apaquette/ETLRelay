@@ -115,6 +115,7 @@ ETLRelay modules use named loggers under the `etlrelay` namespace, such as:
 - `etlrelay.config.loader`
 - `etlrelay.config.pipeline_builder`
 - `etlrelay.config.sql_engine_factory`
+- `etlrelay.writers.parquet`
 
 A standalone Python application can enable logging using the standard library:
 
@@ -210,6 +211,11 @@ If pipeline execution raises an exception, that exception remains primary even w
 If execution otherwise succeeds but iterator cleanup fails, the first cleanup exception propagates after cleanup has been attempted for the remaining closeable iterators.
 
 Successful pipeline completion is not logged when required cleanup fails.
+
+`ParquetWriter` also preserves a serialization/upstream error if footer
+finalization fails. Its warning is `Parquet writer cleanup failed (TYPE).`;
+exception messages are omitted. A finalization-only failure propagates and can
+leave unreadable output. See [stream contracts](architecture/reader_and_writer.md).
 
 SQL sink batch-commit messages are emitted only after the corresponding transaction context has exited successfully. A failed commit must not be reported as successful.
 

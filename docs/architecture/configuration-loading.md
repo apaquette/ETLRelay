@@ -14,7 +14,7 @@ The pipeline executes only when the caller invokes `Pipeline.run()`.
 
 These responsibilities are shared by the direct Python APIs and the
 `etlrelay` CLI. Schema version `1` remains the supported configuration
-format in ETLRelay v0.8.0.
+format in ETLRelay.
 
 ## End-to-end boundary
 
@@ -41,7 +41,7 @@ The configuration document itself has to be read. The no-side-effects guarantee 
 
 ### `KeyValueReader` and `YamlReader`
 
-`KeyValueReader` is a format-independent protocol for reading one mapping-shaped document from a binary stream. It is distinct from the tabular `Reader` protocol, which produces an iterable of ETLRelay `Batch` objects.
+`KeyValueReader` is a format-independent protocol for reading one mapping-shaped document from a binary stream. It is distinct from the tabular `TabularReader` protocol, which produces an iterable of ETLRelay `Batch` objects.
 
 `YamlReader` lives in `etlrelay.readers.yaml`. It uses a safe PyYAML loader, rejects duplicate mapping keys (including duplicates after merge-key flattening), requires one document whose root is a mapping, and requires string keys at the root. It does not know ETLRelay's allowed configuration fields and does not perform application-schema validation. `YamlReader` leaves the supplied stream lifecycle to its caller.
 
@@ -75,7 +75,7 @@ A future document format does not need to be part of the tabular `TabularFileFor
 
 | Boundary | Examples | Error behavior |
 |---|---|---|
-| YAML parsing / shape | Malformed YAML, duplicate mapping keys, multiple documents | PyYAML error or `ValueError` from `YamlReader` for root-shape violations. |
+| YAML parsing / shape | Malformed YAML, duplicate mapping keys, multiple documents | `yaml.YAMLError`, or `YamlDocumentError` (a `ValueError` subclass) for root-shape violations. |
 | Root and component schema | Unsupported version, missing/unknown fields, invalid field types | `ConfigurationError` raised by `ConfigValidator`. |
 | Build and preflight | Unsupported/unregistered types, missing or empty SQL environment variables | `PipelineBuildError`. |
 | Runtime execution | File, query, schema, processor, or sink failures | Underlying runtime exceptions propagate unless a component contract explicitly translates them. |

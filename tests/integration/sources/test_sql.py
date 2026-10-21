@@ -13,9 +13,10 @@ from sqlalchemy import (
     String,
     Table,
     create_engine,
+    event,
 )
 from sqlalchemy.engine import Engine
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.exc import OperationalError, SQLAlchemyError
 
 from etlrelay.sources import SqlSource
 
@@ -72,6 +73,35 @@ def test_read_queries_real_sqlite_records(sqlite_engine: Engine) -> None:
         {"id": 1, "category": "include", "score": 9.5},
         {"id": 2, "category": "include", "score": None},
     ]
+
+
+def test_malformed_sql_returns_connection_to_pool_without_logging_query(
+    sqlite_engine: Engine,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Use actual SQLite syntax failure and observe the connection check-in."""
+    events: list[str] = []
+
+    def checkout(*_args: object) -> None:
+        events.append("checkout")
+
+    def checkin(*_args: object) -> None:
+        events.append("checkin")
+
+    event.listen(sqlite_engine, "checkout", checkout)
+    event.listen(sqlite_engine, "checkin", checkin)
+    try:
+        with caplog.at_level(logging.DEBUG, logger="etlrelay"):
+            with pytest.raises(OperationalError):
+                SqlSource(sqlite_engine, "SELECT FROM SECRET_SQL_PAYLOAD").read()
+        assert events == ["checkout", "checkin"]
+        assert "SECRET_SQL_PAYLOAD" not in caplog.text
+        assert list(SqlSource(sqlite_engine, "SELECT 1 AS id").read())[0].table.to_pylist() == [
+            {"id": 1}
+        ]
+    finally:
+        event.remove(sqlite_engine, "checkout", checkout)
+        event.remove(sqlite_engine, "checkin", checkin)
 
 
 def test_read_returns_no_batches_for_empty_query_result(

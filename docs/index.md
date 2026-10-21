@@ -10,23 +10,18 @@ Source → Processor(s) → Sink
 
 A source produces batches, processors transform them, and a sink consumes the processed output. File workflows keep storage access independent of format-specific reading and writing.
 
-## Current release: 0.8.0
+## v0.9.0 — Feature-complete beta
 
-ETLRelay v0.8.0 focuses on **security, operational reliability, and release readiness**.
+This documentation describes ETLRelay v0.9.0 and its frozen v1.0 feature set.
+Install `etlrelay==0.9.0` and review the migration notes when updating Python APIs.
 
-Building on the YAML configuration and CLI functionality introduced in v0.6.0 and v0.7.0, this release strengthens:
+v0.9.0 freezes local CSV/Parquet and SQLite-based SQL workflows, the existing
+processors, YAML schema version 1, and CLI execution. It completes tabular
+protocol naming and reviews API contracts, failures, and installation.
 
-- Local filesystem path validation and documented security boundaries.
-- YAML configuration validation and SQL connection-reference preflight.
-- Operational logging, CLI error reporting, and sensitive-data disclosure controls.
-- Pipeline iterator cleanup and file/SQL resource ownership.
-- File overwrite behavior, SQL transaction boundaries, empty-batch handling, and schema compatibility.
-- Dependency auditing, built-distribution verification, and clean-environment installed-wheel testing.
-- Compatibility verification across supported Python versions and CI platforms.
-
-The release retains YAML schema version `1` and the existing Python and CLI interfaces.
-
-ETLRelay does not provide a general-purpose security sandbox, database authorization layer, atomic file replacement, or pipeline-wide transactions.
+Start with [Getting Started](getting-started.md),
+[Migration](development/migration-v0.9.0.md), and the
+[release notes](development/release-notes-v0.9.0.md).
 
 ## Current capabilities
 
@@ -45,7 +40,9 @@ ETLRelay includes:
 
 SQLite is the reference SQL integration-test backend. Other SQLAlchemy dialects require appropriate drivers and application-level verification.
 
-ETLRelay supports CPython 3.12, 3.13, and 3.14. The complete test suite runs on Python 3.12, with additional installed-wheel compatibility checks for newer Python versions and selected operating systems.
+ETLRelay supports CPython 3.12, 3.13, and 3.14. The complete test suite runs on Python 3.12, with installed wheel/source-distribution compatibility checks across the declared Python/platform matrix. See the [packaging verification record](development/packaging-verification.md) for verification evidence.
+
+See the [beta review and feedback guide](development/beta-readiness.md) for release evidence and reporting criteria.
 
 ## Documentation
 
@@ -62,7 +59,7 @@ ETLRelay supports CPython 3.12, 3.13, and 3.14. The complete test suite runs on 
 - [Configuration Loading](architecture/configuration-loading.md) — loading, validation, construction, and execution boundaries.
 - [Configuration Validation](architecture/configuration-validation.md) — schema and component validation.
 - [Component Registry](architecture/component-registry.md) — registrations, factories, and component catalog.
-- [Reader and Writer Contracts](architecture/reader_and_writer.md) — stream ownership and format behavior.
+- [TabularReader and TabularWriter Contracts](architecture/reader_and_writer.md) — stream ownership and format behavior.
 - [SQL Source and Sink](architecture/sql_source_and_sink.md) — SQL parameterization, resources, and transactions.
 - [Roadmap](roadmap.md) — released milestones and the remaining v1.0 roadmap.
 
@@ -72,7 +69,7 @@ YAML schema version `1` supports file and SQL sources/sinks, local CSV/Parquet w
 
 The configuration model uses explicit registrations rather than arbitrary dynamic imports or a general-purpose plugin system.
 
-The `validate` command checks configuration and construction without executing the data pipeline. Runtime failures remain possible because successful preflight does not guarantee data compatibility, filesystem availability, or database connectivity.
+The `validate` command parses and validates configuration without constructing runtime components, resolving SQL environment variables, or executing the pipeline. Builder preflight occurs during `run`; neither validation nor preflight guarantees runtime data compatibility, filesystem availability, or database connectivity.
 
 File writes are non-atomic, and SQL sink transactions operate per nonempty batch. ETLRelay does not automatically retry failed operations or roll back earlier persisted output.
 

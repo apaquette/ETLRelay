@@ -1,140 +1,103 @@
 # Getting Started
 
-ETLRelay 0.7.0 supports an installed command-line interface (CLI), versioned YAML configuration, and direct Python composition. This guide starts with installing the CLI and running a YAML pipeline, then explains the configuration format and direct component API.
+This guide covers ETLRelay v0.9.0. CLI commands and YAML schema version 1
+remain unchanged; see the [migration guide](development/migration-v0.9.0.md)
+when updating Python protocol imports from v0.8.0.
 
-## Requirements
+## Install in a clean environment
 
-- Python 3.12 or newer.
-- ETLRelay 0.7.0.
-- A local filesystem directory where the example data and outputs can be stored.
-
-## Install the CLI
-
-Install the released package into the Python environment where you want to run pipelines:
+Use CPython 3.12, 3.13, or 3.14. Create and activate a virtual environment:
 
 ```bash
-python -m pip install etlrelay==0.7.0
+python -m venv .venv
+```
+
+On Linux/macOS, run `source .venv/bin/activate`. On Windows PowerShell, run
+`.venv\Scripts\Activate.ps1`. Run the remaining commands in that environment.
+
+Install the release and inspect its commands:
+
+```bash
+python -m pip install etlrelay==0.9.0
 etlrelay --help
 etlrelay version
 ```
 
-For the full runnable examples, clone the repository and install the package in an environment using the repository's supported Python setup:
+`etlrelay version` reports `etlrelay 0.9.0`. To verify a local release build
+before publication, run `uv build` in the checkout and install its archive in
+the clean environment instead:
 
 ```bash
-git clone https://github.com/apaquette/ETLRelay.git
-cd ETLRelay
-python -m pip install -e .
+python -m pip install /absolute/path/to/ETLRelay/dist/etlrelay-0.9.0-py3-none-any.whl
 ```
 
-The examples are kept under `examples/configuration/` so that their YAML files, preparation script, and runner can be used together. If you are using the published package rather than a checkout, obtain the examples from the v0.7.0 repository tag.
+## Run a self-contained CSV pipeline
 
-## Prepare the demonstration data
+In a writable working directory, save this as `input.csv`:
 
-Run the preparation script from the repository root:
-
-```bash
-python examples/configuration/prepare_demo_data.py
+```csv
+id,amount,state
+1,10,ready
+2,-2,skip
+3,5,ready
 ```
 
-It creates a small CSV input file, a corresponding Parquet input file, and source/target SQLite databases in `examples/configuration/data/`. The target table is deliberately created before the SQL sink runs because `SqlSink` appends to an existing table; it does not create or migrate tables.
-
-The sample input contains `id`, `amount`, and `state`. The YAML processors select `id` and `amount`, keep rows where `amount >= 0`, and rename `id` to `record_id`.
-
-## Run a YAML pipeline
-
-After preparing the demonstration data, run commands from the repository root. The CLI loads and validates the YAML configuration, builds the pipeline with ETLRelay's existing component catalog and `PipelineBuilder`, executes the pipeline, and releases builder-managed resources.
-
-Validate and execute a CSV-to-CSV pipeline:
-
-```bash
-etlrelay validate examples/configuration/csv_to_csv.yaml
-etlrelay run examples/configuration/csv_to_csv.yaml
-```
-
-A successful validation does not execute the pipeline or create the sink output. Run the `run` command to perform the data transformation.
-
-Other examples can be run in the same way. For example:
-
-```bash
-etlrelay validate examples/configuration/csv_to_parquet.yaml
-etlrelay run examples/configuration/csv_to_parquet.yaml
-```
-
-The repository contains nine configuration examples under `examples/configuration/`: file-to-file format pairs, file-to-SQL, SQL-to-file, and SQL-to-SQL. Outputs are written beneath `examples/configuration/data/` according to each configuration's storage settings.
-
-For SQL examples, configure the demo database URLs in the process environment:
-
-```bash
-export ETLRELAY_SOURCE_DATABASE_URL="sqlite:///examples/configuration/data/source.db"
-export ETLRELAY_SINK_DATABASE_URL="sqlite:///examples/configuration/data/sink.db"
-```
-
-Then validate and run a SQL pipeline, for example:
-
-```bash
-etlrelay validate examples/configuration/sql_to_sql.yaml
-etlrelay run examples/configuration/sql_to_sql.yaml
-```
-
-Each SQL configuration references the variable name in its `connection_url_env` field. The YAML file does not contain the resolved URL. These demo URLs are local and contain no credentials; do not put credential-bearing connection URLs or passwords into configuration files. The destination table must exist before the SQL sink runs; the preparation script creates the demonstration tables.
-
-See the [CLI Reference](cli-reference.md) for all commands, exit codes, and error-output conventions.
-
-## Understand the YAML pipeline
-
-A typical file pipeline has four required top-level properties: `version`, `source`, `processors`, and `sink`.
+Save this as `pipeline.yaml` in the same directory:
 
 ```yaml
 version: 1
-
 source:
   type: file
-  path: examples/configuration/data/input.csv
+  path: input.csv
   format: csv
   storage:
     type: local
     base_path: .
-
 processors:
   - type: select_columns
     columns: [id, amount]
   - type: filter_rows
     column: amount
-    operator: ">="
+    operator: ">"
     value: 0
   - type: rename_columns
     mapping:
       id: record_id
-
 sink:
   type: file
-  path: examples/configuration/data/output.csv
+  path: output.csv
   format: csv
   storage:
     type: local
     base_path: .
 ```
 
-The `version` property is the configuration schema version, currently integer `1`; it is independent of the Python package version `0.7.0`. A `processors` list is required, but `processors: []` is valid and passes batches through without transformations.
+Validate, then execute from that directory:
 
-Processor order matters: `select_columns` drops `state`, `filter_rows` removes negative amounts, and `rename_columns` changes the retained `id` field to `record_id`. Formats are explicit; ETLRelay does not infer them from file extensions.
+```bash
+etlrelay validate pipeline.yaml
+etlrelay run pipeline.yaml
+```
 
-## Validation and errors
+`validate` parses and checks the document/schema. It does not build runtime
+components, resolve SQL connection values, or run data processing. Successful
+validation does not prove that input data or output resources will work.
 
-The loader's validation stage checks the configuration structure, required fields, schema version, component names, and property types. Invalid configuration is rejected before source/sink operations and pipeline execution.
+A successful `run` prints `Pipeline completed: pipeline.yaml` and creates:
 
-For example:
+```text
+"record_id","amount"
+1,10
+3,5
+```
 
-- An unknown property such as `sink.destination` is rejected.
-- An unsupported file format is rejected using the format registry's reading/writing capability.
-- A filter operator outside `==`, `!=`, `<`, `<=`, `>`, `>=` is rejected.
-- A missing or empty SQL connection environment variable fails during build-time preflight, before ETL component factories are invoked.
+All four root fields are required. `processors: []` is valid. The integer
+`version: 1` is the configuration schema version, independent of the package
+version. Formats are selected explicitly rather than inferred from extensions.
 
-Schema validation does not prove that the named input file exists, that a selected column is present in the runtime schema, that SQL will succeed, or that the destination table is compatible. These are runtime conditions. See [YAML Configuration](configuration.md) for the full schema and [Configuration Validation Architecture](architecture/configuration-validation.md) for validation boundaries.
+## Compose the equivalent pipeline in Python
 
-## Programmatic composition remains supported
-
-The YAML interface is additive; direct Python construction remains available. This is still supported:
+Save this as `pipeline.py` beside the same `input.csv`:
 
 ```python
 from pathlib import Path
@@ -148,28 +111,67 @@ from etlrelay.sources import FileSource
 from etlrelay.storage import LocalFileSystem
 from etlrelay.writers import CsvWriter
 
-base = Path("data").resolve()
-storage = LocalFileSystem(path_validator=PathValidator(base_path=base))
-pipeline = Pipeline(
-    source=FileSource(path="input.csv", storage=storage, reader=CsvReader()),
-    processors=[
-        SelectColumns(columns=["name", "age"]),
-        RenameColumns(mapping={"name": "customer_name"}),
-        FilterRows(column="age", operator=">=", value=18),
+storage = LocalFileSystem(PathValidator(Path.cwd()))
+Pipeline(
+    FileSource("input.csv", storage, CsvReader()),
+    [
+        SelectColumns(["id", "amount"]),
+        FilterRows("amount", ">", 0),
+        RenameColumns({"id": "record_id"}),
     ],
-    sink=FileSink(path="output.csv", storage=storage, writer=CsvWriter()),
-)
-pipeline.run()
+    FileSink("python-output.csv", storage, CsvWriter()),
+).run()
 ```
 
-For this direct API example, `data/input.csv` must exist and the output is `data/output.csv`. Engine lifecycle for direct `SqlSource`/`SqlSink` components remains caller-owned; the managed engine lifecycle described above applies to configuration-built pipelines using the shared `SqlEngineFactory`.
+Run `python pipeline.py`. `python-output.csv` contains the same records and
+columns as `output.csv`.
 
-## More details
+A pipeline entirely without batches leaves its destination untouched. Opening a
+local output otherwise truncates existing contents; failures may leave partial
+output. SQL sinks append to existing tables using one transaction per nonempty
+batch. Neither path provides pipeline-wide rollback.
 
-- [CLI Reference](cli-reference.md) — commands, exit codes, output conventions, and automation guidance.
-- [YAML Configuration](configuration.md) — versioned schema, component matrix, secret handling, and errors.
-- [Core Concepts](concepts.md) — batches, schema behavior, empty inputs, and synchronous execution.
-- [API Reference](api-reference.md) — public interfaces and classes.
-- [Configuration Loading Architecture](architecture/configuration-loading.md) — reader/loader boundaries.
-- [Component Registry Architecture](architecture/component-registry.md) — registries, factories, and default catalog.
-- [Security](security.md) — path containment and SQL credential handling.
+## Run the repository examples
+
+Obtain the `examples/` directory from the `v0.9.0` release tag.
+A published package should instead use examples from its matching release tag.
+Examples are repository files, not a guaranteed wheel payload.
+
+From a repository root or a working directory containing a copied `examples/`:
+
+```bash
+python examples/copy_csv.py
+python examples/transform_csv.py
+python examples/parquet_pipeline.py
+python examples/sqlite_pipeline.py
+python examples/custom_processor.py
+python examples/configuration/prepare_demo_data.py
+etlrelay run examples/configuration/csv_to_csv.yaml
+```
+
+The preparation script recreates demonstration tables. It is for disposable demo
+resources, not an application migration tool. See the
+[YAML examples instructions](https://github.com/apaquette/ETLRelay/tree/v0.9.0/examples/configuration)
+for all nine configurations, SQL environment setup, expected results, and reset
+behavior.
+
+The SQL examples use local SQLite URLs without credentials. Real SQL components
+reference environment-variable names, not literal URLs in YAML. The destination
+table must already exist. Missing or empty variables fail during `run` build
+preflight; `validate` does not resolve them.
+
+## Troubleshoot the first run
+
+| Symptom | Check |
+| --- | --- |
+| Command is unavailable | Activate the environment where the archive was installed; inspect `etlrelay version`. |
+| Exit 2 | Check command syntax and required arguments with `etlrelay help run`. |
+| Exit 3 | Check YAML shape/schema, supported fields, configuration-file access, and build-time SQL environment references. |
+| Exit 4 | Check input parsing, selected columns/types, filesystem access, existing SQL tables, and cleanup. Earlier output may remain. |
+| Exit 1 | An unexpected internal failure occurred; reproduce with synthetic data and report the version/commit and operation. |
+| A relative path cannot be found | Paths use the process working directory and configured storage base, not the YAML file's directory. |
+| Diagnostics need more context | Run `etlrelay --log-level debug run pipeline.yaml`; logs go to stderr and omit raw runtime exception details. |
+
+See [Configuration](configuration.md), [CLI Reference](cli-reference.md),
+[Logging](logging.md), and [Security](security.md) for precise contracts and
+[Migration to v0.9.0](development/migration-v0.9.0.md) for API changes.

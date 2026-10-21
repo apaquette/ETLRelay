@@ -3,7 +3,7 @@ from io import BytesIO
 import pyarrow as pa
 import pytest
 
-from etlrelay.core import Reader
+from etlrelay.core import TabularReader
 from etlrelay.readers import CsvReader
 
 
@@ -11,7 +11,7 @@ class TestCsvReader:
     def test_reader_meets_protocol(self):
         reader = CsvReader()
 
-        assert isinstance(reader, Reader)
+        assert isinstance(reader, TabularReader)
 
     def test_reader_can_read_valid_csv_data(self):
         csv_content = b"name,age\nAlice,30\nBob,25"
@@ -35,13 +35,15 @@ class TestCsvReader:
 
         assert batches == []
 
-    def test_reader_raises_error_for_malformed_csv(self):
-        stream = BytesIO(b"name,age\nAlice,30,extra\n")
+    @pytest.mark.parametrize("content", [b"", b"name,age\nAlice,30,extra\n"])
+    def test_reader_raises_error_for_malformed_csv(self, content: bytes):
+        stream = BytesIO(content)
 
         reader = CsvReader()
 
         with pytest.raises(pa.ArrowInvalid):
             list(reader.read(stream))
+        assert not stream.closed
 
 
 def test_csv_reader_does_not_close_caller_owned_stream() -> None:

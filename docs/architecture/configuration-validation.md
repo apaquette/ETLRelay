@@ -9,7 +9,7 @@ Validation uses explicit component registrations and component-specific
 validators. It does not use dynamic component discovery, arbitrary Python
 imports, or Python expression evaluation.
 
-ETLRelay v0.8.0 retains the version-1 configuration schema while
+ETLRelay retains the version-1 configuration schema while
 strengthening SQL connection-reference validation and documenting the
 limits of configuration preflight.
 

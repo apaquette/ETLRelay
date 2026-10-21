@@ -2,10 +2,11 @@ import logging
 from collections.abc import Callable, Iterable, Iterator
 from io import BytesIO
 from pathlib import Path
-from typing import Any
+from typing import Any, BinaryIO
 from unittest.mock import Mock
 
 import pyarrow as pa
+import pyarrow.parquet as pq
 import pytest
 
 from etlrelay.core import Batch
@@ -14,7 +15,7 @@ from etlrelay.security import PathValidator
 from etlrelay.sinks import FileSink
 from etlrelay.sources.file import FileSource
 from etlrelay.storage import LocalFileSystem
-from etlrelay.writers import CsvWriter
+from etlrelay.writers import CsvWriter, ParquetWriter
 
 
 def make_batch(value: int) -> Batch:
@@ -928,3 +929,59 @@ def test_schema_failure_preserves_partially_written_file(
     assert "two" not in content
 
     assert "previous content" not in content
+
+
+@pytest.mark.parametrize("file_format", ["csv", "parquet"])
+@pytest.mark.parametrize("failure_batch", [1, 2])
+def test_processor_failure_closes_streams_and_preserves_output_prefix(
+    tmp_path: Path,
+    caplog: pytest.LogCaptureFixture,
+    file_format: str,
+    failure_batch: int,
+) -> None:
+    """Exercise a processor failure before and during real serialization."""
+    input_stream = BytesIO(b"reader fixture")
+    output_path = tmp_path / f"output.{file_format}"
+    output_path.write_bytes(b"previous contents")
+    output_streams: list[BinaryIO] = []
+
+    def open_output(_path: str) -> BinaryIO:
+        stream = output_path.open("wb")
+        output_streams.append(stream)
+        return stream
+
+    storage = Mock()
+    storage.open_read.return_value = input_stream
+    storage.open_write.side_effect = open_output
+    first, second = make_batch(1), make_batch(2)
+    reader = Mock()
+    reader.read.return_value = iter([first, second])
+    failure = RuntimeError("SECRET_PROCESSOR_VALUE")
+    processor = Mock()
+    processor.process.side_effect = [failure] if failure_batch == 1 else [first, failure]
+    writer = CsvWriter() if file_format == "csv" else ParquetWriter()
+    pipeline = Pipeline(
+        FileSource("input", storage, reader),
+        [processor],
+        FileSink(str(output_path), storage, writer),
+    )
+
+    with caplog.at_level(logging.DEBUG, logger="etlrelay"):
+        with pytest.raises(RuntimeError) as caught:
+            pipeline.run()
+
+    assert caught.value is failure
+    assert input_stream.closed
+    assert all(stream.closed for stream in output_streams)
+    assert "SECRET_PROCESSOR_VALUE" not in caplog.text
+    assert "Pipeline execution completed." not in caplog.text
+    if failure_batch == 1:
+        storage.open_write.assert_not_called()
+        assert output_path.read_bytes() == b"previous contents"
+    else:
+        storage.open_write.assert_called_once_with(str(output_path))
+        assert len(output_streams) == 1
+        if file_format == "csv":
+            assert output_path.read_text() == '"value"\n1\n'
+        else:
+            assert pq.read_table(output_path).to_pylist() == [{"value": 1}]

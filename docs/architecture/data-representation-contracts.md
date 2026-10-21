@@ -2,15 +2,15 @@
 
 ## Status and scope
 
-**Implemented in v0.6.0:** `KeyValueReader` and `YamlReader` provide the mapping-shaped configuration-document boundary. The existing `Reader` and `Writer` protocols remain tabular-data contracts in this release.
+The tabular protocols are named `TabularReader` and `TabularWriter`. They read and write ETLRelay batches. `KeyValueReader` remains a separate protocol for reading mapping-shaped documents, with `YamlReader` as the existing implementation.
 
-**Deferred API review:** renaming the tabular protocols to `TabularReader`/`TabularWriter` before `1.0.0`, and deciding whether concrete row-record conversion utilities are justified. This page distinguishes existing behavior from deferred proposals.
+For v1.0, mapping-document writing and conversion between tabular batches and row records are deferred. Neither capability has a demonstrated requirement within the frozen feature set.
 
 ## Three distinct representations
 
 ### Tabular batches
 
-ETLRelay uses `Batch` objects, backed by PyArrow tables, as the common in-memory tabular representation. The current `Reader` protocol reads a binary stream and returns an iterable of batches; `Writer` serializes an iterable of batches to a binary stream.
+ETLRelay uses `Batch` objects, backed by PyArrow tables, as the common in-memory tabular representation. The current `TabularReader` protocol reads a binary stream and returns an iterable of batches; `TabularWriter` serializes an iterable of batches to a binary stream.
 
 ```python
 from collections.abc import Iterable
@@ -19,17 +19,15 @@ from typing import BinaryIO, Protocol
 from etlrelay.core import Batch
 
 
-class Reader(Protocol):
+class TabularReader(Protocol):
     def read(self, stream: BinaryIO) -> Iterable[Batch]:
         ...
 
 
-class Writer(Protocol):
+class TabularWriter(Protocol):
     def write(self, batches: Iterable[Batch], stream: BinaryIO) -> None:
         ...
 ```
-
-These are the current protocol names. The roadmap may rename them to make their tabular role more explicit, but that naming change is not part of v0.6.0.
 
 ### Mapping-shaped documents
 
@@ -37,11 +35,11 @@ These are the current protocol names. The roadmap may rename them to make their 
 
 ```python
 from collections.abc import Mapping
-from typing import BinaryIO, Protocol
+from typing import Any, BinaryIO, Protocol
 
 
 class KeyValueReader(Protocol):
-    def read(self, stream: BinaryIO) -> Mapping[str, object]:
+    def read(self, stream: BinaryIO) -> Mapping[str, Any]:
         ...
 ```
 
@@ -49,7 +47,7 @@ class KeyValueReader(Protocol):
 
 ### Row records
 
-A row record is an in-memory mapping such as `{"id": 1, "name": "Ada"}`. A sequence of such mappings is different from one configuration mapping and from an iterable of `Batch` objects. ETLRelay does not introduce a general conversion framework between these representations in v0.6.0.
+A row record is an in-memory mapping such as `{"id": 1, "name": "Ada"}`. A sequence of such mappings is different from one configuration mapping and from an iterable of `Batch` objects. ETLRelay does not introduce a general conversion framework between these representations in the frozen v1.0 scope.
 
 ## Configuration loading boundary
 
@@ -63,7 +61,7 @@ FileSystem.open_read(path)
 Binary stream
     │
     ▼
-KeyValueReader.read(stream)  ──> one root Mapping[str, object]
+KeyValueReader.read(stream)  ──> one root Mapping[str, Any]
     │
     ▼
 ConfigValidator.validate(mapping)
@@ -79,27 +77,25 @@ The loader must not construct sources, processors, sinks, SQLAlchemy engines, or
 
 ## Format registry boundaries
 
-`TabularFileFormatRegistry` contains reader and writer factories for tabular formats such as CSV and Parquet. It models reading and writing independently, because a format can be read-only or write-only. The v0.6.0 default catalog registers CSV and Parquet readers/writers.
+`TabularFileFormatRegistry` contains reader and writer factories for tabular formats such as CSV and Parquet. It models reading and writing independently, because a format can be read-only or write-only. The default catalog registers CSV and Parquet readers/writers.
 
-`YamlReader` is not a tabular format reader. It implements `KeyValueReader` and does not belong in the tabular registry. A future `JsonReader` could satisfy the same document-reader contract without changing the configuration schema, but JSON support is not included in v0.6.0.
+`YamlReader` is not a tabular format reader. It implements `KeyValueReader` and does not belong in the tabular registry. A future `JsonReader` could satisfy the same document-reader contract without changing the configuration schema, but JSON support is not included in the frozen v1.0 scope.
 
-## Future tabular/record conversion
+## Tabular/record conversion — deferred
 
-Conversion between batches and row mappings may be useful, but it should be implemented only when a concrete use case justifies a stable contract. Before adding such an API, define:
+Tabular-to-records and records-to-tabular conversion are not required for v1.0. No conversion protocol or generic conversion framework is introduced.
+Before revisiting this decision, define a concrete consumer, eager/lazy row
+iteration, schema inference versus explicit schema, column order, missing/extra
+fields, empty input, null and Arrow-specific values, batching, and cleanup.
+Mapping-document parsing does not establish those row-conversion semantics.
 
-- whether conversion preserves input batch boundaries or may combine/split batches;
-- how output schema and data types are supplied or inferred;
-- behavior for empty record sequences and inconsistent record keys;
-- handling of nulls, nested values, unsupported Arrow types, and conversion loss;
-- the record stream type (`list`, iterator, or another explicit contract).
+## Protocol naming and mapping-document writing
 
-Do not force a cross-representation converter to implement `Processor` if the existing processor contract is `Batch -> Batch`. A converter has a different input/output representation and requires an explicit interface if it is ever introduced.
+`TabularReader` and `TabularWriter` explicitly identify the batch-oriented contracts. Concrete format implementations retain their existing names: `CsvReader`, `ParquetReader`, `CsvWriter`, and `ParquetWriter`.
 
-## Pre-v1.0 naming review
+`KeyValueReader` remains separate because one mapping-shaped document is a different representation from tabular batches or an iterable of row records.
 
-The planned API review may rename `Reader` to `TabularReader` and `Writer` to `TabularWriter` before `1.0.0`. That change should update protocol definitions, concrete type annotations, exports, tests, examples, and docs as one focused change. It should not rename `CsvReader`, `ParquetReader`, `CsvWriter`, or `ParquetWriter` solely for symmetry.
-
-A `KeyValueWriter` is not required for configuration loading and should not be added only for symmetry. Add it only when the project has an actual mapping-document serialization use case.
+`KeyValueWriter` is deferred beyond v1.0. Configuration loading requires document reading, and no mapping-document serialization use case currently justifies a writer protocol.
 
 ## Class diagram: tabular data versus mapping-shaped documents
 
@@ -112,11 +108,11 @@ classDiagram
     class Batch {
         +table: pyarrow.Table
     }
-    class Reader {
+    class TabularReader {
         <<protocol>>
         +read(stream) Iterable~Batch~
     }
-    class Writer {
+    class TabularWriter {
         <<protocol>>
         +write(batches, stream) None
     }
@@ -138,13 +134,13 @@ classDiagram
         +validate(config) None
     }
 
-    Reader <|.. CsvReader
-    Reader <|.. ParquetReader
-    Writer <|.. CsvWriter
-    Writer <|.. ParquetWriter
+    TabularReader <|.. CsvReader
+    TabularReader <|.. ParquetReader
+    TabularWriter <|.. CsvWriter
+    TabularWriter <|.. ParquetWriter
     KeyValueReader <|.. YamlReader
     ConfigLoader --> KeyValueReader : reads one document
     ConfigLoader --> ConfigValidator : checks schema
-    Reader ..> Batch : produces
-    Writer ..> Batch : serializes
+    TabularReader ..> Batch : produces
+    TabularWriter ..> Batch : serializes
 ```

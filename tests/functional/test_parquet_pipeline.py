@@ -22,12 +22,20 @@ def make_local_storage(tmp_path: Path) -> LocalFileSystem:
 def test_local_parquet_pipeline_transforms_and_writes_data(
     tmp_path: Path,
 ) -> None:
-    input_table = pa.table(
-        {
-            "name": pa.array(["Alice", "Bob", "Cara"]),
-            "age": pa.array([17, 30, 21], type=pa.int64()),
-            "city": pa.array(["Halifax", "Dublin", "Moncton"]),
-        }
+    input_table = pa.Table.from_pylist(
+        [
+            {"name": "Alice", "age": 17, "city": "Halifax"},
+            {"name": "Bob", "age": 30, "city": "Dublin"},
+            {"name": "Cara", "age": 21, "city": "Moncton"},
+            {"name": "Dana", "age": None, "city": "Halifax"},
+        ],
+        schema=pa.schema(
+            [
+                pa.field("name", pa.string(), nullable=False),
+                pa.field("age", pa.int32(), nullable=True),
+                pa.field("city", pa.string(), nullable=False),
+            ]
+        ),
     )
     pq.write_table(input_table, tmp_path / "input.parquet")
 
@@ -60,8 +68,8 @@ def test_local_parquet_pipeline_transforms_and_writes_data(
 
     expected_schema = pa.schema(
         [
-            pa.field("customer_name", pa.string()),
-            pa.field("age", pa.int64()),
+            pa.field("customer_name", pa.string(), nullable=False),
+            pa.field("age", pa.int32(), nullable=True),
         ]
     )
 

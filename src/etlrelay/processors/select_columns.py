@@ -14,7 +14,7 @@ class SelectColumns:
     The processor returns a new Batch containing only the selected columns.
     Column values, Arrow data types, and nullability are preserved.
 
-    Duplicate requested column names and unknown input columns raise
+    Duplicate requested column names and unknown or ambiguous input columns raise
     ValueError.
 
     Example:
@@ -50,13 +50,17 @@ class SelectColumns:
             specified order.
 
         Raises:
-            ValueError: If any requested column does not exist in the
-                input batch.
+            ValueError: If any requested column is missing or ambiguous in
+                the input batch.
         """
         table = batch.table
         missing = set(self._columns) - set(table.column_names)
 
         if missing:
             raise ValueError(f"Column(s) do not exist: {', '.join(sorted(missing))}")
+
+        ambiguous = [name for name in self._columns if table.schema.get_field_index(name) == -1]
+        if ambiguous:
+            raise ValueError(f"Column(s) are ambiguous: {', '.join(ambiguous)}")
 
         return Batch(table.select(self._columns))

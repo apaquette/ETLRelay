@@ -7,7 +7,7 @@
 It composes two independent components:
 
 * `FileSystem`, which provides access to the resource through a binary stream.
-* `Reader`, which parses the resource and produces an iterable of `Batch` objects.
+* `TabularReader`, which parses the resource and produces an iterable of `Batch` objects.
 
 `FileSource` does not depend on a particular file format. The current implementation combines `LocalFileSystem` with `CsvReader` or `ParquetReader` without changing the source implementation.
 
@@ -23,7 +23,7 @@ classDiagram
     class FileSource {
         -path: str
         -storage: FileSystem
-        -reader: Reader
+        -reader: TabularReader
         +read() Iterable~Batch~
     }
 
@@ -32,7 +32,7 @@ classDiagram
         +open_read(path: str) BinaryIO
     }
 
-    class Reader {
+    class TabularReader {
         <<protocol>>
         +read(stream: BinaryIO) Iterable~Batch~
     }
@@ -57,14 +57,14 @@ classDiagram
 
     Source <|.. FileSource
     FileSystem <|.. LocalFileSystem
-    Reader <|.. CsvReader
-    Reader <|.. ParquetReader
+    TabularReader <|.. CsvReader
+    TabularReader <|.. ParquetReader
 
     FileSource --> FileSystem : uses
-    FileSource --> Reader : uses
+    FileSource --> TabularReader : uses
 
     LocalFileSystem --> PathValidator : validates paths with
-    Reader --> Batch : produces
+    TabularReader --> Batch : produces
 ```
 
 ## Responsibilities
@@ -75,7 +75,7 @@ classDiagram
 
 * Storing the configured resource path.
 * Opening the resource through the supplied `FileSystem`.
-* Passing the resulting binary stream to the supplied `Reader`.
+* Passing the resulting binary stream to the supplied `TabularReader`.
 * Exposing the reader's batches through the `Source` interface.
 * Ensuring the opened stream remains available while batches are being read.
 * Closing the stream when iteration finishes, fails, or is explicitly closed.
@@ -98,9 +98,9 @@ Its implementations open resources for reading and provide binary streams. Stora
 
 `FileSource` depends on the protocol rather than on `LocalFileSystem`.
 
-### Reader
+### TabularReader
 
-`Reader` defines the contract for parsing a binary stream and producing an iterable of ETLRelay `Batch` objects.
+`TabularReader` defines the contract for parsing a binary stream and producing an iterable of ETLRelay `Batch` objects.
 
 Its implementations handle format-specific parsing. The current built-in readers are `CsvReader` and `ParquetReader`.
 
@@ -118,12 +118,12 @@ FileSource
   │      └── LocalFileSystem
   │              └── PathValidator
   │
-  └── Reader
+  └── TabularReader
          ├── CsvReader
          └── ParquetReader
 ```
 
-`FileSource` depends on the `FileSystem` and `Reader` protocols, not their concrete implementations.
+`FileSource` depends on the `FileSystem` and `TabularReader` protocols, not their concrete implementations.
 
 Current file-based combinations use local storage with one of the built-in formats:
 
@@ -132,7 +132,7 @@ LocalFileSystem + CsvReader
 LocalFileSystem + ParquetReader
 ```
 
-Remote storage backends such as S3 and HDFS are not implemented in v0.6.0 and are not part of the planned v1.0.0 scope. Additional storage implementations may be reviewed after v1.0.0 if concrete requirements justify them; no particular backend or release date is promised.
+Remote storage backends such as S3 and HDFS are not implemented in the frozen v1.0 scope and are not part of the planned v1.0.0 scope. Additional storage implementations may be reviewed after v1.0.0 if concrete requirements justify them; no particular backend or release date is promised.
 
 ## Data Flow
 
@@ -148,7 +148,7 @@ FileSystem.open_read(path)
   BinaryIO stream
        │
        ▼
-Reader.read(stream)
+TabularReader.read(stream)
        │
        ▼
 Iterable[Batch]
@@ -166,7 +166,7 @@ The stream must remain open while the reader's iterable is consumed. This is par
 ```python
 from collections.abc import Iterable
 
-from etlrelay.core import Batch, Reader
+from etlrelay.core import Batch, TabularReader
 from etlrelay.storage import FileSystem
 
 
@@ -175,7 +175,7 @@ class FileSource:
         self,
         path: str,
         storage: FileSystem,
-        reader: Reader,
+        reader: TabularReader,
     ) -> None:
         ...
 
@@ -195,7 +195,7 @@ class FileSource:
 | Consume batches | Keeps the opened stream available while the reader's iterable is consumed |
 | Finish or terminate iteration | Closes the opened stream |
 | Supply another storage implementation | Works without modifying `FileSource`, provided it satisfies `FileSystem` and its behavioral contract |
-| Supply another reader implementation | Works without modifying `FileSource`, provided it satisfies `Reader` and its behavioral contract |
+| Supply another reader implementation | Works without modifying `FileSource`, provided it satisfies `TabularReader` and its behavioral contract |
 
 Exceptions are propagated rather than wrapped in a new `FileSource` exception hierarchy.
 
@@ -208,7 +208,7 @@ source iterator on termination. This includes early sink termination and
 failures during processing or writing.
 
 `FileSource` owns the stream it opens, but does not own the injected
-`FileSystem` or `Reader` instances.
+`FileSystem` or `TabularReader` instances.
 
 ## SOLID Considerations
 
@@ -228,14 +228,14 @@ No factory, registry, or plugin framework is required for this behavior.
 
 ### Liskov Substitution Principle
 
-Any implementation satisfying `FileSystem` can be supplied as storage, and any implementation satisfying `Reader` can be supplied as a reader, provided it preserves the documented contracts, including binary-stream behavior, batch iteration, resource lifetime, and exception propagation.
+Any implementation satisfying `FileSystem` can be supplied as storage, and any implementation satisfying `TabularReader` can be supplied as a reader, provided it preserves the documented contracts, including binary-stream behavior, batch iteration, resource lifetime, and exception propagation.
 
 ### Interface Segregation Principle
 
 `FileSource` depends on two small protocols:
 
 * `FileSystem` provides resource access.
-* `Reader` provides format parsing and batch production.
+* `TabularReader` provides format parsing and batch production.
 
 Neither protocol needs unrelated operations such as writing, transformation, or pipeline execution.
 
@@ -249,9 +249,9 @@ This keeps source orchestration independent of local filesystem details and spec
 
 The implementation should remain small:
 
-* Accept a resource path, `FileSystem`, and `Reader`.
+* Accept a resource path, `FileSystem`, and `TabularReader`.
 * Use `FileSystem.open_read()` to obtain the stream.
-* Pass the stream to `Reader.read()`.
+* Pass the stream to `TabularReader.read()`.
 * Expose the resulting batches through the `Source` interface.
 * Keep the stream open for the duration of iteration.
 * Close the stream reliably, including when iteration fails.

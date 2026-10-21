@@ -7,7 +7,7 @@ filesystem abstraction and a reader implementation.
 import logging
 from collections.abc import Iterable
 
-from etlrelay.core import Batch, Reader
+from etlrelay.core import Batch, TabularReader
 from etlrelay.storage import FileSystem
 
 logger = logging.getLogger(__name__)
@@ -24,9 +24,9 @@ class FileSource:
 
     path: str
     storage: FileSystem
-    reader: Reader
+    reader: TabularReader
 
-    def __init__(self, path: str, storage: FileSystem, reader: Reader):
+    def __init__(self, path: str, storage: FileSystem, reader: TabularReader):
         """Initialize the file source.
 
         Args:
@@ -57,7 +57,7 @@ class FileSource:
             An iterable of batches parsed by the configured reader.
         Note:
             FileSource owns the binary stream opened through FileSystem,
-            but does not own the FileSystem or Reader instances.
+            but does not own the FileSystem or TabularReader instances.
 
             When consumed by Pipeline, the source iterator is explicitly
             closed when pipeline execution terminates.
