@@ -79,10 +79,10 @@ class SqlSink:
                 self._validate_columns(column_names, target_table)
                 connection.execute(target_table.insert(), rows)
 
-                logger.debug(
-                    "SQL sink committed batch (%d rows).",
-                    len(rows),
-                )
+            logger.debug(
+                "SQL sink committed batch (%d rows).",
+                len(rows),
+            )
 
     def _reflect_table(self, connection: Connection) -> Table:
         """Reflect the target table's metadata using an active connection.
