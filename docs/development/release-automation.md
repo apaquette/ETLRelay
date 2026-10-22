@@ -33,18 +33,21 @@ Before opening or merging a release pull request:
 3. Confirm the supported Python range and default development interpreter.
 4. Update `CHANGELOG.md` with the actual release changes.
 5. Update the README, documentation homepage, and versioned links.
-6. Run the dependency audit and installed dependency compatibility checks.
-7. Run the full tests, coverage, lint, formatting, type-checking,
+6. Verify that community documentation, including `CONTRIBUTING.md`,
+   `CODE_OF_CONDUCT.md`, `ACCESSIBILITY.md`, and the GitHub issue and
+   pull request templates, is complete and internally consistent.
+7. Run the dependency audit and installed dependency compatibility checks.
+8. Run the full tests, coverage, lint, formatting, type-checking,
    and strict documentation build.
-8. Build a fresh wheel and source distribution.
-9. Validate the built artifacts using Twine and the distribution
-   verification script.
-10. Verify clean-environment installation, CLI behavior, and a
+9. Build a fresh wheel and source distribution.
+10. Validate the built artifacts using Twine and the distribution
+    verification script.
+11. Verify clean-environment installation, CLI behavior, and a
     representative pipeline execution using both built artifacts.
-11. Confirm the complete CI workflow and compatibility matrix pass.
-12. Review the changeset for unintended public API changes,
-    unsupported security claims, or out-of-scope refactoring.
-13. Complete the release checklist before promoting `dev` to `main`.
+12. Confirm the complete CI workflow and compatibility matrix pass.
+13. Review the changeset for unintended public API changes,
+    dependency changes, unsupported security claims, or out-of-scope work.
+14. Complete the release checklist before promoting `dev` to `main`.
 
 A successful editable install does not satisfy the built-artifact
 verification requirement.
@@ -152,13 +155,35 @@ Do not mark the release ready if the strict documentation build or clean-install
 
 ## TestPyPI procedure
 
-1. Merge the release candidate into `dev` and make sure CI passes.
-2. In GitHub Actions, select **Publish to TestPyPI**, select the `dev` branch, and run the workflow manually.
-3. The workflow runs tests, enforces coverage, checks lint/format/types, builds the docs and distributions, then publishes the built distributions to TestPyPI.
-4. A smoke-test job creates a clean environment, installs runtime dependencies from PyPI, installs the ETLRelay package itself from TestPyPI, and checks core imports.
-5. Review the workflow result and package page on TestPyPI before promoting the same version to production.
+TestPyPI provides a staging environment for validating release artifacts
+before publication to production PyPI.
 
-TestPyPI versions are also immutable. If a version was already uploaded to TestPyPI, use a new pre-release version for another publishing attempt, or inspect the existing uploaded artifact instead of trying to overwrite it.
+1. Merge the release candidate into `dev` and confirm CI passes.
+2. In GitHub Actions, select **Publish to TestPyPI**, choose the `dev`
+   branch, and manually run the workflow.
+3. Verify the release candidate passes dependency checks, full tests,
+   coverage, linting, formatting, type checking, and strict documentation
+   validation.
+4. Verify that the wheel and source distribution are built and checked
+   for correct metadata, package contents, and installed-package behavior.
+5. Publish the verified distribution artifacts to TestPyPI using
+   the configured Trusted Publisher.
+6. Install the published package into an isolated environment, with runtime
+   dependencies supplied from PyPI.
+7. Verify package imports, installed version, dependency consistency,
+   CLI availability, YAML validation, and a representative CSV pipeline.
+8. Review the complete workflow results and TestPyPI package page before
+   promoting the release candidate to `main`.
+
+TestPyPI is independent of the production `PYPI_RELEASE_ENABLED` setting.
+Running its workflow does not enable production publication.
+
+TestPyPI versions are immutable. If the target version already exists,
+use an appropriate new prerelease version for another publication attempt
+or inspect the existing published artifacts.
+
+The release candidate must not be considered verified if post-publication
+smoke testing fails.
 
 ## Configure Trusted Publishing
 
@@ -182,6 +207,22 @@ When `PYPI_RELEASE_ENABLED` is exactly `true`, every push to `main` runs `.githu
 - If quality gates or publishing fail, no GitHub release is created.
 
 The CI and release workflows both run checks intentionally: CI blocks unsafe merges, while the release workflow independently verifies the exact code and artifacts it publishes.
+
+Production publication is separate from TestPyPI verification. With
+`PYPI_RELEASE_ENABLED` set to `true`, merging a previously unpublished
+package version into `main` can initiate publication automatically.
+
+The release workflow creates the GitHub tag and release only after
+successful package publication. Do not create the release tag manually
+before this workflow unless performing an explicitly documented recovery.
+
+The GitHub release description is generated by the workflow using
+GitHub's automatic release-note generation. The project changelog
+remains the maintained record of release changes.
+
+Versioned documentation is deployed separately after successful
+package publication, with the new release version becoming the
+documentation site's `latest` alias.
 
 ## Configuration documentation checks
 
@@ -210,21 +251,74 @@ same script before publication. See the
 [packaging verification record](packaging-verification.md) for commands and evidence.
 
 
-## v1.0.0 stable release promotion
+## v1.0.1 documentation-only patch release
 
-The package version is `1.0.0`. The changelog and
-[release notes](release-notes-v1.0.0.md) use the target date 2026-10-21; update both
-if publication moves. The [compatibility policy](../compatibility.md) applies to
-the stable public contract. No Python or YAML migration is required from v0.9.0.
+ETLRelay v1.0.1 is a documentation-only maintenance release that
+introduces community contribution guidelines, a Code of Conduct,
+an accessibility statement, and standardized GitHub issue and
+pull request templates.
 
-Use the existing TestPyPI procedure on `dev`, then promote the reviewed source
-to `main`. The production workflow creates `v1.0.0` after publication and uses
-`docs/development/release-notes-v1.0.0.md` for the GitHub release body. Versioned
-documentation deploys under `1.0.0`; repository content links use `v1.0.0`.
-Do not create the release tag before the workflow or overwrite published files.
+The release preserves the stable public Python interfaces,
+CLI behavior, YAML configuration schema version `1`, dependencies,
+and operational contracts established in v1.0.0.
 
-Complete `RELEASE_CHECKS.md` against the integrated release commit. The
-[readiness record](release-v1.0.0.md) distinguishes prior v0.9.0 support evidence,
-local v1.0.0 checks, required final CI, and publication. External beta feedback
-and an RC cycle are optional; readiness is established through maintainer
-verification. No deployment is implied by a successful local build.
+No Python or YAML migration is required from v1.0.0.
+
+### Release preparation
+
+1. Update `pyproject.toml` to version `1.0.1` and synchronize `uv.lock`.
+2. Add the v1.0.1 entry to `CHANGELOG.md`.
+3. Update current-release references in the README and documentation homepage.
+4. Verify the new Community Standards documents and GitHub templates.
+5. Confirm all versioned documentation links target `1.0.1`,
+   except links intentionally referring to historical releases.
+6. Run the full quality suite, strict documentation build,
+   dependency checks, and distribution verification.
+7. Verify the built wheel and source distribution in separate
+   clean environments outside the repository checkout.
+8. Confirm the complete GitHub Actions compatibility matrix passes.
+
+Documentation-only changes do not exempt the release from the
+existing packaging and compatibility verification requirements.
+
+### TestPyPI and production promotion
+
+Use the existing manually triggered TestPyPI workflow on `dev`
+to verify the release candidate.
+
+Review the successful build, publication, and installed-package
+smoke-test results before opening the release pull request
+from `dev` into `main`.
+
+When production publication is enabled, merging a new package
+version into `main` triggers the existing release workflow.
+
+For v1.0.1, the expected release artifacts are:
+
+- PyPI package: `etlrelay==1.0.1`
+- Git tag: `v1.0.1`
+- GitHub release: `ETLRelay 1.0.1`
+- Versioned documentation: `1.0.1`
+- Documentation alias: `latest` points to `1.0.1`
+
+The production workflow creates the release tag after successful
+package publication. Do not create the tag in advance.
+
+The v1.0.0 release notes and readiness records remain historical
+documentation and must not be rewritten as v1.0.1 release evidence.
+
+### Release verification
+
+Complete `RELEASE_CHECKS.md` against the v1.0.1 release candidate.
+
+After publication, independently confirm:
+
+1. The v1.0.1 wheel and source distribution are available on PyPI.
+2. The published package installs and reports version `1.0.1`.
+3. The GitHub `v1.0.1` release and tag reference the intended commit.
+4. Versioned documentation is accessible under `/ETLRelay/1.0.1/`.
+5. The Community Standards files are present and recognized by GitHub.
+6. The documentation homepage, README, and changelog reflect v1.0.1.
+
+Do not mark publication complete solely because a local build or
+TestPyPI verification succeeded.

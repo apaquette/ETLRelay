@@ -14,7 +14,7 @@ nav:
   - Compatibility Policy: compatibility.md
   - Development:
       - Overview: development.md
-      - v1.0.0 release notes: development/release-notes-v1.0.0.md
+      - v1.0.1 Release Notes: development/release-notes-v1.0.1.md
       - v1.0.0 readiness: development/release-v1.0.0.md
       - Migration to v0.9.0: development/migration-v0.9.0.md
       - v0.9.0 release notes: development/release-notes-v0.9.0.md

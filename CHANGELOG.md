@@ -4,6 +4,42 @@ Notable changes to ETLRelay are documented here.
 
 This project follows the principles of [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and [Semantic Versioning](https://semver.org/).
 
+## [1.0.1] - Unreleased
+
+### Added
+
+- Add `CODE_OF_CONDUCT.md` based on the Contributor Covenant, establishing
+  community participation expectations, private reporting procedures, and
+  enforcement guidelines.
+- Add `CONTRIBUTING.md` documenting the development environment, branch
+  workflow, test-driven development practices, quality checks, architectural
+  guidelines, and pull request requirements.
+- Add `ACCESSIBILITY.md` outlining accessibility considerations for the
+  documentation, command-line interface, and contribution process, including
+  reporting procedures and known limitations.
+- Add GitHub issue templates for bug reports and feature requests, providing
+  structured fields for reproduction steps, environment information,
+  requirements, and compatibility considerations.
+- Add a GitHub pull request template covering change summaries, testing,
+  documentation updates, and compatibility and security considerations.
+
+### Documentation
+
+- Establish consistent community contribution and reporting guidelines
+  across the repository.
+- Document the `dev` development branch and `main` release branch workflow
+  for external contributors.
+- Clarify expectations for reporting security vulnerabilities privately
+  rather than through public GitHub issues.
+- Provide structured guidance for proposing changes while preserving
+  ETLRelay's focus on incremental development and maintainable abstractions.
+
+### Compatibility
+
+- Documentation and repository-maintenance patch release.
+- No runtime functionality, public Python APIs, CLI behavior, YAML
+  configuration schema, or dependency changes.
+- Fully compatible with ETLRelay v1.0.0.
 
 ## [1.0.0] - 2026-10-21
 

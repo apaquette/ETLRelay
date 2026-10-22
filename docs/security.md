@@ -273,7 +273,7 @@ These limitations should be evaluated explicitly when designing applications tha
 
 ## Reporting vulnerabilities
 
-Report suspected vulnerabilities privately using the repository's [Security Policy](https://github.com/apaquette/ETLRelay/blob/v1.0.0/SECURITY.md).
+Report suspected vulnerabilities privately using the repository's [Security Policy](https://github.com/apaquette/ETLRelay/blob/v1.0.1/SECURITY.md).
 
 Do not include real credentials, private datasets, or production records in reports.
 Parquet footer finalization follows primary-error precedence: a processing or
