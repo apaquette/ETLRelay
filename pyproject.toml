@@ -13,7 +13,7 @@ authors = [
     { name = "Alex Paquette" }
 ]
 dependencies = [
-    "pyarrow>=23.0.1,<24",
+    "pyarrow>=23.0.1,<27",
     "pyyaml>=6,<7",
     "sqlalchemy>=2,<3",
     "typer>=0.16,<1"
