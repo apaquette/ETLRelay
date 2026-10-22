@@ -1,0 +1,2358 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="A lightweight, composable Python framework for batch-oriented ETL pipelines.">
+      
+      
+      
+        <link rel="canonical" href="https://apaquette.github.io/ETLRelay/1.0.1/development/release-automation/">
+      
+      
+        <link rel="prev" href="../beta-readiness/">
+      
+      
+        <link rel="next" href="../../roadmap/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Release automation - ETLRelay</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/_mkdocstrings.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    <body dir="ltr">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#ci-and-release-automation" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+      </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="ETLRelay" class="md-header__button md-logo" aria-label="ETLRelay" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            ETLRelay
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Release automation
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="ETLRelay" class="md-nav__button md-logo" aria-label="ETLRelay" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    ETLRelay
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../cli-reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CLI Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Concepts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../configuration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    YAML Configuration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../security/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Security
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../logging/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Logging
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api-reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../compatibility/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Compatibility Policy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_10" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_10" id="__nav_10_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Development
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_10_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_10">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Development
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../release-notes-v1.0.1/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    v1.0.1 Release Notes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../release-v1.0.0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    v1.0.0 readiness
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../migration-v0.9.0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Migration to v0.9.0
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../release-notes-v0.9.0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    v0.9.0 release notes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../v1-scope/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    v1.0 scope
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api-review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API review
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pipeline-coverage/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pipeline coverage
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../failure-matrix/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Failure matrix
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../packaging-verification/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Packaging verification
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../documentation-review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Documentation review
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../release-verification-v0.9.0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    v0.9.0 release verification
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../beta-readiness/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Beta readiness and feedback
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Release automation
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Release automation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#branch-strategy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Branch strategy
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#release-candidate-preparation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Release candidate preparation
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#continuous-integration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Continuous integration
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Continuous integration">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#quality-job" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Quality job
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#installed-artifact-compatibility" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Installed-artifact compatibility
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#verification-limitations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Verification limitations
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#coverage-requirement" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Coverage requirement
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#github-branch-protection" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        GitHub branch protection
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#cli-release-verification-v070-onward" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CLI release verification (v0.7.0 onward)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#testpypi-procedure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        TestPyPI procedure
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#configure-trusted-publishing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Configure Trusted Publishing
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#production-publication-behavior" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Production publication behavior
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#configuration-documentation-checks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Configuration documentation checks
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#manual-release-recovery" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Manual release recovery
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v101-documentation-only-patch-release" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v1.0.1 documentation-only patch release
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="v1.0.1 documentation-only patch release">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#release-preparation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Release preparation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#testpypi-and-production-promotion" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        TestPyPI and production promotion
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#release-verification" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Release verification
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../roadmap/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Roadmap
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_12" >
+        
+          
+          <label class="md-nav__link" for="__nav_12" id="__nav_12_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_12_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_12">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Architecture
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/overview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/pipeline/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_12_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_12_3" id="__nav_12_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_12_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_12_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Configuration
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/configuration-loading/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Loading
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/configuration-validation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Validation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/component-registry/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Component registry
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/data-representation-contracts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data representation contracts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_12_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_12_4" id="__nav_12_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Processors
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_12_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_12_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Processors
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/select_columns_and_rename_columns/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Column selection and renaming
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/filter_rows_processor/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Row filtering
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/file_source/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    File source
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/file_sink/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    File sink
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/sql_source_and_sink/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SQL source and sink
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/local_filesystem/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Local filesystem
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/path_validator/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Path validator
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/reader_and_writer/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reader and writer
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#branch-strategy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Branch strategy
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#release-candidate-preparation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Release candidate preparation
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#continuous-integration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Continuous integration
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Continuous integration">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#quality-job" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Quality job
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#installed-artifact-compatibility" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Installed-artifact compatibility
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#verification-limitations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Verification limitations
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#coverage-requirement" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Coverage requirement
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#github-branch-protection" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        GitHub branch protection
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#cli-release-verification-v070-onward" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CLI release verification (v0.7.0 onward)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#testpypi-procedure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        TestPyPI procedure
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#configure-trusted-publishing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Configure Trusted Publishing
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#production-publication-behavior" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Production publication behavior
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#configuration-documentation-checks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Configuration documentation checks
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#manual-release-recovery" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Manual release recovery
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v101-documentation-only-patch-release" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v1.0.1 documentation-only patch release
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="v1.0.1 documentation-only patch release">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#release-preparation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Release preparation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#testpypi-and-production-promotion" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        TestPyPI and production promotion
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#release-verification" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Release verification
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="ci-and-release-automation">CI and Release Automation<a class="headerlink" href="#ci-and-release-automation" title="Permanent link">&para;</a></h1>
+<p>ETLRelay uses GitHub Actions to verify changes, build and validate
+distributions, publish releases to PyPI, and deploy versioned
+documentation.</p>
+<p>The CI workflow verifies dependency integrity, package metadata,
+distribution contents, installed CLI behavior, and compatibility with
+the supported Python versions and selected operating systems.</p>
+<p>The production release workflow publishes a new version from <code>main</code>
+when publishing is enabled and that exact version has not already
+been released to PyPI.</p>
+<p>ETLRelay retains the existing branch and publication strategy.
+The release-readiness checks verify the built distribution rather than
+relying solely on editable development installations.</p>
+<h2 id="branch-strategy">Branch strategy<a class="headerlink" href="#branch-strategy" title="Permanent link">&para;</a></h2>
+<ul>
+<li><code>dev</code> is the integration branch for active development.</li>
+<li>Work-in-progress changes are developed on feature branches and merged into <code>dev</code> through pull requests, or committed directly to <code>dev</code> if working solo and that is the chosen project practice.</li>
+<li>A release is promoted by opening a pull request from <code>dev</code> into <code>main</code>.</li>
+<li><code>main</code> is the production branch. A push to <code>main</code> triggers the PyPI release workflow when the release gate is enabled.</li>
+<li>The release workflow publishes only when the version in <code>pyproject.toml</code> has not already been published to PyPI. Merging ordinary changes without a version bump therefore does not create a duplicate release.</li>
+</ul>
+<h2 id="release-candidate-preparation">Release candidate preparation<a class="headerlink" href="#release-candidate-preparation" title="Permanent link">&para;</a></h2>
+<p>Before opening or merging a release pull request:</p>
+<ol>
+<li>Set <code>project.version</code> in <code>pyproject.toml</code> to the intended release version.</li>
+<li>Regenerate <code>uv.lock</code> and verify it with <code>uv lock --check</code>.</li>
+<li>Confirm the supported Python range and default development interpreter.</li>
+<li>Update <code>CHANGELOG.md</code> with the actual release changes.</li>
+<li>Update the README, documentation homepage, and versioned links.</li>
+<li>Verify that community documentation, including <code>CONTRIBUTING.md</code>,
+   <code>CODE_OF_CONDUCT.md</code>, <code>ACCESSIBILITY.md</code>, and the GitHub issue and
+   pull request templates, is complete and internally consistent.</li>
+<li>Run the dependency audit and installed dependency compatibility checks.</li>
+<li>Run the full tests, coverage, lint, formatting, type-checking,
+   and strict documentation build.</li>
+<li>Build a fresh wheel and source distribution.</li>
+<li>Validate the built artifacts using Twine and the distribution
+    verification script.</li>
+<li>Verify clean-environment installation, CLI behavior, and a
+    representative pipeline execution using both built artifacts.</li>
+<li>Confirm the complete CI workflow and compatibility matrix pass.</li>
+<li>Review the changeset for unintended public API changes,
+    dependency changes, unsupported security claims, or out-of-scope work.</li>
+<li>Complete the release checklist before promoting <code>dev</code> to <code>main</code>.</li>
+</ol>
+<p>A successful editable install does not satisfy the built-artifact
+verification requirement.</p>
+<p>PyPI versions cannot be overwritten. Release candidates must use an
+appropriate new version when a previously published artifact needs
+to be replaced.</p>
+<h2 id="continuous-integration">Continuous integration<a class="headerlink" href="#continuous-integration" title="Permanent link">&para;</a></h2>
+<p>The primary CI workflow is <code>.github/workflows/ci.yml</code>.</p>
+<h3 id="quality-job">Quality job<a class="headerlink" href="#quality-job" title="Permanent link">&para;</a></h3>
+<p>The primary quality job runs on Ubuntu with Python 3.12.</p>
+<p>It verifies:</p>
+<ol>
+<li>Dependency lockfile consistency using <code>uv lock --check</code>.</li>
+<li>Known dependency vulnerabilities and adverse package statuses using
+   <code>uv audit</code>.</li>
+<li>Installed dependency compatibility using <code>uv pip check</code>.</li>
+<li>The full pytest suite with statement and branch coverage.</li>
+<li>Ruff linting and formatting.</li>
+<li>Pyright static analysis.</li>
+<li>Strict MkDocs documentation builds.</li>
+<li>Wheel and source-distribution construction.</li>
+<li>Distribution metadata using Twine.</li>
+<li>Distribution contents through <code>tests/packaging/check_distributions.py</code>.</li>
+<li>Installed CLI behavior using a wheel installed into an independent
+    environment outside the repository checkout.</li>
+</ol>
+<p>The installed CLI verification includes version/help output, configuration
+validation, local CSV pipeline execution, exit codes, and selected
+sensitive-output regression checks.</p>
+<p>The quality job uploads the verified distribution artifacts for use by
+the compatibility matrix.</p>
+<h3 id="installed-artifact-compatibility">Installed-artifact compatibility<a class="headerlink" href="#installed-artifact-compatibility" title="Permanent link">&para;</a></h3>
+<p>The compatibility jobs download the same wheel and source distribution built by the quality job.
+The sdist is built in an isolated installation environment; the source checkout
+is never installed as a substitute.</p>
+<table>
+<thead>
+<tr>
+<th>Platform</th>
+<th>Python</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Ubuntu</td>
+<td>3.13</td>
+</tr>
+<tr>
+<td>Ubuntu</td>
+<td>3.14</td>
+</tr>
+<tr>
+<td>macOS</td>
+<td>3.12</td>
+</tr>
+<tr>
+<td>Windows</td>
+<td>3.12</td>
+</tr>
+</tbody>
+</table>
+<p>Each compatibility job installs each artifact into a separate clean environment,
+checks dependency consistency and import isolation, and exercises the
+installed CLI and a minimal supported CSV pipeline.</p>
+<p>The full pytest suite runs in the primary quality job rather than
+being duplicated across every operating-system and Python combination.</p>
+<h3 id="verification-limitations">Verification limitations<a class="headerlink" href="#verification-limitations" title="Permanent link">&para;</a></h3>
+<p>The matrix does not test every possible operating-system, CPU
+architecture, Python-version, or database-driver combination.</p>
+<p>A successful dependency audit identifies no currently reported
+vulnerabilities covered by the audit; it does not guarantee the absence
+of undiscovered vulnerabilities.</p>
+<p>Distribution metadata checks confirm expected archive contents and
+declared metadata. Wheel and source-distribution smoke tests independently verify
+that representative runtime functionality works without the
+repository checkout.</p>
+<h2 id="coverage-requirement">Coverage requirement<a class="headerlink" href="#coverage-requirement" title="Permanent link">&para;</a></h2>
+<p>CI runs pytest with line and branch coverage and requires coverage to be strictly greater than 90% (<code>90.1%</code> minimum reported coverage). The build fails if the threshold is not met. The coverage configuration is in <code>pyproject.toml</code>.</p>
+<p><code>pytest-cov</code> must be available in a development dependency group. Ruff and Pyright must also be available in a dependency group installed by CI. If they are only supplied by the local Nix development shell, add them to a CI-only dependency group so GitHub-hosted runners can run the same checks without installing the local Nix shell.</p>
+<h2 id="github-branch-protection">GitHub branch protection<a class="headerlink" href="#github-branch-protection" title="Permanent link">&para;</a></h2>
+<p>In repository settings, protect <code>main</code>:</p>
+<ul>
+<li>Require pull requests before merging.</li>
+<li>Require the <code>CI / quality</code> status check to pass.</li>
+<li>Require branches to be up to date before merging, if preferred.</li>
+<li>Block force pushes and deletion.</li>
+</ul>
+<p>Protect <code>dev</code> from accidental deletion and force pushes as appropriate. If you require pull requests into <code>dev</code>, also require <code>CI / quality</code> there. Configure the GitHub <code>pypi</code> environment to allow deployments from <code>main</code> only. Keep the production publishing job separate from the build job; only the publishing job receives <code>id-token: write</code>.</p>
+<h2 id="cli-release-verification-v070-onward">CLI release verification (v0.7.0 onward)<a class="headerlink" href="#cli-release-verification-v070-onward" title="Permanent link">&para;</a></h2>
+<p>Before promoting a CLI release, verify the command boundary from the built package, not only from a repository checkout:</p>
+<ol>
+<li>Run <code>uv run mkdocs build --strict</code> to catch broken navigation, missing pages, and documentation warnings.</li>
+<li>Run the functional installed-package tests that build and install the wheel in an isolated environment.</li>
+<li>Confirm <code>etlrelay --help</code>, <code>etlrelay help run</code>, and <code>etlrelay version</code> work from outside the repository checkout.</li>
+<li>Validate a supported local CSV configuration, run it through <code>etlrelay run</code>, and inspect the generated output.</li>
+<li>Verify validation does not create output and failures use the documented exit codes without printing sentinel credentials or payload values.</li>
+<li>Run the project test suite, Ruff lint/format checks, Pyright, <code>uv build</code>, and distribution metadata validation.</li>
+</ol>
+<p>Do not mark the release ready if the strict documentation build or clean-install/installed-CLI checks remain unverified. Record any genuine environment-specific limitation explicitly and distinguish it from a product or documentation failure.</p>
+<h2 id="testpypi-procedure">TestPyPI procedure<a class="headerlink" href="#testpypi-procedure" title="Permanent link">&para;</a></h2>
+<p>TestPyPI provides a staging environment for validating release artifacts
+before publication to production PyPI.</p>
+<ol>
+<li>Merge the release candidate into <code>dev</code> and confirm CI passes.</li>
+<li>In GitHub Actions, select <strong>Publish to TestPyPI</strong>, choose the <code>dev</code>
+   branch, and manually run the workflow.</li>
+<li>Verify the release candidate passes dependency checks, full tests,
+   coverage, linting, formatting, type checking, and strict documentation
+   validation.</li>
+<li>Verify that the wheel and source distribution are built and checked
+   for correct metadata, package contents, and installed-package behavior.</li>
+<li>Publish the verified distribution artifacts to TestPyPI using
+   the configured Trusted Publisher.</li>
+<li>Install the published package into an isolated environment, with runtime
+   dependencies supplied from PyPI.</li>
+<li>Verify package imports, installed version, dependency consistency,
+   CLI availability, YAML validation, and a representative CSV pipeline.</li>
+<li>Review the complete workflow results and TestPyPI package page before
+   promoting the release candidate to <code>main</code>.</li>
+</ol>
+<p>TestPyPI is independent of the production <code>PYPI_RELEASE_ENABLED</code> setting.
+Running its workflow does not enable production publication.</p>
+<p>TestPyPI versions are immutable. If the target version already exists,
+use an appropriate new prerelease version for another publication attempt
+or inspect the existing published artifacts.</p>
+<p>The release candidate must not be considered verified if post-publication
+smoke testing fails.</p>
+<h2 id="configure-trusted-publishing">Configure Trusted Publishing<a class="headerlink" href="#configure-trusted-publishing" title="Permanent link">&para;</a></h2>
+<p>Create/configure Trusted Publishers separately on TestPyPI and PyPI. These values must match the repository that actually contains the workflows:</p>
+<table>
+<thead>
+<tr>
+<th>Index</th>
+<th>Workflow file</th>
+<th>GitHub environment</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>TestPyPI</td>
+<td><code>.github/workflows/publish-testpypi.yml</code></td>
+<td><code>testpypi</code></td>
+</tr>
+<tr>
+<td>PyPI</td>
+<td><code>.github/workflows/release-pypi.yml</code></td>
+<td><code>pypi</code></td>
+</tr>
+</tbody>
+</table>
+<p>For each index, configure the repository owner and repository name exactly. Configure the workflow filename and environment name to match the table. If the project has not yet been created on that index, use that index's pending Trusted Publisher flow for the first publication.</p>
+<p>Trusted Publishing uses GitHub's OIDC integration, so do not add a long-lived PyPI API token to GitHub secrets. The publish jobs deliberately have only <code>id-token: write</code>; build and test jobs do not receive it.</p>
+<h2 id="production-publication-behavior">Production publication behavior<a class="headerlink" href="#production-publication-behavior" title="Permanent link">&para;</a></h2>
+<p>When <code>PYPI_RELEASE_ENABLED</code> is exactly <code>true</code>, every push to <code>main</code> runs <code>.github/workflows/release-pypi.yml</code>. It reads the project name/version and checks whether that exact version exists on PyPI.</p>
+<ul>
+<li>If it already exists, publication is skipped. This is expected for ordinary main-branch changes that do not bump the version.</li>
+<li>If it is new, the workflow runs the quality gates, builds the wheel and source distribution, checks the artifacts, publishes them to PyPI, and then creates a matching <code>vX.Y.Z</code> GitHub release/tag.</li>
+<li>If quality gates or publishing fail, no GitHub release is created.</li>
+</ul>
+<p>The CI and release workflows both run checks intentionally: CI blocks unsafe merges, while the release workflow independently verifies the exact code and artifacts it publishes.</p>
+<p>Production publication is separate from TestPyPI verification. With
+<code>PYPI_RELEASE_ENABLED</code> set to <code>true</code>, merging a previously unpublished
+package version into <code>main</code> can initiate publication automatically.</p>
+<p>The release workflow creates the GitHub tag and release only after
+successful package publication. Do not create the release tag manually
+before this workflow unless performing an explicitly documented recovery.</p>
+<p>The GitHub release description is generated by the workflow using
+GitHub's automatic release-note generation. The project changelog
+remains the maintained record of release changes.</p>
+<p>Versioned documentation is deployed separately after successful
+package publication, with the new release version becoming the
+documentation site's <code>latest</code> alias.</p>
+<h2 id="configuration-documentation-checks">Configuration documentation checks<a class="headerlink" href="#configuration-documentation-checks" title="Permanent link">&para;</a></h2>
+<p>For releases that change declarative configuration, include these documentation checks in the release review:</p>
+<ul>
+<li><code>docs/configuration.md</code> must match the implemented schema version, component registrations, validator behavior, and SQL environment preflight.</li>
+<li>Runnable examples must use supported ETLRelay interfaces and remain
+  consistent with the current release. Python configuration examples
+  should use <code>ConfigLoader</code>, <code>create_default_component_catalog()</code>, and
+  <code>PipelineBuilder</code> where appropriate. CLI examples should use the
+  supported <code>etlrelay validate</code> and <code>etlrelay run</code> commands.</li>
+<li>Release verification must include the installed CLI smoke tests,
+  confirming that configuration validation and pipeline execution
+  work from a built distribution outside the repository checkout.</li>
+<li>README, getting-started, API reference, configuration architecture, security, changelog, roadmap, and versioned documentation links must consistently reflect the intended release.</li>
+<li>Run <code>uv run mkdocs build --strict</code> after documentation edits to check navigation, internal links, and generated API references.</li>
+<li>Run the release workflow's clean-environment smoke test against the built wheel and source distribution; do not rely only on imports from the repository checkout.</li>
+</ul>
+<h2 id="manual-release-recovery">Manual release recovery<a class="headerlink" href="#manual-release-recovery" title="Permanent link">&para;</a></h2>
+<p>If publication succeeds but GitHub release creation fails, do not change the published package version. Check whether the <code>vX.Y.Z</code> tag already exists and create the missing GitHub release manually for that same tag/commit. If the PyPI version exists but is wrong, publish a new version; PyPI files cannot be replaced in place.</p>
+<p>The shared compatibility smoke script now defaults to testing both artifacts
+in separate environments. TestPyPI and PyPI verification workflows use this
+same script before publication. See the
+<a href="../packaging-verification/">packaging verification record</a> for commands and evidence.</p>
+<h2 id="v101-documentation-only-patch-release">v1.0.1 documentation-only patch release<a class="headerlink" href="#v101-documentation-only-patch-release" title="Permanent link">&para;</a></h2>
+<p>ETLRelay v1.0.1 is a documentation-only maintenance release that
+introduces community contribution guidelines, a Code of Conduct,
+an accessibility statement, and standardized GitHub issue and
+pull request templates.</p>
+<p>The release preserves the stable public Python interfaces,
+CLI behavior, YAML configuration schema version <code>1</code>, dependencies,
+and operational contracts established in v1.0.0.</p>
+<p>No Python or YAML migration is required from v1.0.0.</p>
+<h3 id="release-preparation">Release preparation<a class="headerlink" href="#release-preparation" title="Permanent link">&para;</a></h3>
+<ol>
+<li>Update <code>pyproject.toml</code> to version <code>1.0.1</code> and synchronize <code>uv.lock</code>.</li>
+<li>Add the v1.0.1 entry to <code>CHANGELOG.md</code>.</li>
+<li>Update current-release references in the README and documentation homepage.</li>
+<li>Verify the new Community Standards documents and GitHub templates.</li>
+<li>Confirm all versioned documentation links target <code>1.0.1</code>,
+   except links intentionally referring to historical releases.</li>
+<li>Run the full quality suite, strict documentation build,
+   dependency checks, and distribution verification.</li>
+<li>Verify the built wheel and source distribution in separate
+   clean environments outside the repository checkout.</li>
+<li>Confirm the complete GitHub Actions compatibility matrix passes.</li>
+</ol>
+<p>Documentation-only changes do not exempt the release from the
+existing packaging and compatibility verification requirements.</p>
+<h3 id="testpypi-and-production-promotion">TestPyPI and production promotion<a class="headerlink" href="#testpypi-and-production-promotion" title="Permanent link">&para;</a></h3>
+<p>Use the existing manually triggered TestPyPI workflow on <code>dev</code>
+to verify the release candidate.</p>
+<p>Review the successful build, publication, and installed-package
+smoke-test results before opening the release pull request
+from <code>dev</code> into <code>main</code>.</p>
+<p>When production publication is enabled, merging a new package
+version into <code>main</code> triggers the existing release workflow.</p>
+<p>For v1.0.1, the expected release artifacts are:</p>
+<ul>
+<li>PyPI package: <code>etlrelay==1.0.1</code></li>
+<li>Git tag: <code>v1.0.1</code></li>
+<li>GitHub release: <code>ETLRelay 1.0.1</code></li>
+<li>Versioned documentation: <code>1.0.1</code></li>
+<li>Documentation alias: <code>latest</code> points to <code>1.0.1</code></li>
+</ul>
+<p>The production workflow creates the release tag after successful
+package publication. Do not create the tag in advance.</p>
+<p>The v1.0.0 release notes and readiness records remain historical
+documentation and must not be rewritten as v1.0.1 release evidence.</p>
+<h3 id="release-verification">Release verification<a class="headerlink" href="#release-verification" title="Permanent link">&para;</a></h3>
+<p>Complete <code>RELEASE_CHECKS.md</code> against the v1.0.1 release candidate.</p>
+<p>After publication, independently confirm:</p>
+<ol>
+<li>The v1.0.1 wheel and source distribution are available on PyPI.</li>
+<li>The published package installs and reports version <code>1.0.1</code>.</li>
+<li>The GitHub <code>v1.0.1</code> release and tag reference the intended commit.</li>
+<li>Versioned documentation is accessible under <code>/ETLRelay/1.0.1/</code>.</li>
+<li>The Community Standards files are present and recognized by GitHub.</li>
+<li>The documentation homepage, README, and changelog reflect v1.0.1.</li>
+</ol>
+<p>Do not mark publication complete solely because a local build or
+TestPyPI verification succeeded.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.sections", "navigation.top", "content.code.copy"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "latest", "provider": "mike"}}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>
