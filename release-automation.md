@@ -6,5 +6,5 @@ wheel and source-distribution verification, TestPyPI rehearsal, production gates
 and versioned documentation deployment.
 
 Use [RELEASE_CHECKS.md](RELEASE_CHECKS.md) for release evidence. The current
-v1.0.0 notes are the finalized [release notes](docs/development/release-notes-v1.0.0.md).
+v1.0.1 notes are the finalized [release notes](docs/development/release-notes-v1.0.1.md).
 Do not publish or reuse a previously published version to apply development fixes.

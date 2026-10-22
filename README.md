@@ -20,25 +20,32 @@ This separation allows file sources and sinks to compose storage and format impl
 
 ETLRelay is being developed incrementally, with test-driven development, explicit component contracts, and a focus on keeping the architecture small.
 
-## v1.0.0 — Stable initial release
+## v1.0.1 — Community Standards and Contribution Guidance
 
-ETLRelay v1.0.0 establishes the stable public contract for synchronous pipelines
-using local CSV/Parquet or SQL, the existing processors, YAML configuration,
-and the CLI. The verified v0.9.0 runtime behavior is retained.
+ETLRelay v1.0.1 is a documentation-only patch release that builds on the
+stable foundation established in v1.0.0.
 
-See [Getting Started](https://apaquette.github.io/ETLRelay/1.0.0/getting-started/),
-the [compatibility policy](https://apaquette.github.io/ETLRelay/1.0.0/compatibility/),
-and [release notes](https://apaquette.github.io/ETLRelay/1.0.0/development/release-notes-v1.0.0/).
-Applications upgrading from v0.9.0 require no Python or YAML migration.
-For older releases, see the
-[v0.9.0 migration guide](https://apaquette.github.io/ETLRelay/1.0.0/development/migration-v0.9.0/).
+This release introduces community contribution guidelines, a Code of Conduct,
+an accessibility statement, and standardized GitHub issue and pull request
+templates.
+
+These additions establish clearer expectations for contributors, improve
+issue reporting, and provide a foundation for community participation as
+ETLRelay continues to develop.
+
+**No runtime functionality, public Python APIs, CLI behavior, YAML configuration
+schema, or dependencies have changed from v1.0.0.**
+
+See [Getting Started](https://apaquette.github.io/ETLRelay/1.0.1/getting-started/),
+the [compatibility policy](https://apaquette.github.io/ETLRelay/1.0.1/compatibility/),
+and the [v1.0.1 release notes](https://apaquette.github.io/ETLRelay/1.0.1/development/release-notes-v1.0.1/).
 
 ## Installation
 
 Install ETLRelay from PyPI:
 
 ```bash
-pip install etlrelay==1.0.0
+pip install etlrelay==1.0.1
 ```
 
 ### Supported Python Versions and Platforms
@@ -94,10 +101,10 @@ variables, or execute the pipeline. It does not guarantee that runtime
 filesystem operations, database operations, or data transformations
 will succeed.
 
-See the [CLI Reference](https://apaquette.github.io/ETLRelay/1.0.0/cli-reference/)
+See the [CLI Reference](https://apaquette.github.io/ETLRelay/1.0.1/cli-reference/)
 for command syntax, exit codes, and error-output conventions.
 
-See [Getting Started](https://apaquette.github.io/ETLRelay/1.0.0/getting-started/)
+See [Getting Started](https://apaquette.github.io/ETLRelay/1.0.1/getting-started/)
 for a complete local CSV example.
 
 
@@ -124,31 +131,43 @@ Operational logs report pipeline progress, component activity, and resource
 lifecycle events without routinely exposing record contents, SQL parameters,
 or database credentials.
 
-See the [Logging documentation](https://apaquette.github.io/ETLRelay/1.0.0/logging/) for supported levels, examples, Python integration, and security limitations.
+See the [Logging documentation](https://apaquette.github.io/ETLRelay/1.0.1/logging/) for supported levels, examples, Python integration, and security limitations.
 
 ## Documentation
 
-Read the [v1.0.0 documentation](https://apaquette.github.io/ETLRelay/1.0.0/) for usage, contracts, and examples.
+Read the [v1.0.1 documentation](https://apaquette.github.io/ETLRelay/1.0.1/)
+for installation instructions, configuration, public API contracts,
+architecture, security considerations, and examples.
+
+For the changes introduced in each release, see the
+[Changelog](CHANGELOG.md).
 
 
 
 ## Project Status
 
-**Current release: `1.0.0` — Stable initial release**
+**Current release: `1.0.1` — Community standards and documentation patch**
+
+ETLRelay v1.0.1 retains the stable functionality and public contracts
+established in v1.0.0.
 
 The supported feature set covers synchronous local CSV/Parquet and SQLite
 pipelines, the three existing processors, YAML schema version `1`, and CLI
 execution. Public Python interfaces and documented behavior follow the
-[compatibility policy](https://apaquette.github.io/ETLRelay/1.0.0/compatibility/).
+[compatibility policy](https://apaquette.github.io/ETLRelay/1.0.1/compatibility/).
 
 The stable release retains the reviewed schema, exception, resource ownership,
 and persistence contracts. Local file writes can be partial; SQL sinks append
 to existing tables using one transaction per nonempty batch. Evaluate the
-[security boundaries](https://apaquette.github.io/ETLRelay/1.0.0/security/) and
+[security boundaries](https://apaquette.github.io/ETLRelay/1.0.1/security/) and
 operational limitations for your deployment.
 
-Future features and integrations will be evaluated through a separate post-v1.0
-roadmap based on concrete end-user workflows and maintenance cost.
+v1.0.1 introduces no changes to these runtime contracts. Instead, it
+improves contributor documentation, community participation guidelines,
+issue reporting, and accessibility guidance.
+
+Future features and integrations will be evaluated through a separate
+post-v1.0 roadmap based on concrete end-user workflows and maintenance cost.
 
 Unit tests validate individual components. Integration and functional
 tests exercise component composition and complete pipeline workflows.
@@ -192,7 +211,7 @@ The v1.0 feature boundary is complete. Maintenance preserves documented behavior
 
 S3, HDFS, additional formats and processors, dynamic plugin loading, scheduling, retries, and distributed execution are deferred. Future consideration does not promise implementation or a release date.
 
-See the [v1.0 Feature Scope and Support Policy](https://apaquette.github.io/ETLRelay/1.0.0/development/v1-scope/) for the feature inventory, exact support matrix, operational boundaries, and required readiness work.
+See the [v1.0 Feature Scope and Support Policy](https://apaquette.github.io/ETLRelay/1.0.1/development/v1-scope/) for the feature inventory, exact support matrix, operational boundaries, and required readiness work.
 
 
 ## Operational Contracts
@@ -221,9 +240,9 @@ exceptions or application logging.
 
 For details, see:
 
-- [Security](https://apaquette.github.io/ETLRelay/1.0.0/security/)
-- [Logging](https://apaquette.github.io/ETLRelay/1.0.0/logging/)
-- [Pipeline Architecture](https://apaquette.github.io/ETLRelay/1.0.0/architecture/pipeline/)
+- [Security](https://apaquette.github.io/ETLRelay/1.0.1/security/)
+- [Logging](https://apaquette.github.io/ETLRelay/1.0.1/logging/)
+- [Pipeline Architecture](https://apaquette.github.io/ETLRelay/1.0.1/architecture/pipeline/)
 
 
 ## Architecture
@@ -301,7 +320,7 @@ For file-based pipelines, the current implementation supports the local filesyst
 
 ### SQL Sources and Sinks
 
-`SqlSource` and `SqlSink` implement the core source/sink contracts using SQLAlchemy. They are separate from file storage and file-format readers/writers. Query values can be supplied as bound parameters; the sink appends to an existing table using one transaction per non-empty batch. The caller owns the SQLAlchemy engine. SQLite is the reference integration-test backend; see [SQL source and sink](https://apaquette.github.io/ETLRelay/1.0.0/architecture/sql_source_and_sink/) for identifier handling, empty-data behavior, transaction boundaries, and limitations.
+`SqlSource` and `SqlSink` implement the core source/sink contracts using SQLAlchemy. They are separate from file storage and file-format readers/writers. Query values can be supplied as bound parameters; the sink appends to an existing table using one transaction per non-empty batch. The caller owns the SQLAlchemy engine. SQLite is the reference integration-test backend; see [SQL source and sink](https://apaquette.github.io/ETLRelay/1.0.1/architecture/sql_source_and_sink/) for identifier handling, empty-data behavior, transaction boundaries, and limitations.
 
 ### Declarative YAML Configuration
 
@@ -311,7 +330,7 @@ The configuration lifecycle is `ConfigLoader` → `ConfigValidator` → `Pipelin
 
 For SQL configuration, YAML stores an environment-variable name such as `ETLRELAY_SOURCE_DATABASE_URL`, not the resolved connection URL. Missing/empty variables fail before component factories or source/sink I/O. The `PipelineBuilder` owns the lifecycle of engines created by the catalog's shared `SqlEngineFactory`; callers close the builder after execution. Direct Python `SqlSource`/`SqlSink` engine ownership remains unchanged.
 
-See the [YAML Configuration reference](https://apaquette.github.io/ETLRelay/1.0.0/configuration/) for the versioned schema, examples, supported combinations, and validation errors.
+See the [YAML Configuration reference](https://apaquette.github.io/ETLRelay/1.0.1/configuration/) for the versioned schema, examples, supported combinations, and validation errors.
 
 ### Common Data Representation
 
@@ -593,6 +612,56 @@ Each implementation unit follows these steps:
 10. Commit the completed change.
 
 The project should remain in a working state throughout development.
+
+## Contributing and Community
+
+Contributions to ETLRelay are welcome, including bug fixes, documentation
+improvements, additional tests, and focused feature proposals.
+
+Development follows a test-driven approach with an emphasis on explicit
+component contracts, maintainability, and incremental improvements.
+
+### Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for information about:
+
+- Setting up the development environment.
+- Working with the `dev` development branch.
+- Running tests, linting, formatting, and static analysis.
+- Following project architecture and coding guidelines.
+- Preparing and submitting pull requests.
+
+Significant features and architectural changes should be discussed
+through a GitHub issue before implementation.
+
+### Reporting Issues and Requesting Features
+
+Bug reports and feature requests can be submitted through
+[GitHub Issues](https://github.com/apaquette/ETLRelay/issues).
+
+The repository provides dedicated issue templates to help contributors
+describe reproducible defects, proposed enhancements, and compatibility
+considerations.
+
+### Code of Conduct
+
+All contributors and community participants are expected to follow
+the project's [Code of Conduct](CODE_OF_CONDUCT.md).
+
+The Code of Conduct establishes expectations for respectful
+participation and procedures for reporting unacceptable behavior.
+
+Security vulnerabilities should not be disclosed through public
+GitHub issues. Follow the private reporting instructions in
+[SECURITY.md](SECURITY.md).
+
+### Accessibility
+
+ETLRelay aims to make its documentation, command-line interface,
+and contribution process accessible.
+
+See [ACCESSIBILITY.md](ACCESSIBILITY.md) for the project's accessibility
+considerations, known limitations, and reporting procedures.
 
 ## License
 

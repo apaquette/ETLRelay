@@ -10,19 +10,44 @@ Source → Processor(s) → Sink
 
 A source produces batches, processors transform them, and a sink consumes the processed output. File workflows keep storage access independent of format-specific reading and writing.
 
-## v1.0.0 — Stable initial release
+## v1.0.1 — Community Standards and Contribution Guidance
 
-This documentation describes ETLRelay v1.0.0 and its supported public contract.
-Install `etlrelay==1.0.0`. The release retains the verified v0.9.0 Python APIs,
-local CSV/Parquet and SQLite workflows, processors, YAML schema version 1,
-and CLI behavior. No code or configuration migration is required from v0.9.0.
+ETLRelay v1.0.1 is a documentation-only patch release that builds on the
+stable public contracts established in v1.0.0.
+
+This release introduces:
+
+- A Code of Conduct establishing community participation expectations
+  and reporting procedures.
+- Contribution guidelines covering development practices, quality
+  requirements, and pull request workflows.
+- An accessibility statement outlining accessibility considerations,
+  known limitations, and feedback procedures.
+- GitHub issue templates for bug reports and feature requests.
+- A pull request template covering testing, documentation, compatibility,
+  and security considerations.
+
+**No runtime functionality, public Python APIs, CLI behavior, YAML configuration
+schema, or dependencies have changed from v1.0.0.**
+
+Install the current release:
+
+```bash
+pip install etlrelay==1.0.1
+```
 
 Start with [Getting Started](getting-started.md), the
-[compatibility policy](compatibility.md), and
-[release notes](development/release-notes-v1.0.0.md).
-For releases before v0.9.0, use the [migration guide](development/migration-v0.9.0.md).
+[compatibility policy](compatibility.md), and the
+[v1.0.1 release notes](development/release-notes-v1.0.1.md).
 
-## Current capabilities
+See the [v1.0.1 release notes](development/release-notes-v1.0.1.md)
+for details about the Community Standards and documentation changes.
+
+Applications upgrading from v1.0.0 require no code or configuration
+migration. For releases before v0.9.0, see the
+[migration guide](development/migration-v0.9.0.md).
+
+## Current Capabilities
 
 ETLRelay includes:
 
@@ -37,11 +62,21 @@ ETLRelay includes:
 - Resource lifecycle management and documented error propagation.
 - Unit, integration, functional, and installed-distribution tests.
 
-SQLite is the reference SQL integration-test backend. Other SQLAlchemy dialects require appropriate drivers and application-level verification.
+SQLite is the reference SQL integration-test backend. Other SQLAlchemy
+dialects require appropriate drivers and application-level verification.
 
-ETLRelay supports CPython 3.12, 3.13, and 3.14. The complete test suite runs on Python 3.12, with installed wheel/source-distribution compatibility checks across the declared Python/platform matrix. See the [packaging verification record](development/packaging-verification.md) for verification evidence.
+ETLRelay supports CPython 3.12, 3.13, and 3.14.
 
-See the [v1.0.0 readiness record](development/release-v1.0.0.md) for verification evidence and release gates.
+The complete test suite runs on Python 3.12, with installed
+wheel/source-distribution compatibility checks across the declared
+Python/platform matrix.
+
+See the [packaging verification record](development/packaging-verification.md)
+for verification evidence.
+
+The [v1.0.0 readiness record](development/release-v1.0.0.md) documents
+the verification and release gates used to establish the initial stable
+public contract.
 
 ## Documentation
 
@@ -49,6 +84,7 @@ See the [v1.0.0 readiness record](development/release-v1.0.0.md) for verificatio
 - [CLI Reference](cli-reference.md) — command usage, validation, execution, and exit codes.
 - [YAML Configuration](configuration.md) — schema version `1`, supported properties, preflight behavior, and limitations.
 - [Core Concepts](concepts.md) — batches, processors, schemas, and file formats.
+- [Compatibility Policy](compatibility.md) — stable public contracts, versioning, and compatibility guarantees.
 - [Security](security.md) — implemented controls, security boundaries, and deferred risks.
 - [Logging](logging.md) — operational events, logging configuration, and error reporting.
 - [API Reference](api-reference.md) — public Python interfaces and implementations.
@@ -60,18 +96,96 @@ See the [v1.0.0 readiness record](development/release-v1.0.0.md) for verificatio
 - [Component Registry](architecture/component-registry.md) — registrations, factories, and component catalog.
 - [TabularReader and TabularWriter Contracts](architecture/reader_and_writer.md) — stream ownership and format behavior.
 - [SQL Source and Sink](architecture/sql_source_and_sink.md) — SQL parameterization, resources, and transactions.
-- [Roadmap](roadmap.md) — released milestones and the remaining v1.0 roadmap.
+- [Roadmap](roadmap.md) — released milestones and future development considerations.
 
-## Scope and limitations
+## Contributing and Community
 
-YAML schema version `1` supports file and SQL sources/sinks, local CSV/Parquet workflows, and the built-in `select_columns`, `rename_columns`, and `filter_rows` processors.
+ETLRelay welcomes contributions that improve reliability, documentation,
+testing, and supported functionality.
 
-The configuration model uses explicit registrations rather than arbitrary dynamic imports or a general-purpose plugin system.
+Development follows test-driven practices, with an emphasis on explicit
+component contracts, maintainability, and incremental improvements.
 
-The `validate` command parses and validates configuration without constructing runtime components, resolving SQL environment variables, or executing the pipeline. Builder preflight occurs during `run`; neither validation nor preflight guarantees runtime data compatibility, filesystem availability, or database connectivity.
+### Contributing
 
-File writes are non-atomic, and SQL sink transactions operate per nonempty batch. ETLRelay does not automatically retry failed operations or roll back earlier persisted output.
+See the
+[Contribution Guidelines](https://github.com/apaquette/ETLRelay/blob/main/CONTRIBUTING.md)
+for instructions on:
 
-S3, HDFS, and other remote-storage integrations remain outside the planned v1.0.0 scope.
+- Setting up the development environment.
+- Working with the `dev` development branch.
+- Running tests and quality checks.
+- Following architecture and coding guidelines.
+- Preparing and submitting pull requests.
 
-Public interfaces follow the [compatibility policy](compatibility.md). Users remain responsible for evaluating deployment security and operational requirements.
+Significant features or architectural changes should be discussed
+through a GitHub issue before implementation.
+
+### Reporting Bugs and Requesting Features
+
+Use [GitHub Issues](https://github.com/apaquette/ETLRelay/issues)
+to report defects or propose enhancements.
+
+The repository provides dedicated templates for:
+
+- **Bug reports** — reproducible failures, expected behavior,
+  environment details, and relevant diagnostic output.
+- **Feature requests** — use cases, proposed behavior, alternatives,
+  and compatibility considerations.
+
+[Create a new issue](https://github.com/apaquette/ETLRelay/issues/new/choose).
+
+### Code of Conduct
+
+All contributors and community participants are expected to follow
+the project's
+[Code of Conduct](https://github.com/apaquette/ETLRelay/blob/main/CODE_OF_CONDUCT.md).
+
+The Code of Conduct establishes expectations for respectful
+participation and provides procedures for reporting unacceptable behavior.
+
+### Security Reporting
+
+Potential security vulnerabilities must not be disclosed through
+public GitHub issues.
+
+Follow the private reporting instructions in the
+[Security Policy](https://github.com/apaquette/ETLRelay/blob/main/SECURITY.md).
+
+### Accessibility
+
+ETLRelay aims to make its documentation, command-line interface,
+and contribution process accessible.
+
+See the
+[Accessibility Statement](https://github.com/apaquette/ETLRelay/blob/main/ACCESSIBILITY.md)
+for accessibility considerations, known limitations, and reporting procedures.
+
+## Scope and Limitations
+
+YAML schema version `1` supports file and SQL sources/sinks, local
+CSV/Parquet workflows, and the built-in `select_columns`,
+`rename_columns`, and `filter_rows` processors.
+
+The configuration model uses explicit registrations rather than
+arbitrary dynamic imports or a general-purpose plugin system.
+
+The `validate` command parses and validates configuration without
+constructing runtime components, resolving SQL environment variables,
+or executing the pipeline.
+
+Builder preflight occurs during `run`; neither validation nor preflight
+guarantees runtime data compatibility, filesystem availability, or
+database connectivity.
+
+File writes are non-atomic, and SQL sink transactions operate per
+nonempty batch. ETLRelay does not automatically retry failed operations
+or roll back earlier persisted output.
+
+S3, HDFS, and other remote-storage integrations are not included in
+the current supported feature set. Their future development remains
+subject to separate roadmap decisions.
+
+Public interfaces follow the [compatibility policy](compatibility.md).
+Users remain responsible for evaluating deployment security and
+operational requirements.
