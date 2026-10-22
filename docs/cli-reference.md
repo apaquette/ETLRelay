@@ -1,6 +1,6 @@
 # Command-Line Interface Reference
 
-This reference describes ETLRelay v1.0.0. See [Getting Started](getting-started.md) for a complete installation and pipeline example.
+This reference describes ETLRelay 1. See [Getting Started](getting-started.md) for a complete installation and pipeline example.
 
 ETLRelay provides a command-line interface (CLI) for validating and executing supported YAML pipeline configurations. Install ETLRelay into the Python environment where you intend to run it, then invoke the `etlrelay` command from a terminal.
 

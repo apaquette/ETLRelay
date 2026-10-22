@@ -1,8 +1,17 @@
 # Development
 
-ETLRelay uses Nix flakes for its development environment, uv for Python dependencies and lockfiles, pytest for tests, Ruff for linting and formatting, Pyright for static typing, MkDocs for documentation, GitHub Actions for CI, and PyPI for distribution.
+ETLRelay uses Nix flakes for its development environment, uv for Python
+dependencies and lockfiles, pytest for tests, Ruff for linting and formatting,
+Pyright for static typing, MkDocs for documentation, GitHub Actions for CI,
+and PyPI for distribution.
 
-Python 3.12 is the default development interpreter. ETLRelay supports CPython 3.12, 3.13, and 3.14.
+Python 3.12 is the default development interpreter. ETLRelay supports
+CPython 3.12, 3.13, and 3.14.
+
+Contributors should review the
+[Contribution Guidelines](https://github.com/apaquette/ETLRelay/blob/main/CONTRIBUTING.md)
+before submitting changes. This page provides the detailed development and
+verification commands referenced by those guidelines.
 
 ## Development environment
 
@@ -200,23 +209,104 @@ Prefer explicit component contracts and small abstractions. Avoid introducing ne
 
 ## Contributing
 
-Base focused pull requests on `dev`. During the feature freeze, changes must
-address correctness, security, compatibility, or release readiness; propose
-other features separately for post-v1.0 review.
+ETLRelay welcomes contributions that improve reliability, security,
+documentation, testing, and supported functionality.
 
-For a defect, include the affected version/commit, expected and observed
-behavior, and a minimal reproduction with synthetic data. Add focused regression
-coverage and update the relevant user guide and source docstrings. Run the test,
-quality, documentation, dependency, and packaging checks above before review.
-Use the private reporting procedure in the repository's `SECURITY.md` for
-suspected vulnerabilities rather than posting sensitive details publicly.
+Development emphasizes test-driven development, explicit component contracts,
+maintainability, and incremental improvements.
+
+The repository provides the following community documentation:
+
+- [Contribution Guidelines](https://github.com/apaquette/ETLRelay/blob/main/CONTRIBUTING.md)
+  — development setup, coding practices, testing, and pull request requirements.
+- [Code of Conduct](https://github.com/apaquette/ETLRelay/blob/main/CODE_OF_CONDUCT.md)
+  — community participation expectations and private reporting procedures.
+- [Accessibility Statement](https://github.com/apaquette/ETLRelay/blob/main/ACCESSIBILITY.md)
+  — accessibility considerations, limitations, and feedback procedures.
+- [Security Policy](https://github.com/apaquette/ETLRelay/blob/main/SECURITY.md)
+  — supported security reporting procedures.
+
+### Development Workflow
+
+The `dev` branch is the integration branch for ongoing development.
+The `main` branch contains verified releases.
+
+Contributors should create feature or fix branches from `dev` and submit
+pull requests targeting `dev`.
+
+Significant features, new abstractions, or architectural changes should
+be discussed through a GitHub issue before implementation.
+
+The v1.0 feature set is stable. New capabilities are evaluated through
+the post-v1.0 roadmap rather than being added automatically to maintenance
+releases.
+
+### Bug Reports and Feature Requests
+
+The repository provides standardized GitHub issue templates for:
+
+- **Bug reports** — reproducible failures, expected and observed behavior,
+  environment information, and relevant diagnostics.
+- **Feature requests** — use cases, proposed behavior, alternatives, and
+  compatibility considerations.
+
+[Create an issue](https://github.com/apaquette/ETLRelay/issues/new/choose).
+
+For defects, include the affected ETLRelay version, Python version,
+operating system, and a minimal reproduction using synthetic data.
+
+Do not include credentials, connection URLs, private datasets, or
+other sensitive information in public reports.
+
+Suspected security vulnerabilities must be reported privately using the
+procedures described in the
+[Security Policy](https://github.com/apaquette/ETLRelay/blob/main/SECURITY.md).
+
+### Pull Requests
+
+Pull requests should:
+
+1. Describe the problem and the implemented solution.
+2. Include focused tests or explain why tests are unnecessary.
+3. Preserve existing public contracts unless an intentional change
+   has been discussed and documented.
+4. Update documentation when behavior, configuration, or interfaces change.
+5. Identify relevant compatibility, dependency, and security implications.
+6. Pass the applicable tests and quality checks before merging.
+
+GitHub provides a pull request template to guide contributors through
+these requirements.
+
+Keep unrelated changes in separate pull requests.
+
+### Executable Documentation
 
 Executable documentation is checked by
 `tests/functional/test_cli_installed.py::test_installed_candidate_runs_documented_examples`.
-It runs the quick-start snippets and repository examples against an installed
-wheel outside the checkout. Update its expected outputs when an intentional
-example change alters behavior. Do not substitute an editable install for this
-check.
+
+This test runs the quick-start snippets and repository examples against an
+installed wheel outside the source checkout.
+
+When an intentional documentation example change alters behavior, update
+the expected outputs and verify the installed-package execution path.
+
+Do not substitute an editable installation for installed-artifact
+verification.
+
+### Accessibility
+
+Contributors should consider accessibility when updating documentation,
+CLI messages, examples, and community resources.
+
+Prefer clear heading structures, descriptive links, text-based
+instructions, and diagnostics that do not rely exclusively on colour
+or visual presentation.
+
+Accessibility issues can be reported through GitHub Issues.
+
+See the
+[Accessibility Statement](https://github.com/apaquette/ETLRelay/blob/main/ACCESSIBILITY.md)
+for additional guidance.
 
 ## Extending through Python protocols
 

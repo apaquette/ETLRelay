@@ -279,9 +279,9 @@ For detailed contracts, see [Pipeline](architecture/pipeline.md), [File Sink](ar
 
 The repository's `examples/configuration/` directory contains nine schema-v1 YAML files for the combinations above, a reusable runner, a data-preparation script, and input setup for local CSV, Parquet, and SQLite. See [Getting Started](getting-started.md) for setup and run commands. The examples use a small schema with `id`, `amount`, and `state` columns; the pipeline selects `id` and `amount`, filters `amount >= 0`, and renames `id` to `record_id`.
 
-- [Example runner](https://github.com/apaquette/ETLRelay/blob/v1.0.0/examples/configuration/run.py)
-- [Prepare example data](https://github.com/apaquette/ETLRelay/blob/v1.0.0/examples/configuration/prepare_demo_data.py)
-- [Configuration examples directory](https://github.com/apaquette/ETLRelay/tree/v1.0.0/examples/configuration)
+- [Example runner](https://github.com/apaquette/ETLRelay/blob/v1.0.1/examples/configuration/run.py)
+- [Prepare example data](https://github.com/apaquette/ETLRelay/blob/v1.0.1/examples/configuration/prepare_demo_data.py)
+- [Configuration examples directory](https://github.com/apaquette/ETLRelay/tree/v1.0.1/examples/configuration)
 
 The examples expect commands to be run from the repository root so relative paths are interpreted consistently. The SQL examples require the environment variables shown below to point at the SQLite demo databases created by `prepare_demo_data.py`:
 

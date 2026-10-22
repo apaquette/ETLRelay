@@ -151,7 +151,7 @@ etlrelay run examples/configuration/csv_to_csv.yaml
 
 The preparation script recreates demonstration tables. It is for disposable demo
 resources, not an application migration tool. See the
-[YAML examples instructions](https://github.com/apaquette/ETLRelay/tree/v1.0.0/examples/configuration)
+[YAML examples instructions](https://github.com/apaquette/ETLRelay/tree/v1.0.1/examples/configuration)
 for all nine configurations, SQL environment setup, expected results, and reset
 behavior.
 
