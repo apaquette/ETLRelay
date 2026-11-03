@@ -40,7 +40,7 @@ explicit CI-tool dependency for standards-aware requirement comparison, not a
 new runtime dependency. Remaining locked package versions are unchanged.
 
 At the packaging-review baseline, metadata declared `0.8.0` and CPython
-`>=3.12,<3.15`; those verification archives did not replace the published files.
+`>=3.12,<3.16`; those verification archives did not replace the published files.
 Beta preparation sets version `0.9.0` without changing the supported Python range.
 See the [final readiness record](beta-readiness.md) for release-build results and
 integrated CI requirements.

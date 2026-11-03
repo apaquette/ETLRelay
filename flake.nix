@@ -26,6 +26,7 @@
               pkgs.python312
               pkgs.python313
               pkgs.python314
+              pkgs.python315
 
               # Development tooling
               pkgs.uv

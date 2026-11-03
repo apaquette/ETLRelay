@@ -70,9 +70,6 @@ CLI operation, YAML validation, and a minimal CSV CLI pipeline.
 Other operating-system and Python-version combinations may work but
 are not independently verified by CI.
 
-Python 3.15 is not currently supported because ETLRelay's pinned
-PyArrow major version does not provide Python 3.15 support.
-
 
 ## CLI Quick Start
 
