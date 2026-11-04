@@ -50,7 +50,7 @@ pip install etlrelay==1.0.1
 
 ### Supported Python Versions and Platforms
 
-ETLRelay supports CPython 3.12, 3.13, and 3.14.
+ETLRelay supports CPython 3.12, 3.13, 3.14 and 3.15.
 
 The following configurations are verified in CI:
 
@@ -59,6 +59,7 @@ The following configurations are verified in CI:
 | Ubuntu | 3.12 | Full test suite, quality checks, and installed wheel/sdist smoke tests |
 | Ubuntu | 3.13 | Installed wheel/sdist smoke tests |
 | Ubuntu | 3.14 | Installed wheel/sdist smoke tests |
+| Ubuntu | 3.15 | Installed wheel/sdist smoke tests |
 | macOS | 3.12 | Installed wheel/sdist smoke tests |
 | Windows | 3.12 | Installed wheel/sdist smoke tests |
 
@@ -69,9 +70,6 @@ CLI operation, YAML validation, and a minimal CSV CLI pipeline.
 
 Other operating-system and Python-version combinations may work but
 are not independently verified by CI.
-
-Python 3.15 is not currently supported because ETLRelay's pinned
-PyArrow major version does not provide Python 3.15 support.
 
 
 ## CLI Quick Start
@@ -387,7 +385,7 @@ nix develop
 The Nix development shell provides:
 
 - Python 3.12 as the default development interpreter.
-- Python 3.13 and 3.14 for compatibility verification.
+- Python 3.13, 3.14, and 3.15 for compatibility verification.
 - uv for Python dependency and environment management.
 - Node.js for Pyright.
 - Ruff, Pyright, Git, and other configured development tools.

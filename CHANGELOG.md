@@ -4,7 +4,7 @@ Notable changes to ETLRelay are documented here.
 
 This project follows the principles of [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and [Semantic Versioning](https://semver.org/).
 
-## [1.0.1] - Unreleased
+## [1.0.1] - 2026-10-22
 
 ### Added
 

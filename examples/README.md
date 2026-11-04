@@ -1,6 +1,6 @@
 # Python examples
 
-Use CPython 3.12–3.14 and an installed ETLRelay archive from the same commit as
+Use CPython 3.12–3.15 and an installed ETLRelay archive from the same commit as
 these examples. Run from a directory containing the copied `examples/` tree;
 imports must resolve to the installed package. See `docs/getting-started.md` for
 candidate installation.

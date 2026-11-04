@@ -10,7 +10,7 @@ etlrelay --help
 etlrelay version
 ```
 
-The package supports CPython 3.12–3.14 (`>=3.12,<3.15`). See [Getting Started](getting-started.md) for installation and a complete local CSV example, and [YAML Configuration](configuration.md) for the supported schema and component properties.
+The package supports CPython 3.12–3.15 (`>=3.12,<3.16`). See [Getting Started](getting-started.md) for installation and a complete local CSV example, and [YAML Configuration](configuration.md) for the supported schema and component properties.
 
 ## General usage
 

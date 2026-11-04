@@ -40,7 +40,7 @@ explicit CI-tool dependency for standards-aware requirement comparison, not a
 new runtime dependency. Remaining locked package versions are unchanged.
 
 At the packaging-review baseline, metadata declared `0.8.0` and CPython
-`>=3.12,<3.15`; those verification archives did not replace the published files.
+`>=3.12,<3.16`; those verification archives did not replace the published files.
 Beta preparation sets version `0.9.0` without changing the supported Python range.
 See the [final readiness record](beta-readiness.md) for release-build results and
 integrated CI requirements.
@@ -65,6 +65,7 @@ completed successfully:
 | Ubuntu / CPython 3.12 | [Quality, full suite, packaging, installed wheel](https://github.com/apaquette/ETLRelay/actions/runs/39635472040/job/119344625828) |
 | Ubuntu / CPython 3.13 | [Installed-wheel smoke](https://github.com/apaquette/ETLRelay/actions/runs/39635472040/job/119345318931) |
 | Ubuntu / CPython 3.14 | [Installed-wheel smoke](https://github.com/apaquette/ETLRelay/actions/runs/39635472040/job/119345318992) |
+| Ubuntu / CPython 3.15 | [Installed-wheel smoke](https://github.com/apaquette/ETLRelay/actions/runs/41742298368/job/126286902567) |
 | macOS / CPython 3.12 | [Installed-wheel smoke](https://github.com/apaquette/ETLRelay/actions/runs/39635472040/job/119345318707) |
 | Windows / CPython 3.12 | [Installed-wheel smoke](https://github.com/apaquette/ETLRelay/actions/runs/39635472040/job/119345318978) |
 
@@ -100,6 +101,7 @@ uv python install 3.12 3.13 3.14
 uv run --no-project --python 3.12 python tests/packaging/smoke_compatibility.py dist
 uv run --no-project --python 3.13 python tests/packaging/smoke_compatibility.py dist
 uv run --no-project --python 3.14 python tests/packaging/smoke_compatibility.py dist
+uv run --no-project --python 3.15 python tests/packaging/smoke_compatibility.py dist
 ```
 
 The default is `--artifact both`; use `--artifact wheel` or `--artifact sdist`
@@ -121,6 +123,7 @@ The working change was verified on Linux x86_64 with uv 0.12.23:
 | CPython 3.12.14 | Passed | Passed |
 | CPython 3.13.16 | Passed | Passed |
 | CPython 3.14.8 | Passed | Passed |
+| CPython 3.15.0rc2 | Passed | Passed |
 
 Additional checks:
 
@@ -158,6 +161,7 @@ All five required jobs passed:
 | Ubuntu / CPython 3.12 | [Quality](https://github.com/apaquette/ETLRelay/actions/runs/39637775631/job/119352913973) |
 | Ubuntu / CPython 3.13 | [Compatibility](https://github.com/apaquette/ETLRelay/actions/runs/39637775631/job/119353646228) |
 | Ubuntu / CPython 3.14 | [Compatibility](https://github.com/apaquette/ETLRelay/actions/runs/39637775631/job/119353646054) |
+| Ubuntu / CPython 3.15 | [Compatibility](https://github.com/apaquette/ETLRelay/actions/runs/41742298368/job/126286902567) |
 | macOS / CPython 3.12 | [Compatibility](https://github.com/apaquette/ETLRelay/actions/runs/39637775631/job/119353646188) |
 | Windows / CPython 3.12 | [Compatibility](https://github.com/apaquette/ETLRelay/actions/runs/39637775631/job/119353646599) |
 

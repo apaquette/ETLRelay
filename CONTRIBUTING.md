@@ -28,7 +28,7 @@ Not every proposed feature will be accepted.
 
 ## Development environment
 
-ETLRelay supports CPython 3.12, 3.13, and 3.14. Python 3.12 is the
+ETLRelay supports CPython 3.12, 3.13, 3.14, and 3.15. Python 3.12 is the
 default development and static-analysis baseline.
 
 The project uses:
