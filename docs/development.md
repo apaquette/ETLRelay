@@ -6,7 +6,7 @@ Pyright for static typing, MkDocs for documentation, GitHub Actions for CI,
 and PyPI for distribution.
 
 Python 3.12 is the default development interpreter. ETLRelay supports
-CPython 3.12, 3.13, and 3.14.
+CPython 3.12, 3.13, 3.14, and 3.15.
 
 Contributors should review the
 [Contribution Guidelines](https://github.com/apaquette/ETLRelay/blob/main/CONTRIBUTING.md)
@@ -21,7 +21,7 @@ Enter the Nix development shell:
 nix develop
 ```
 
-The shell provides Python 3.12, 3.13, and 3.14, along with the configured development tooling. Node.js is provided for Pyright.
+The shell provides Python 3.12, 3.13, 3.14, and 3.15, along with the configured development tooling. Node.js is provided for Pyright.
 
 The repository's `.python-version` selects Python 3.12 by default.
 

@@ -98,6 +98,7 @@ is never installed as a substitute.
 |---|---|
 | Ubuntu | 3.13 |
 | Ubuntu | 3.14 |
+| Ubuntu | 3.15 |
 | macOS | 3.12 |
 | Windows | 3.12 |
 
