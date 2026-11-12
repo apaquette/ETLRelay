@@ -16,16 +16,23 @@ logger = logging.getLogger(__name__)
 
 
 class SqlSource:
-    """Read SQL query results into an Arrow-backed batch.
+    """Read SQL query results into Arrow-backed batches.
 
     The source executes a SQL query using a caller-provided SQLAlchemy engine
-    and converts the results into a single :class:`Batch`. All result rows
-    are materialized in memory before the batch is constructed.
+    and converts the results into PyArrow-backed :class:`Batch` objects.
 
-    An empty result set produces no batches. The source does not own or
-    dispose of the engine supplied by the caller.
+    By default, all query results are materialized and returned as a single
+    batch. When ``batch_size`` is configured, results are consumed incrementally
+    and yielded in batches containing no more than the configured number of rows.
+    The final batch may contain fewer rows.
+
+    An empty result set produces no batches. Result ordering follows the order
+    returned by the database; use an SQL ``ORDER BY`` clause when deterministic
+    ordering is required.
+
+    The source manages the connections and query results it acquires but does
+    not own or dispose of the supplied engine.
     """
-
     def __init__(
         self,
         engine: Engine,
@@ -39,11 +46,17 @@ class SqlSource:
         Args:
             engine: SQLAlchemy engine used to establish database connections.
                 The caller retains responsibility for its lifecycle.
-            query: SQL query to execute. Named bind parameters can be
-                specified using SQLAlchemy's ``:name`` syntax.
-            parameters: Optional mapping of named bind parameters to their
-                values. Values are bound separately from the SQL statement.
-            batch_size: Optional batch size for the resulting batches.
+            query: SQL query to execute. Named bind parameters can be specified
+                using SQLAlchemy's ``:name`` syntax.
+            parameters: Optional mapping of named bind parameters to their values.
+                Values are bound separately from the SQL statement.
+            batch_size: Optional maximum number of rows per batch. When ``None``,
+                the complete result is returned as a single batch. When specified,
+                results are consumed incrementally in batches of this size.
+
+        Raises:
+            ValueError: If ``batch_size`` is not ``None`` or a positive integer.
+                Boolean values are not accepted as integers.
         """
         self._validate_batch_size(batch_size)
 
@@ -54,26 +67,57 @@ class SqlSource:
         self._execution_mode = self._fetch_batch if batch_size is None else self._yield_batch
 
     def read(self) -> Iterator[Batch]:
-        """Execute the query and return its results as batches.
+        """Execute the query and return its results as an iterator of batches.
+
+        When batching is disabled, the query is executed immediately and all
+        result rows are materialized into a single batch. An empty result produces
+        an empty iterator.
+
+        When batching is enabled, a generator is returned. Query execution and
+        result consumption begin when the generator is first iterated. Each
+        iteration produces the next batch, containing no more than the configured
+        batch size. A final partial batch is produced when the remaining number
+        of rows is smaller than the configured batch size.
 
         Returns:
-            An iterable containing one batch if the query returns rows,
-            or an empty iterable if the result set is empty.
+            An iterator of Arrow-backed batches. The iterator contains either
+            zero or one batch when batching is disabled, or zero or more batches
+            when batching is enabled.
 
         Raises:
             ValueError: If the query returns duplicate column names.
-            SQLAlchemyError: If query execution fails.
+            SQLAlchemyError: If establishing the connection or executing the
+                query fails.
+            Exception: Other exceptions raised during result retrieval or Arrow
+                conversion propagate to the caller.
 
         Note:
-            The query result and connection are closed after row retrieval,
-            including when retrieval fails. Arrow conversion occurs after
-            the connection is released and may raise Arrow conversion errors.
-            All rows are materialized in memory; this is not a streaming query.
+            In the default execution mode, the query result and connection are
+            closed before this method returns. In batched mode, they remain open
+            while the generator is being consumed and are closed when iteration
+            completes, an exception occurs, or the generator is closed.
+
+            Consumers that stop iterating before exhaustion should explicitly
+            close the generator to release SQL resources promptly.
+
             The supplied engine remains owned by the caller and is not disposed.
         """
         return self._execution_mode()
 
     def _fetch_batch(self) -> Iterator[Batch]:
+        """Execute the query and materialize the complete result into one batch.
+
+        The query result is fully consumed before the connection is released.
+        If the result contains rows, they are converted into a single
+        Arrow-backed batch. An empty result produces an empty iterator.
+
+        Returns:
+            An iterator containing one batch or no batches.
+
+        Note:
+            The complete query result is materialized in memory. The SQL result
+            and connection are closed before the returned iterator is consumed.
+        """
         with self._execute_query() as result:
             rows = [dict(row) for row in result.mappings()]
             if not rows:
@@ -85,6 +129,24 @@ class SqlSource:
             return iter([batch])
 
     def _yield_batch(self) -> Iterator[Batch]:
+        """Incrementally consume the query result and yield Arrow-backed batches.
+
+        The query is executed using SQLAlchemy's streaming execution option.
+        Result rows are consumed in partitions no larger than the configured
+        batch size, with each partition converted into a separate batch.
+
+        An empty result produces no batches. The final batch may contain fewer
+        rows than the configured batch size.
+
+        Yields:
+            Arrow-backed batches containing no more than the configured number
+            of rows.
+
+        Note:
+            The query result and connection remain open while the generator is
+            being consumed. They are released when iteration completes, an
+            exception occurs, or the generator is closed.
+        """
         with self._execute_query(streaming=True) as result:
             partitions = result.mappings().partitions(self._batch_size)
 
@@ -95,6 +157,31 @@ class SqlSource:
 
     @contextmanager
     def _execute_query(self, streaming: bool = False) -> Generator[CursorResult, None, None]:
+        """Execute the configured SQL query within a managed connection context.
+
+        A connection is acquired from the caller-provided engine and used to
+        execute the configured query and parameters. Result column names are
+        validated before the result is made available.
+
+        When streaming is enabled, SQLAlchemy's ``yield_per`` execution option
+        is configured using the source's batch size before query execution.
+
+        Args:
+            streaming: Whether to configure SQLAlchemy's streaming execution
+                option for the query.
+
+        Yields:
+            The SQLAlchemy cursor result containing the query results.
+
+        Raises:
+            ValueError: If the query returns duplicate column names.
+            SQLAlchemyError: If connection acquisition or query execution fails.
+
+        Note:
+            The result is closed when the context exits, including when result
+            processing raises an exception. The connection is released by its
+            context manager. The engine itself is not disposed.
+        """
         with self._engine.connect() as connection:
             if streaming:
                 connection.execution_options(yield_per=self._batch_size)
@@ -134,20 +221,22 @@ class SqlSource:
             rows: Non-empty list of database rows represented as dictionaries.
 
         Returns:
-            A batch containing a PyArrow table inferred from the row values.
-            Null values are preserved according to PyArrow's type inference.
+            A batch containing a PyArrow table constructed from the supplied rows.
+            PyArrow infers column types from the row values.
         """
         return Batch(table=pa.Table.from_pylist(rows))
 
     @staticmethod
     def _validate_batch_size(batch_size: int | None) -> None:
-        """Validate the batch size parameter.
+        """Validate the optional batch size.
 
         Args:
-            batch_size: The batch size to validate.
+            batch_size: Maximum number of rows per batch. ``None`` disables
+                batching and preserves the default single-batch behaviour.
 
         Raises:
-            ValueError: If the batch size is not a positive integer.
+            ValueError: If ``batch_size`` is not ``None`` or a positive integer.
+                Boolean values are explicitly rejected.
         """
         if batch_size is None or (
             isinstance(batch_size, int) and batch_size > 0 and not isinstance(batch_size, bool)
