@@ -1,12 +1,13 @@
 """SQL-backed data source."""
 
+from contextlib import contextmanager
 import logging
 from collections import Counter
 from collections.abc import Mapping, Sequence, Iterator
 from typing import Any
 
 import pyarrow as pa
-from sqlalchemy import text
+from sqlalchemy import text, CursorResult
 from sqlalchemy.engine import Connection, Engine
 
 from etlrelay.core import Batch
@@ -50,6 +51,7 @@ class SqlSource:
         self._query = query
         self._parameters = parameters
         self._batch_size = batch_size
+        self._execution_mode = self._fetch_batch if batch_size is None else self._yield_batch
 
     def read(self) -> Iterator[Batch]:
         """Execute the query and return its results as batches.
@@ -69,45 +71,41 @@ class SqlSource:
             All rows are materialized in memory; this is not a streaming query.
             The supplied engine remains owned by the caller and is not disposed.
         """
-        if self._batch_size is not None:
-            return self._yield_batch()
-        return self._fetch_batch()
+        return self._execution_mode()
     
 
     def _fetch_batch(self) -> Iterator[Batch]:
+        with self._execute_query() as result:
+            rows = [dict(row) for row in result.mappings()]
+            if not rows:
+                logger.debug("SQL source read completed (0 rows).")
+                return iter([])
+
+            batch = self._rows_to_batch(rows)
+            logger.debug("SQL source read completed (%d rows).", len(rows))
+            return iter([batch])
+
+    def _yield_batch(self) -> Iterator[Batch]:
+        with self._execute_query(streaming=True) as result:
+            partitions = result.mappings().partitions(self._batch_size)
+
+            for partition in partitions:
+                rows = [dict(row) for row in partition]
+                batch = self._rows_to_batch(rows)
+                yield batch
+    
+    @contextmanager
+    def _execute_query(self, streaming: bool = False) -> Iterator[CursorResult]:
         with self._engine.connect() as connection:
+            if streaming:
+                connection.execution_options(yield_per=self._batch_size)
             result = connection.execute(
                 text(self._query),
                 self._parameters,
             )
             try:
                 self._validate_column_names(list(result.keys()))
-                rows = [dict(row) for row in result.mappings()]
-                if not rows:
-                    logger.debug("SQL source read completed (0 rows).")
-                    return iter([])
-                
-                batch = self._rows_to_batch(iter(rows))
-                logger.debug("SQL source read completed (%d rows).", len(rows))
-                return iter([batch])
-            finally:
-                result.close()
-
-    def _yield_batch(self) -> Iterator[Batch]:
-        with self._engine.connect() as connection:
-            connection.execution_options(yield_per=self._batch_size)
-            result = connection.execute(
-                text(self._query),
-                self._parameters
-            )
-            try:
-                self._validate_column_names(list(result.keys()))
-                partitions = result.mappings().partitions(self._batch_size)
-
-                for partition in partitions:
-                    rows = [dict(row) for row in partition]
-                    batch = self._rows_to_batch(iter(rows))
-                    yield batch
+                yield result
             finally:
                 result.close()
 
@@ -131,7 +129,7 @@ class SqlSource:
             raise ValueError(f"SQL query returned duplicate column names: {duplicates}")
 
     @staticmethod
-    def _rows_to_batch(rows: Iterator[dict[str, Any]]) -> Batch:
+    def _rows_to_batch(rows: list[dict[str, Any]]) -> Batch:
         """Convert materialized SQL rows into an Arrow-backed batch.
 
         Args:
