@@ -13,6 +13,7 @@ from sqlalchemy import (
     String,
     Table,
     create_engine,
+    text,
     event,
 )
 from sqlalchemy.engine import Engine
@@ -196,3 +197,57 @@ def test_read_failure_does_not_log_query_or_parameters(
     assert messages == []
     assert secret not in caplog.text
     assert "missing_table" not in caplog.text
+
+def test_sqlalchemy_partitions_results_in_row_order() -> None:
+    """Ensure SQLAlchemy result partitions preserve row order and batch sizes."""
+    engine = create_engine("sqlite+pysqlite:///:memory:")
+
+    rows = [
+        {"id": 1, "name": "Alice"},
+        {"id": 2, "name": "Bob"},
+        {"id": 3, "name": "Charlie"},
+        {"id": 4, "name": "David"},
+        {"id": 5, "name": "Eve"},
+    ]
+
+    try:
+        with engine.begin() as connection:
+            connection.execute(
+                text(
+                    """
+                    CREATE TABLE customers (
+                        id INTEGER PRIMARY KEY,
+                        name TEXT NOT NULL
+                    )
+                    """
+                )
+            )
+
+            connection.execute(
+                text(
+                    """
+                    INSERT INTO customers (id, name)
+                    VALUES (:id, :name)
+                    """
+                ),
+                rows,
+            )
+
+        source = SqlSource(
+            engine,
+            "SELECT id, name FROM customers ORDER BY id",
+            batch_size=2,
+        )
+
+        batches = list(source.read())
+
+        assert [batch.table.num_rows for batch in batches] == [2, 2, 1]
+
+        assert [
+            row
+            for batch in batches
+            for row in batch.table.to_pylist()
+        ] == rows
+
+    finally:
+        engine.dispose()

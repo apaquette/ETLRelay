@@ -285,6 +285,10 @@ class TestSqlSourceBatch:
         # Verify SQLAlchemy configuration.
         connection.execution_options.assert_called_once_with(yield_per=batch_size)
         connection.execute.assert_called_once()
+        executed_statement, executed_parameters = connection.execute.call_args.args
+
+        assert str(executed_statement) == query
+        assert executed_parameters == parameters
         result.mappings.assert_called_once_with()
         mapping_result.partitions.assert_called_once_with(batch_size)
 
@@ -298,7 +302,7 @@ class TestSqlSourceBatch:
         streaming_result_factory,
     ) -> None:
         """Ensure the final batch contains the remaining rows."""
-        engine, connection, _ = sqlalchemy_mocks
+        engine, connection, connection_context = sqlalchemy_mocks
 
         batch_size = 2
 
@@ -343,6 +347,16 @@ class TestSqlSourceBatch:
 
         mapping_result.partitions.assert_called_once_with(batch_size)
         result.close.assert_called_once_with()
+
+        assert [
+            row
+            for batch in batches
+            for row in batch.table.to_pylist()
+        ] == rows
+
+        result.close.assert_called_once_with()
+        connection_context.__exit__.assert_called_once()
+        engine.dispose.assert_not_called()
 
     def test_returns_no_batches_for_empty_result(
         self,
@@ -438,10 +452,10 @@ class TestSqlSourceBatch:
         sqlalchemy_mocks,
         streaming_result_factory,
     ):
+        """Ensure a smaller result produces one batch and releases SQL resources."""
         engine, connection, connection_context = sqlalchemy_mocks
 
         batch_size = 10
-
         rows = [
             {"id": 1, "name": "Alice"},
             {"id": 2, "name": "Bob"},
@@ -449,7 +463,7 @@ class TestSqlSourceBatch:
             {"id": 4, "name": "David"},
         ]
 
-        result, _, consumed_partitions = streaming_result_factory(
+        result, mapping_result, consumed_partitions = streaming_result_factory(
             ["id", "name"],
             [rows],
         )
@@ -462,22 +476,25 @@ class TestSqlSourceBatch:
             batch_size=batch_size,
         )
 
-        batches = source.read()
+        batches = list(source.read())
 
-        first_batch = next(batches)
-
-        assert first_batch.table.num_rows == len(rows)
+        assert len(batches) == 1
+        assert batches[0].table.to_pylist() == rows
         assert consumed_partitions == [0]
+
+        mapping_result.partitions.assert_called_once_with(batch_size)
+        result.close.assert_called_once_with()
+        connection_context.__exit__.assert_called_once()
 
     def test_result_with_exact_configured_batch_size(
         self,
         sqlalchemy_mocks,
         streaming_result_factory,
     ):
+        """Ensure an exact-size result produces one batch and releases SQL resources."""
         engine, connection, connection_context = sqlalchemy_mocks
 
         batch_size = 4
-
         rows = [
             {"id": 1, "name": "Alice"},
             {"id": 2, "name": "Bob"},
@@ -485,7 +502,7 @@ class TestSqlSourceBatch:
             {"id": 4, "name": "David"},
         ]
 
-        result, _, consumed_partitions = streaming_result_factory(
+        result, mapping_result, consumed_partitions = streaming_result_factory(
             ["id", "name"],
             [rows],
         )
@@ -498,12 +515,15 @@ class TestSqlSourceBatch:
             batch_size=batch_size,
         )
 
-        batches = source.read()
+        batches = list(source.read())
 
-        first_batch = next(batches)
-
-        assert first_batch.table.num_rows == len(rows)
+        assert len(batches) == 1
+        assert batches[0].table.to_pylist() == rows
         assert consumed_partitions == [0]
+
+        mapping_result.partitions.assert_called_once_with(batch_size)
+        result.close.assert_called_once_with()
+        connection_context.__exit__.assert_called_once()
 
     def test_result_with_partial_final_batch(
         self,
@@ -541,3 +561,176 @@ class TestSqlSourceBatch:
 
         assert first_batch.table.num_rows == 3
         assert second_batch.table.num_rows == 1
+    
+    def test_streaming_query_execution_failure_closes_connection(
+        self,
+        sqlalchemy_mocks,
+    ) -> None:
+        """Ensure a query execution failure releases the connection."""
+        engine, connection, connection_context = sqlalchemy_mocks
+
+        failure = RuntimeError("query execution failed")
+        connection.execute.side_effect = failure
+
+        source = SqlSource(
+            engine,
+            "SELECT id FROM customers",
+            batch_size=2,
+        )
+
+        batches = source.read()
+
+        with pytest.raises(RuntimeError) as caught:
+            next(batches)
+
+        assert caught.value is failure
+        connection.execution_options.assert_called_once_with(yield_per=2)
+        connection.execute.assert_called_once()
+        connection_context.__exit__.assert_called_once()
+        assert connection_context.__exit__.call_args.args[0] is RuntimeError
+        engine.dispose.assert_not_called()
+    
+    def test_partition_failure_after_first_batch_closes_sql_resources(
+        self,
+        sqlalchemy_mocks,
+        streaming_result_factory,
+    ) -> None:
+        """Ensure a partition iteration failure releases SQL resources."""
+        engine, connection, connection_context = sqlalchemy_mocks
+
+        batch_size = 2
+        failure = RuntimeError("partition iteration failed")
+
+        result, mapping_result, _ = streaming_result_factory(
+            ["id"],
+            [],
+        )
+
+        def failing_partitions():
+            yield [{"id": 1}, {"id": 2}]
+            raise failure
+
+        mapping_result.partitions.return_value = failing_partitions()
+        connection.execute.return_value = result
+
+        source = SqlSource(
+            engine,
+            "SELECT id FROM customers",
+            batch_size=batch_size,
+        )
+
+        batches = source.read()
+
+        first_batch = next(batches)
+
+        assert first_batch.table.to_pylist() == [
+            {"id": 1},
+            {"id": 2},
+        ]
+
+        # Resources must remain open while the generator is suspended.
+        result.close.assert_not_called()
+        connection_context.__exit__.assert_not_called()
+
+        with pytest.raises(RuntimeError) as caught:
+            next(batches)
+
+        assert caught.value is failure
+        result.close.assert_called_once_with()
+        connection_context.__exit__.assert_called_once()
+        assert connection_context.__exit__.call_args.args[0] is RuntimeError
+        engine.dispose.assert_not_called()
+    
+    def test_streaming_arrow_conversion_failure_closes_sql_resources(
+        self,
+        sqlalchemy_mocks,
+        streaming_result_factory,
+    ) -> None:
+        """Ensure an Arrow conversion failure releases streaming SQL resources."""
+        engine, connection, connection_context = sqlalchemy_mocks
+
+        batch_size = 2
+        failure = pa.ArrowInvalid("unrepresentable SQL value")
+
+        result, _, _ = streaming_result_factory(
+            ["id"],
+            [
+                [{"id": 1}],
+                [{"id": 2}],
+            ],
+        )
+
+        connection.execute.return_value = result
+
+        source = SqlSource(
+            engine,
+            "SELECT id FROM customers",
+            batch_size=batch_size,
+        )
+
+        original_conversion = source._rows_to_batch
+        conversion_count = 0
+
+        def convert_rows(rows):
+            nonlocal conversion_count
+            conversion_count += 1
+
+            if conversion_count == 2:
+                raise failure
+
+            return original_conversion(rows)
+
+        with patch.object(source, "_rows_to_batch", side_effect=convert_rows):
+            batches = source.read()
+
+            first_batch = next(batches)
+
+            assert first_batch.table.to_pylist() == [{"id": 1}]
+
+            result.close.assert_not_called()
+            connection_context.__exit__.assert_not_called()
+
+            with pytest.raises(pa.ArrowInvalid) as caught:
+                next(batches)
+
+        assert caught.value is failure
+        assert conversion_count == 2
+        result.close.assert_called_once_with()
+        connection_context.__exit__.assert_called_once()
+        assert connection_context.__exit__.call_args.args[0] is pa.ArrowInvalid
+        engine.dispose.assert_not_called()
+    
+    def test_streaming_rejects_duplicate_result_column_names(
+        self,
+        sqlalchemy_mocks,
+        streaming_result_factory,
+    ) -> None:
+        """Ensure streaming SQL results reject duplicate column names."""
+        engine, connection, connection_context = sqlalchemy_mocks
+
+        result, mapping_result, _ = streaming_result_factory(
+            ["id", "id"],
+            [],
+        )
+
+        connection.execute.return_value = result
+
+        source = SqlSource(
+            engine,
+            "SELECT id, id FROM customers",
+            batch_size=2,
+        )
+
+        batches = source.read()
+
+        with pytest.raises(ValueError, match="duplicate column names"):
+            next(batches)
+
+        result.mappings.assert_not_called()
+        mapping_result.partitions.assert_not_called()
+        result.close.assert_called_once_with()
+        connection_context.__exit__.assert_called_once()
+        assert connection_context.__exit__.call_args.args[0] is ValueError
+        engine.dispose.assert_not_called()
+    
+
