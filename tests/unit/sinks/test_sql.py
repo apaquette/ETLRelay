@@ -1,7 +1,7 @@
 """Unit tests for the SQL sink."""
 
 import logging
-from collections.abc import Iterator
+from collections.abc import Generator
 from contextlib import contextmanager
 from unittest.mock import MagicMock, Mock, call, patch
 
@@ -276,7 +276,7 @@ def test_sql_sink_logs_commit_only_after_transaction_completes(
     messages_before_commit: list[str] = []
 
     @contextmanager
-    def transaction() -> Iterator[Mock]:
+    def transaction() -> Generator[Mock, None, None]:
         yield connection
 
         # Observe logging immediately before the transaction
@@ -323,7 +323,7 @@ def test_sql_sink_does_not_log_success_when_commit_fails(
     commit_error = RuntimeError("secret-commit-failure")
 
     @contextmanager
-    def failing_transaction() -> Iterator[Mock]:
+    def failing_transaction() -> Generator[Mock, None, None]:
         yield connection
         raise commit_error
 

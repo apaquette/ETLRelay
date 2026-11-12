@@ -1,14 +1,14 @@
 """SQL-backed data source."""
 
-from contextlib import contextmanager
 import logging
 from collections import Counter
-from collections.abc import Mapping, Sequence, Iterator
+from collections.abc import Generator, Iterator, Mapping, Sequence
+from contextlib import contextmanager
 from typing import Any
 
 import pyarrow as pa
-from sqlalchemy import text, CursorResult
-from sqlalchemy.engine import Connection, Engine
+from sqlalchemy import CursorResult, text
+from sqlalchemy.engine import Engine
 
 from etlrelay.core import Batch
 
@@ -72,7 +72,6 @@ class SqlSource:
             The supplied engine remains owned by the caller and is not disposed.
         """
         return self._execution_mode()
-    
 
     def _fetch_batch(self) -> Iterator[Batch]:
         with self._execute_query() as result:
@@ -93,9 +92,9 @@ class SqlSource:
                 rows = [dict(row) for row in partition]
                 batch = self._rows_to_batch(rows)
                 yield batch
-    
+
     @contextmanager
-    def _execute_query(self, streaming: bool = False) -> Iterator[CursorResult]:
+    def _execute_query(self, streaming: bool = False) -> Generator[CursorResult, None, None]:
         with self._engine.connect() as connection:
             if streaming:
                 connection.execution_options(yield_per=self._batch_size)
@@ -108,7 +107,6 @@ class SqlSource:
                 yield result
             finally:
                 result.close()
-
 
     @staticmethod
     def _validate_column_names(
@@ -140,7 +138,7 @@ class SqlSource:
             Null values are preserved according to PyArrow's type inference.
         """
         return Batch(table=pa.Table.from_pylist(list(rows)))
-    
+
     @staticmethod
     def _validate_batch_size(batch_size: int | None) -> None:
         """Validate the batch size parameter.
@@ -151,7 +149,8 @@ class SqlSource:
         Raises:
             ValueError: If the batch size is not a positive integer.
         """
-        if batch_size is None or (isinstance(batch_size, int) and batch_size > 0 and not isinstance(batch_size, bool)):
+        if batch_size is None or (
+            isinstance(batch_size, int) and batch_size > 0 and not isinstance(batch_size, bool)
+        ):
             return
         raise ValueError("Batch size must be a positive integer.")
-

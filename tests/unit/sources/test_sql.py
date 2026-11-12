@@ -1,9 +1,12 @@
 """Unit tests for the SQL source."""
 
+from collections.abc import Generator, Mapping, Sequence
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pyarrow as pa
 import pytest
+from sqlalchemy.engine import Connection, Engine
 from sqlalchemy.exc import OperationalError
 
 from etlrelay.core import Batch
@@ -77,9 +80,8 @@ class TestSqlSource:
 
         source = SqlSource(engine, "SELECT id, name FROM customers")
 
-        batches = source.read()
-        with pytest.raises(StopIteration):
-            next(batches)
+        batches = list(source.read())
+        assert batches == []
         result.close.assert_called_once_with()
         connection_context.__exit__.assert_called_once_with(None, None, None)
 
@@ -168,16 +170,6 @@ class TestSqlSource:
         connection_context.__exit__.assert_called_once()
         engine.dispose.assert_not_called()
 
-from collections.abc import Mapping, Sequence
-from typing import Any
-from unittest.mock import MagicMock
-
-import pyarrow as pa
-import pytest
-from sqlalchemy.engine import Connection, Engine
-
-from etlrelay.sources.sql import SqlSource
-
 
 class TestSqlSourceBatch:
     @pytest.fixture
@@ -251,11 +243,9 @@ class TestSqlSourceBatch:
             rows[batch_size:],
         ]
 
-        result, mapping_result, consumed_partitions = (
-            streaming_result_factory(
-                ["id", "name"],
-                expected_partitions,
-            )
+        result, mapping_result, consumed_partitions = streaming_result_factory(
+            ["id", "name"],
+            expected_partitions,
         )
 
         connection.execute.return_value = result
@@ -276,9 +266,7 @@ class TestSqlSourceBatch:
         # Retrieve the first batch.
         first_batch = next(batches)
 
-        assert first_batch.table.equals(
-            pa.Table.from_pylist(expected_partitions[0])
-        )
+        assert first_batch.table.equals(pa.Table.from_pylist(expected_partitions[0]))
         assert consumed_partitions == [0]
 
         # The second partition must not have been consumed yet.
@@ -287,9 +275,7 @@ class TestSqlSourceBatch:
         # Retrieve the second batch.
         second_batch = next(batches)
 
-        assert second_batch.table.equals(
-            pa.Table.from_pylist(expected_partitions[1])
-        )
+        assert second_batch.table.equals(pa.Table.from_pylist(expected_partitions[1]))
         assert consumed_partitions == [0, 1]
 
         # No additional batches should be produced.
@@ -297,9 +283,7 @@ class TestSqlSourceBatch:
             next(batches)
 
         # Verify SQLAlchemy configuration.
-        connection.execution_options.assert_called_once_with(
-            yield_per=batch_size
-        )
+        connection.execution_options.assert_called_once_with(yield_per=batch_size)
         connection.execute.assert_called_once()
         result.mappings.assert_called_once_with()
         mapping_result.partitions.assert_called_once_with(batch_size)
@@ -370,11 +354,9 @@ class TestSqlSourceBatch:
 
         batch_size = 2
 
-        result, mapping_result, consumed_partitions = (
-            streaming_result_factory(
-                ["id", "name"],
-                [],
-            )
+        result, mapping_result, consumed_partitions = streaming_result_factory(
+            ["id", "name"],
+            [],
         )
 
         connection.execute.return_value = result
@@ -425,6 +407,8 @@ class TestSqlSourceBatch:
 
         batches = source.read()
 
+        assert isinstance(batches, Generator)
+
         first_batch = next(batches)
 
         assert first_batch.table.num_rows == batch_size
@@ -439,13 +423,121 @@ class TestSqlSourceBatch:
 
     @pytest.mark.parametrize("batch_size", [0, -10, -100, "invalid", 3.14, True, False])
     def test_rejects_invalid_batch_size_parameter(
-            self,
-            batch_size: int,
+        self,
+        batch_size: int,
     ) -> None:
-        """Ensure that the SqlSource constructor raises a ValueError for invalid batch_size values."""
         engine = MagicMock()
         query = "SELECT id, name FROM customers"
         parameters = {"minimum_id": 1}
 
         with pytest.raises(ValueError, match="Batch size must be a positive integer"):
             SqlSource(engine, query, parameters=parameters, batch_size=batch_size)
+
+    def test_result_with_smaller_configured_batch_size(
+        self,
+        sqlalchemy_mocks,
+        streaming_result_factory,
+    ):
+        engine, connection, connection_context = sqlalchemy_mocks
+
+        batch_size = 10
+
+        rows = [
+            {"id": 1, "name": "Alice"},
+            {"id": 2, "name": "Bob"},
+            {"id": 3, "name": "Charlie"},
+            {"id": 4, "name": "David"},
+        ]
+
+        result, _, consumed_partitions = streaming_result_factory(
+            ["id", "name"],
+            [rows],
+        )
+
+        connection.execute.return_value = result
+
+        source = SqlSource(
+            engine,
+            "SELECT id, name FROM customers",
+            batch_size=batch_size,
+        )
+
+        batches = source.read()
+
+        first_batch = next(batches)
+
+        assert first_batch.table.num_rows == len(rows)
+        assert consumed_partitions == [0]
+
+    def test_result_with_exact_configured_batch_size(
+        self,
+        sqlalchemy_mocks,
+        streaming_result_factory,
+    ):
+        engine, connection, connection_context = sqlalchemy_mocks
+
+        batch_size = 4
+
+        rows = [
+            {"id": 1, "name": "Alice"},
+            {"id": 2, "name": "Bob"},
+            {"id": 3, "name": "Charlie"},
+            {"id": 4, "name": "David"},
+        ]
+
+        result, _, consumed_partitions = streaming_result_factory(
+            ["id", "name"],
+            [rows],
+        )
+
+        connection.execute.return_value = result
+
+        source = SqlSource(
+            engine,
+            "SELECT id, name FROM customers",
+            batch_size=batch_size,
+        )
+
+        batches = source.read()
+
+        first_batch = next(batches)
+
+        assert first_batch.table.num_rows == len(rows)
+        assert consumed_partitions == [0]
+
+    def test_result_with_partial_final_batch(
+        self,
+        sqlalchemy_mocks,
+        streaming_result_factory,
+    ):
+        engine, connection, _ = sqlalchemy_mocks
+
+        batch_size = 3
+
+        rows = [
+            {"id": 1, "name": "Alice"},
+            {"id": 2, "name": "Bob"},
+            {"id": 3, "name": "Charlie"},
+            {"id": 4, "name": "David"},
+        ]
+
+        result, _, consumed_partitions = streaming_result_factory(
+            ["id", "name"],
+            [rows[:3], rows[3:]],
+        )
+
+        connection.execute.return_value = result
+
+        source = SqlSource(
+            engine,
+            "SELECT id, name FROM customers",
+            batch_size=batch_size,
+        )
+
+        batches = source.read()
+
+        first_batch = next(batches)
+        second_batch = next(batches)
+
+        assert first_batch.table.num_rows == 3
+        assert second_batch.table.num_rows == 1
