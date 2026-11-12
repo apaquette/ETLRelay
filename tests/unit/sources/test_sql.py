@@ -346,7 +346,6 @@ class TestSqlSourceBatch:
             assert batch.table.equals(pa.Table.from_pylist(expected_rows))
 
         mapping_result.partitions.assert_called_once_with(batch_size)
-        result.close.assert_called_once_with()
 
         assert [row for batch in batches for row in batch.table.to_pylist()] == rows
 
@@ -526,7 +525,7 @@ class TestSqlSourceBatch:
         sqlalchemy_mocks,
         streaming_result_factory,
     ):
-        engine, connection, _ = sqlalchemy_mocks
+        engine, connection, connection_context = sqlalchemy_mocks
 
         batch_size = 3
 
@@ -557,6 +556,12 @@ class TestSqlSourceBatch:
 
         assert first_batch.table.num_rows == 3
         assert second_batch.table.num_rows == 1
+
+        with pytest.raises(StopIteration):
+            next(batches)
+
+        result.close.assert_called_once_with()
+        connection_context.__exit__.assert_called_once()
 
     def test_streaming_query_execution_failure_closes_connection(
         self,
