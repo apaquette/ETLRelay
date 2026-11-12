@@ -1,7 +1,9 @@
 """Functional tests for SQL-backed pipelines."""
 
+import inspect
 from collections.abc import Iterable, Iterator
 from pathlib import Path
+from types import GeneratorType
 from typing import Any
 
 import pytest
@@ -13,6 +15,7 @@ from sqlalchemy import (
     String,
     Table,
     create_engine,
+    event,
     text,
 )
 from sqlalchemy.engine import Engine
@@ -93,6 +96,18 @@ class RecordingProcessor:
         return self._processor.process(batch)
 
 
+class RaisingProcessor:
+    def __init__(self, processor: FilterRows) -> None:
+        self._processor = processor
+        self.calls = 0
+
+    def process(self, batch: Batch) -> Batch:
+        self.calls += 1
+
+        raise ValueError("Test Exception")
+        return self._processor.process(batch)
+
+
 class RecordingSqlSink(SqlSink):
     """Record sink calls and batches while performing real SQL writes."""
 
@@ -107,6 +122,27 @@ class RecordingSqlSink(SqlSink):
         materialized_batches = list(batches)
         self.received_batches.extend(materialized_batches)
         super().write(materialized_batches)
+
+
+class StoppingSink(SqlSink):
+    def __init__(self, engine: Engine) -> None:
+        super().__init__(engine, "processed_records")
+        self.write_calls = 0
+
+    def write(self, batches: Iterable[Batch]) -> None:
+        next(iter(batches))
+        self.write_calls += 1
+
+
+class RaisingSink(SqlSink):
+    def __init__(self, engine: Engine) -> None:
+        super().__init__(engine, "processed_records")
+        self.write_calls = 0
+
+    def write(self, batches: Iterable[Batch]) -> None:
+        next(iter(batches))
+        self.write_calls += 1
+        raise ValueError("Test Exception")
 
 
 def test_sql_pipeline_queries_transforms_and_writes_records(
@@ -188,3 +224,133 @@ def test_zero_row_processed_batch_reaches_sink_without_inserting_rows(
     assert len(sink.received_batches) == 1
     assert sink.received_batches[0].table.num_rows == 0
     assert read_processed_records(sqlite_engine) == []
+
+
+def test_sink_stops_early(sqlite_engine: Engine, monkeypatch: pytest.MonkeyPatch):
+    checkouts = []
+    checkins = []
+
+    def on_checkout(dbapi_connection, connection_record, connection_proxy):
+        checkouts.append(connection_record)
+
+    def on_checkin(dbapi_connection, connection_record):
+        checkins.append(connection_record)
+
+    event.listen(sqlite_engine, "checkout", on_checkout)
+    event.listen(sqlite_engine, "checkin", on_checkin)
+    try:
+        source = SqlSource(
+            sqlite_engine,
+            """
+            SELECT id, category, score
+            FROM source_records
+            ORDER BY id
+            """,
+            batch_size=1,
+        )
+        processor = RecordingProcessor(FilterRows(column="score", operator=">=", value=8.0))
+        sink = StoppingSink(sqlite_engine)
+        pipeline = Pipeline(source, [processor], sink)
+        source_iterator = source.read()
+        monkeypatch.setattr(source, "read", lambda: source_iterator)
+
+        pipeline.run()
+
+        assert isinstance(source_iterator, GeneratorType)
+        assert inspect.getgeneratorstate(source_iterator) == inspect.GEN_CLOSED
+        assert processor.calls == 1
+        assert sink.write_calls == 1
+        assert len(checkouts) == 1
+        assert len(checkins) == 1
+        assert checkins[0] is checkouts[0]
+    finally:
+        event.remove(sqlite_engine, "checkout", on_checkout)
+        event.remove(sqlite_engine, "checkin", on_checkin)
+
+
+def test_processor_raises_exception(sqlite_engine: Engine, monkeypatch: pytest.MonkeyPatch):
+    checkouts = []
+    checkins = []
+
+    def on_checkout(dbapi_connection, connection_record, connection_proxy):
+        checkouts.append(connection_record)
+
+    def on_checkin(dbapi_connection, connection_record):
+        checkins.append(connection_record)
+
+    event.listen(sqlite_engine, "checkout", on_checkout)
+    event.listen(sqlite_engine, "checkin", on_checkin)
+
+    try:
+        source = SqlSource(
+            sqlite_engine,
+            """
+            SELECT id, category, score
+            FROM source_records
+            ORDER BY id
+            """,
+            batch_size=1,
+        )
+        processor = RaisingProcessor(FilterRows(column="score", operator=">=", value=8.0))
+        sink = StoppingSink(sqlite_engine)
+        pipeline = Pipeline(source, [processor], sink)
+        source_iterator = source.read()
+        monkeypatch.setattr(source, "read", lambda: source_iterator)
+
+        with pytest.raises(ValueError):
+            pipeline.run()
+
+        assert isinstance(source_iterator, GeneratorType)
+        assert inspect.getgeneratorstate(source_iterator) == inspect.GEN_CLOSED
+        assert processor.calls == 1
+        assert sink.write_calls == 0
+        assert len(checkouts) == 1
+        assert len(checkins) == 1
+        assert checkins[0] is checkouts[0]
+    finally:
+        event.remove(sqlite_engine, "checkout", on_checkout)
+        event.remove(sqlite_engine, "checkin", on_checkin)
+
+
+def test_sink_raises_exception(sqlite_engine: Engine, monkeypatch: pytest.MonkeyPatch):
+    checkouts = []
+    checkins = []
+
+    def on_checkout(dbapi_connection, connection_record, connection_proxy):
+        checkouts.append(connection_record)
+
+    def on_checkin(dbapi_connection, connection_record):
+        checkins.append(connection_record)
+
+    event.listen(sqlite_engine, "checkout", on_checkout)
+    event.listen(sqlite_engine, "checkin", on_checkin)
+
+    try:
+        source = SqlSource(
+            sqlite_engine,
+            """
+            SELECT id, category, score
+            FROM source_records
+            ORDER BY id
+            """,
+            batch_size=1,
+        )
+        processor = RecordingProcessor(FilterRows(column="score", operator=">=", value=8.0))
+        sink = RaisingSink(sqlite_engine)
+        pipeline = Pipeline(source, [processor], sink)
+        source_iterator = source.read()
+        monkeypatch.setattr(source, "read", lambda: source_iterator)
+
+        with pytest.raises(ValueError):
+            pipeline.run()
+
+        assert isinstance(source_iterator, GeneratorType)
+        assert inspect.getgeneratorstate(source_iterator) == inspect.GEN_CLOSED
+        assert processor.calls == 1
+        assert sink.write_calls == 1
+        assert len(checkouts) == 1
+        assert len(checkins) == 1
+        assert checkins[0] is checkouts[0]
+    finally:
+        event.remove(sqlite_engine, "checkout", on_checkout)
+        event.remove(sqlite_engine, "checkin", on_checkin)
