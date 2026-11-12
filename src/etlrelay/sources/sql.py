@@ -2,7 +2,7 @@
 
 import logging
 from collections import Counter
-from collections.abc import Iterable, Mapping, Sequence
+from collections.abc import Mapping, Sequence, Iterator
 from typing import Any
 
 import pyarrow as pa
@@ -31,6 +31,7 @@ class SqlSource:
         query: str,
         *,
         parameters: Mapping[str, Any] | None = None,
+        batch_size: int | None = None,
     ) -> None:
         """Initialize the SQL source.
 
@@ -41,12 +42,16 @@ class SqlSource:
                 specified using SQLAlchemy's ``:name`` syntax.
             parameters: Optional mapping of named bind parameters to their
                 values. Values are bound separately from the SQL statement.
+            batch_size: Optional batch size for the resulting batches.
         """
+        self._validate_batch_size(batch_size)
+
         self._engine = engine
         self._query = query
         self._parameters = parameters
+        self._batch_size = batch_size
 
-    def read(self) -> Iterable[Batch]:
+    def read(self) -> Iterator[Batch]:
         """Execute the query and return its results as batches.
 
         Returns:
@@ -64,56 +69,48 @@ class SqlSource:
             All rows are materialized in memory; this is not a streaming query.
             The supplied engine remains owned by the caller and is not disposed.
         """
+        if self._batch_size is not None:
+            return self._yield_batch()
+        return self._fetch_batch()
+    
+
+    def _fetch_batch(self) -> Iterator[Batch]:
         with self._engine.connect() as connection:
-            rows = self._fetch_rows(connection)
+            result = connection.execute(
+                text(self._query),
+                self._parameters,
+            )
+            try:
+                self._validate_column_names(list(result.keys()))
+                rows = [dict(row) for row in result.mappings()]
+                if not rows:
+                    logger.debug("SQL source read completed (0 rows).")
+                    return iter([])
+                
+                batch = self._rows_to_batch(iter(rows))
+                logger.debug("SQL source read completed (%d rows).", len(rows))
+                return iter([batch])
+            finally:
+                result.close()
 
-        if not rows:
-            logger.debug("SQL source read completed (0 rows).")
-            return []
+    def _yield_batch(self) -> Iterator[Batch]:
+        with self._engine.connect() as connection:
+            connection.execution_options(yield_per=self._batch_size)
+            result = connection.execute(
+                text(self._query),
+                self._parameters
+            )
+            try:
+                self._validate_column_names(list(result.keys()))
+                partitions = result.mappings().partitions(self._batch_size)
 
-        batch = self._rows_to_batch(rows)
+                for partition in partitions:
+                    rows = [dict(row) for row in partition]
+                    batch = self._rows_to_batch(iter(rows))
+                    yield batch
+            finally:
+                result.close()
 
-        logger.debug(
-            "SQL source read completed (%d rows).",
-            len(rows),
-        )
-
-        return [batch]
-
-    def _fetch_rows(
-        self,
-        connection: Connection,
-    ) -> list[dict[str, Any]]:
-        """Execute the query and materialize its result rows.
-
-        Args:
-            connection: Active SQLAlchemy connection used to execute the query.
-
-        Returns:
-            A list of rows represented as dictionaries mapping column names
-            to their corresponding values.
-
-        Raises:
-            ValueError: If the query returns duplicate column names.
-            SQLAlchemyError: If query execution or result retrieval fails.
-
-        Note:
-            The result is closed after retrieval, including when an error
-            occurs. The supplied connection remains under the caller's
-            control.
-        """
-        result = connection.execute(
-            text(self._query),
-            self._parameters,
-        )
-
-        try:
-            column_names = list(result.keys())
-            self._validate_column_names(column_names)
-
-            return [dict(row) for row in result.mappings()]
-        finally:
-            result.close()
 
     @staticmethod
     def _validate_column_names(
@@ -134,7 +131,7 @@ class SqlSource:
             raise ValueError(f"SQL query returned duplicate column names: {duplicates}")
 
     @staticmethod
-    def _rows_to_batch(rows: list[dict[str, Any]]) -> Batch:
+    def _rows_to_batch(rows: Iterator[dict[str, Any]]) -> Batch:
         """Convert materialized SQL rows into an Arrow-backed batch.
 
         Args:
@@ -144,4 +141,19 @@ class SqlSource:
             A batch containing a PyArrow table inferred from the row values.
             Null values are preserved according to PyArrow's type inference.
         """
-        return Batch(table=pa.Table.from_pylist(rows))
+        return Batch(table=pa.Table.from_pylist(list(rows)))
+    
+    @staticmethod
+    def _validate_batch_size(batch_size: int | None) -> None:
+        """Validate the batch size parameter.
+
+        Args:
+            batch_size: The batch size to validate.
+
+        Raises:
+            ValueError: If the batch size is not a positive integer.
+        """
+        if batch_size is None or (isinstance(batch_size, int) and batch_size > 0 and not isinstance(batch_size, bool)):
+            return
+        raise ValueError("Batch size must be a positive integer.")
+
