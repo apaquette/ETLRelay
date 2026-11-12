@@ -348,11 +348,7 @@ class TestSqlSourceBatch:
         mapping_result.partitions.assert_called_once_with(batch_size)
         result.close.assert_called_once_with()
 
-        assert [
-            row
-            for batch in batches
-            for row in batch.table.to_pylist()
-        ] == rows
+        assert [row for batch in batches for row in batch.table.to_pylist()] == rows
 
         result.close.assert_called_once_with()
         connection_context.__exit__.assert_called_once()
@@ -561,7 +557,7 @@ class TestSqlSourceBatch:
 
         assert first_batch.table.num_rows == 3
         assert second_batch.table.num_rows == 1
-    
+
     def test_streaming_query_execution_failure_closes_connection(
         self,
         sqlalchemy_mocks,
@@ -589,7 +585,7 @@ class TestSqlSourceBatch:
         connection_context.__exit__.assert_called_once()
         assert connection_context.__exit__.call_args.args[0] is RuntimeError
         engine.dispose.assert_not_called()
-    
+
     def test_partition_failure_after_first_batch_closes_sql_resources(
         self,
         sqlalchemy_mocks,
@@ -640,7 +636,7 @@ class TestSqlSourceBatch:
         connection_context.__exit__.assert_called_once()
         assert connection_context.__exit__.call_args.args[0] is RuntimeError
         engine.dispose.assert_not_called()
-    
+
     def test_streaming_arrow_conversion_failure_closes_sql_resources(
         self,
         sqlalchemy_mocks,
@@ -699,7 +695,7 @@ class TestSqlSourceBatch:
         connection_context.__exit__.assert_called_once()
         assert connection_context.__exit__.call_args.args[0] is pa.ArrowInvalid
         engine.dispose.assert_not_called()
-    
+
     def test_streaming_rejects_duplicate_result_column_names(
         self,
         sqlalchemy_mocks,
@@ -732,5 +728,3 @@ class TestSqlSourceBatch:
         connection_context.__exit__.assert_called_once()
         assert connection_context.__exit__.call_args.args[0] is ValueError
         engine.dispose.assert_not_called()
-    
-

@@ -13,8 +13,8 @@ from sqlalchemy import (
     String,
     Table,
     create_engine,
-    text,
     event,
+    text,
 )
 from sqlalchemy.engine import Engine
 from sqlalchemy.exc import OperationalError, SQLAlchemyError
@@ -198,6 +198,7 @@ def test_read_failure_does_not_log_query_or_parameters(
     assert secret not in caplog.text
     assert "missing_table" not in caplog.text
 
+
 def test_sqlalchemy_partitions_results_in_row_order() -> None:
     """Ensure SQLAlchemy result partitions preserve row order and batch sizes."""
     engine = create_engine("sqlite+pysqlite:///:memory:")
@@ -243,11 +244,7 @@ def test_sqlalchemy_partitions_results_in_row_order() -> None:
 
         assert [batch.table.num_rows for batch in batches] == [2, 2, 1]
 
-        assert [
-            row
-            for batch in batches
-            for row in batch.table.to_pylist()
-        ] == rows
+        assert [row for batch in batches for row in batch.table.to_pylist()] == rows
 
     finally:
         engine.dispose()

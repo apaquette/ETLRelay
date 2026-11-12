@@ -33,6 +33,7 @@ class SqlSource:
     The source manages the connections and query results it acquires but does
     not own or dispose of the supplied engine.
     """
+
     def __init__(
         self,
         engine: Engine,
