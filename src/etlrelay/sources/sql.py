@@ -137,7 +137,7 @@ class SqlSource:
             A batch containing a PyArrow table inferred from the row values.
             Null values are preserved according to PyArrow's type inference.
         """
-        return Batch(table=pa.Table.from_pylist(list(rows)))
+        return Batch(table=pa.Table.from_pylist(rows))
 
     @staticmethod
     def _validate_batch_size(batch_size: int | None) -> None:
