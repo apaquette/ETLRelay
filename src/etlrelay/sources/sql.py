@@ -26,18 +26,25 @@ class SqlSource:
     and yielded in batches containing no more than the configured number of rows.
     The final batch may contain fewer rows.
 
-    When batching is enabled, the Arrow schema inferred from the first batch
-    establishes the expected schema for the query execution. Subsequent batches
-    retain that schema and must contain compatible field names, ordering,
-    data types, and nullability.
+    An optional Arrow schema can be supplied to establish the canonical schema
+    for the query, regardless of whether batching is enabled. Its field names
+    and ordering must match the SQL result columns, and result values must be
+    compatible with its field types and nullability.
+
+    When no schema is supplied, the schema is inferred from the complete result
+    in unbatched mode or from the first non-empty batch in batched mode.
+    Subsequent batches retain the inferred schema and must contain compatible
+    field names, ordering, data types, and nullability.
 
     Null-only columns in subsequent batches retain their established data types.
     However, a column initially inferred as the Arrow null type cannot be
-    promoted to a concrete type by later batches.
+    promoted to a concrete type by later batches. Supplying a schema allows
+    callers to specify concrete types for columns containing only null values.
 
-    An empty result set produces no batches. Result ordering follows the order
-    returned by the database; use an SQL ``ORDER BY`` clause when deterministic
-    ordering is required.
+    An empty result set produces no batches. Supplied schema names and ordering
+    are validated even when the result contains no rows. Result ordering follows
+    the order returned by the database; use an SQL ``ORDER BY`` clause when
+    deterministic ordering is required.
 
     The source manages the connections and query results it acquires but
     does not own or dispose of the supplied engine.
@@ -65,6 +72,11 @@ class SqlSource:
                 the complete result is returned as a single batch. When specified,
                 results are consumed incrementally in batches of this size. Every
                 batch produced by the query retains a consistent Arrow schema.
+            schema: Optional canonical Arrow schema for the query. Its field
+                names and ordering must match the SQL result columns. Result
+                values must be compatible with the declared field types and
+                nullability. When omitted, the schema is inferred from the
+                query result.
 
         Raises:
             ValueError: If ``batch_size`` is not ``None`` or a positive integer.
@@ -98,8 +110,9 @@ class SqlSource:
             when batching is enabled.
 
         Raises:
-            ValueError: If the query returns duplicate column names or
-                subsequent batches have incompatible schemas.
+            ValueError: If the query returns duplicate column names, its result
+                columns do not match the supplied schema, or result data has an
+                incompatible schema.
             SQLAlchemyError: If establishing the connection or executing the
                 query fails.
             Exception: Other exceptions raised during result retrieval or Arrow
@@ -111,9 +124,13 @@ class SqlSource:
             while the generator is being consumed and are closed when iteration
             completes, an exception occurs, or the generator is closed.
 
-            In batched mode, the schema inferred from the first batch is used
-            to validate subsequent batches. Schema incompatibilities are raised
-            during iteration when the incompatible batch is retrieved.
+            When a schema is supplied, it establishes the canonical schema
+            regardless of execution mode. Otherwise, the schema is inferred
+            from the complete result in unbatched mode or from the first
+            non-empty batch in batched mode.
+
+            Schema incompatibilities are raised when the incompatible result
+            is processed. In streaming mode, this occurs during iteration.
 
             Consumers that stop iterating before exhaustion should explicitly
             close the generator to release SQL resources promptly.
@@ -152,9 +169,10 @@ class SqlSource:
         Result rows are consumed in partitions no larger than the configured
         batch size, with each partition converted into a separate batch.
 
-        The schema inferred from the first batch establishes the canonical
-        schema for the current query execution. Subsequent batches must have
-        compatible field names, ordering, data types, and nullability.
+        The supplied schema, when present, establishes the canonical schema
+        for the query execution. Otherwise, the schema inferred from the first
+        non-empty batch establishes the canonical schema. Subsequent batches
+        must have compatible field names, ordering, data types, and nullability.
 
         Null-only columns in subsequent batches retain their corresponding
         types from the canonical schema. Incompatible populated values cause
@@ -168,7 +186,8 @@ class SqlSource:
             of rows and sharing a consistent schema.
 
         Raises:
-            ValueError: If a subsequent batch has an incompatible schema.
+            ValueError: If the supplied or inferred canonical schema is
+                incompatible with a batch.
 
         Note:
             The canonical schema is established independently for each
@@ -191,6 +210,25 @@ class SqlSource:
         rows: list[dict[str, Any]],
         expected_schema: pa.Schema | None = None,
     ) -> tuple[Batch, pa.Schema]:
+        """Create an Arrow-backed batch using a canonical schema.
+
+        The candidate Arrow table is constructed from the supplied rows.
+        When an expected schema is provided, the candidate is validated
+        against it and converted to that schema. Otherwise, its inferred
+        schema becomes the canonical schema.
+
+        Args:
+            rows: Rows retrieved from the SQL query.
+            expected_schema: Optional canonical schema established by the
+                caller or an earlier batch.
+
+        Returns:
+            The constructed batch and the canonical schema used for it.
+
+        Raises:
+            ValueError: If the candidate table has incompatible field names,
+                ordering, data types, or nullability.
+        """
         candidate = pa.Table.from_pylist(rows)
         canonical_schema = expected_schema if expected_schema is not None else candidate.schema
 
@@ -209,7 +247,9 @@ class SqlSource:
 
         A connection is acquired from the caller-provided engine and used to
         execute the configured query and parameters. Result column names are
-        validated before the result is made available.
+        validated for uniqueness and, when an explicit schema is supplied,
+        against its field names and ordering. This validation occurs even when
+        the query returns no rows.
 
         When streaming is enabled, SQLAlchemy's ``yield_per`` execution option
         is configured using the source's batch size before query execution.
@@ -222,7 +262,8 @@ class SqlSource:
             The SQLAlchemy cursor result containing the query results.
 
         Raises:
-            ValueError: If the query returns duplicate column names.
+            ValueError: If the query returns duplicate column names or its
+                result columns do not match the supplied schema.
             SQLAlchemyError: If connection acquisition or query execution fails.
 
         Note:
@@ -273,6 +314,15 @@ class SqlSource:
     def _validate_column_names(
         column_names: Sequence[str],
     ) -> None:
+        """Ensure result column names are unique.
+
+        Args:
+            column_names: Column names returned by the SQL query.
+
+        Raises:
+            ValueError: If one or more column names occur more than once.
+                The exception identifies the duplicated names.
+        """
         duplicates = sorted(name for name, count in Counter(column_names).items() if count > 1)
 
         if duplicates:
