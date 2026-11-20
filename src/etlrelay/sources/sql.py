@@ -233,7 +233,9 @@ class SqlSource:
 
         self._validate_batch_schema(candidate, canonical_schema)
 
-        table = candidate if expected_schema is None else candidate.cast(canonical_schema, safe=True)
+        table = (
+            candidate if expected_schema is None else candidate.cast(canonical_schema, safe=True)
+        )
         logger.debug("SQL source created batch (%d rows).", len(rows))
         return Batch(table), canonical_schema
 
