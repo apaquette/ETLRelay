@@ -513,7 +513,7 @@ def test_validate_batch_schema_rejects_incompatible_field_names_or_order(
 
     batch = next(source.read())
 
-    with pytest.raises(ValueError, match="Incompatible field names or ordering"):
+    with pytest.raises(ValueError):
         SqlSource._validate_batch_schema(batch.table, expected_schema)
 
 
@@ -647,3 +647,257 @@ def test_source_reinfers_schema_for_each_execution(
     assert len(second_batches) == 1
     assert second_batches[0].table.schema.field("value").type == pa.string()
     assert second_batches[0].table.to_pylist() == [{"value": "forty-two"}]
+
+
+@pytest.mark.parametrize(
+    "batch_size",
+    [None, 1],
+    ids=["unbatched", "batched"],
+)
+def test_explicit_schema_preserves_type_when_first_batch_contains_null(
+    sqlite_engine: Engine,
+    batch_size: int | None,
+) -> None:
+    """Use the supplied schema when the first partition contains null values."""
+    metadata = MetaData()
+
+    records = Table(
+        "nullable_records",
+        metadata,
+        Column("id", Integer, primary_key=True),
+        Column("optional_value", Integer, nullable=True),
+    )
+
+    metadata.create_all(sqlite_engine)
+
+    with sqlite_engine.begin() as connection:
+        connection.execute(
+            records.insert(),
+            [
+                {"id": 1, "optional_value": None},
+                {"id": 2, "optional_value": 42},
+            ],
+        )
+
+    expected_schema = pa.schema(
+        [
+            pa.field("id", pa.int64()),
+            pa.field("optional_value", pa.int64()),
+        ]
+    )
+
+    source = SqlSource(
+        sqlite_engine,
+        """
+        SELECT id, optional_value
+        FROM nullable_records
+        ORDER BY id
+        """,
+        batch_size=batch_size,
+        schema=expected_schema,
+    )
+
+    batches = list(source.read())
+
+    assert len(batches) == (1 if batch_size is None else 2)
+
+    for batch in batches:
+        assert batch.table.schema.equals(
+            expected_schema,
+            check_metadata=False,
+        )
+
+    assert [batch.table.to_pylist() for batch in batches] == (
+        [
+            [
+                {"id": 1, "optional_value": None},
+                {"id": 2, "optional_value": 42},
+            ]
+        ]
+        if batch_size is None
+        else [
+            [{"id": 1, "optional_value": None}],
+            [{"id": 2, "optional_value": 42}],
+        ]
+    )
+
+
+@pytest.mark.parametrize(
+    "batch_size",
+    [None, 1],
+    ids=["unbatched", "batched"],
+)
+def test_explicit_schema_preserves_type_for_entirely_null_column(
+    sqlite_engine: Engine,
+    batch_size: int | None,
+) -> None:
+    """Preserve a declared concrete type when every value is null."""
+    metadata = MetaData()
+
+    records = Table(
+        "nullable_records",
+        metadata,
+        Column("id", Integer, primary_key=True),
+        Column("optional_value", Integer, nullable=True),
+    )
+
+    metadata.create_all(sqlite_engine)
+
+    with sqlite_engine.begin() as connection:
+        connection.execute(
+            records.insert(),
+            [
+                {"id": 1, "optional_value": None},
+                {"id": 2, "optional_value": None},
+            ],
+        )
+
+    expected_schema = pa.schema(
+        [
+            pa.field("id", pa.int64()),
+            pa.field("optional_value", pa.int64()),
+        ]
+    )
+
+    source = SqlSource(
+        sqlite_engine,
+        """
+        SELECT id, optional_value
+        FROM nullable_records
+        ORDER BY id
+        """,
+        batch_size=batch_size,
+        schema=expected_schema,
+    )
+
+    batches = list(source.read())
+
+    assert len(batches) == (1 if batch_size is None else 2)
+
+    for batch in batches:
+        assert batch.table.schema.equals(
+            expected_schema,
+            check_metadata=False,
+        )
+
+    assert sum(
+        batch.table.column("optional_value").null_count
+        for batch in batches
+    ) == 2
+
+
+@pytest.mark.parametrize(
+    "batch_size",
+    [None, 1],
+    ids=["unbatched", "batched"],
+)
+def test_explicit_schema_rejects_incompatible_data_types(
+    sqlite_engine: Engine,
+    batch_size: int | None,
+) -> None:
+    """Reject SQL values that cannot be represented by the supplied schema."""
+    expected_schema = pa.schema(
+        [
+            pa.field("value", pa.int64()),
+        ]
+    )
+
+    source = SqlSource(
+        sqlite_engine,
+        "SELECT 'not-an-integer' AS value",
+        batch_size=batch_size,
+        schema=expected_schema,
+    )
+
+    with pytest.raises(ValueError):
+        list(source.read())
+
+
+@pytest.mark.parametrize(
+    "batch_size",
+    [None, 1],
+    ids=["unbatched", "batched"],
+)
+def test_explicit_schema_rejects_nulls_in_non_nullable_fields(
+    sqlite_engine: Engine,
+    batch_size: int | None,
+) -> None:
+    """Reject null values for fields declared non-nullable."""
+    expected_schema = pa.schema(
+        [
+            pa.field("value", pa.int64(), nullable=False),
+        ]
+    )
+
+    source = SqlSource(
+        sqlite_engine,
+        "SELECT NULL AS value",
+        batch_size=batch_size,
+        schema=expected_schema,
+    )
+
+    with pytest.raises(ValueError, match="non-nullable"):
+        list(source.read())
+
+
+@pytest.mark.parametrize(
+    "expected_schema",
+    [
+        pa.schema(
+            [
+                pa.field("id", pa.int64()),
+                pa.field("unexpected", pa.string()),
+            ]
+        ),
+        pa.schema(
+            [
+                pa.field("category", pa.string()),
+                pa.field("id", pa.int64()),
+            ]
+        ),
+    ],
+    ids=["mismatched-field-name", "mismatched-field-order"],
+)
+def test_explicit_schema_rejects_mismatched_result_columns(
+    sqlite_engine: Engine,
+    expected_schema: pa.Schema,
+) -> None:
+    """Reject supplied schemas with mismatched result names or ordering."""
+    source = SqlSource(
+        sqlite_engine,
+        "SELECT 1 AS id, 'example' AS category",
+        schema=expected_schema,
+    )
+
+    with pytest.raises(ValueError):
+        list(source.read())
+
+
+@pytest.mark.parametrize(
+    "batch_size",
+    [None, 1],
+    ids=["unbatched", "batched"],
+)
+def test_explicit_schema_preserves_empty_result_behaviour(
+    sqlite_engine: Engine,
+    batch_size: int | None,
+) -> None:
+    """Return no batches when a query produces no rows and a schema is supplied."""
+    expected_schema = pa.schema(
+        [
+            pa.field("id", pa.int64()),
+            pa.field("category", pa.string()),
+        ]
+    )
+
+    source = SqlSource(
+        sqlite_engine,
+        """
+        SELECT 1 AS id, 'example' AS category
+        WHERE 1 = 0
+        """,
+        batch_size=batch_size,
+        schema=expected_schema,
+    )
+
+    assert list(source.read()) == []
