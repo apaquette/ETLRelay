@@ -201,8 +201,7 @@ class SqlSource:
 
             for partition in partitions:
                 rows = [dict(row) for row in partition]
-                batch, schema = self._create_batch(rows, canonical_schema)
-                canonical_schema = schema
+                batch, canonical_schema = self._create_batch(rows, canonical_schema)
                 yield batch
 
     def _create_batch(
@@ -234,10 +233,7 @@ class SqlSource:
 
         self._validate_batch_schema(candidate, canonical_schema)
 
-        table = (
-            candidate if expected_schema is None else candidate.cast(canonical_schema, safe=True)
-        )
-
+        table = candidate if expected_schema is None else candidate.cast(canonical_schema, safe=True)
         logger.debug("SQL source created batch (%d rows).", len(rows))
         return Batch(table), canonical_schema
 
