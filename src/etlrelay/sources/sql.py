@@ -50,6 +50,7 @@ class SqlSource:
         *,
         parameters: Mapping[str, Any] | None = None,
         batch_size: int | None = None,
+        schema: pa.Schema | None = None
     ) -> None:
         """Initialize the SQL source.
 
@@ -76,6 +77,7 @@ class SqlSource:
         self._parameters = parameters
         self._batch_size = batch_size
         self._execution_mode = self._fetch_batch if batch_size is None else self._yield_batch
+        self._schema = schema
 
     def read(self) -> Iterator[Batch]:
         """Execute the query and return its results as an iterator of batches.
@@ -134,15 +136,23 @@ class SqlSource:
             The complete query result is materialized in memory. The SQL result
             and connection are closed before the returned iterator is consumed.
         """
+        canonical_schema: pa.Schema | None = self._schema
         with self._execute_query() as result:
             rows = [dict(row) for row in result.mappings()]
+
             if not rows:
                 logger.debug("SQL source read completed (0 rows).")
                 return iter([])
+            
+            candidate = pa.Table.from_pylist(rows)
 
-            batch = Batch(table=pa.Table.from_pylist(rows))
+            if canonical_schema is None:
+                canonical_schema = candidate.schema
+            
+            self._validate_batch_schema(candidate, canonical_schema)
+            table = candidate.cast(canonical_schema, safe=True)
             logger.debug("SQL source read completed (%d rows).", len(rows))
-            return iter([batch])
+            return iter([Batch(table)])
 
     def _yield_batch(self) -> Iterator[Batch]:
         """Incrementally consume the query result and yield Arrow-backed batches.
@@ -175,7 +185,7 @@ class SqlSource:
             the generator is being consumed. They are released when iteration
             completes, an exception occurs, or the generator is closed.
         """
-        canonical_schema: pa.Schema | None = None
+        canonical_schema: pa.Schema | None = self._schema
         with self._execute_query(streaming=True) as result:
             partitions = result.mappings().partitions(self._batch_size)
 
@@ -292,7 +302,7 @@ class SqlSource:
 
         if actual_schema.names != expected_schema.names:
             raise ValueError(
-                "Incompatible field names or ordering: "
+                "Incompatible names or ordering: "
                 f"expected {expected_schema.names}, got {actual_schema.names}"
             )
 
@@ -303,7 +313,7 @@ class SqlSource:
 
             if not expected_field.nullable and null_count > 0:
                 raise ValueError(
-                    f"Field '{expected_field.name}' is non-nullable "
+                    f"Schema field '{expected_field.name}' is non-nullable "
                     f"but contains {null_count} null values."
                 )
 
@@ -317,6 +327,6 @@ class SqlSource:
                 continue
 
             raise ValueError(
-                f"Incompatible type for field '{expected_field.name}': "
+                f"Incompatible type for schema field '{expected_field.name}': "
                 f"expected {expected_type}, got {actual_type}"
             )
