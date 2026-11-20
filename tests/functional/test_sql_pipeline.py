@@ -226,7 +226,7 @@ def test_zero_row_processed_batch_reaches_sink_without_inserting_rows(
     assert read_processed_records(sqlite_engine) == []
 
 
-def test_sink_stops_early(sqlite_engine: Engine, monkeypatch: pytest.MonkeyPatch):
+def test_sink_stops_early(sqlite_engine: Engine, monkeypatch: pytest.MonkeyPatch) -> None:
     checkouts = []
     checkins = []
 
@@ -268,7 +268,7 @@ def test_sink_stops_early(sqlite_engine: Engine, monkeypatch: pytest.MonkeyPatch
         event.remove(sqlite_engine, "checkin", on_checkin)
 
 
-def test_processor_raises_exception(sqlite_engine: Engine, monkeypatch: pytest.MonkeyPatch):
+def test_processor_raises_exception(sqlite_engine: Engine, monkeypatch: pytest.MonkeyPatch) -> None:
     checkouts = []
     checkins = []
 
@@ -312,7 +312,7 @@ def test_processor_raises_exception(sqlite_engine: Engine, monkeypatch: pytest.M
         event.remove(sqlite_engine, "checkin", on_checkin)
 
 
-def test_sink_raises_exception(sqlite_engine: Engine, monkeypatch: pytest.MonkeyPatch):
+def test_sink_raises_exception(sqlite_engine: Engine, monkeypatch: pytest.MonkeyPatch) -> None:
     checkouts = []
     checkins = []
 
