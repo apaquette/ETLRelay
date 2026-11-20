@@ -50,7 +50,7 @@ class SqlSource:
         *,
         parameters: Mapping[str, Any] | None = None,
         batch_size: int | None = None,
-        schema: pa.Schema | None = None
+        schema: pa.Schema | None = None,
     ) -> None:
         """Initialize the SQL source.
 
@@ -136,23 +136,14 @@ class SqlSource:
             The complete query result is materialized in memory. The SQL result
             and connection are closed before the returned iterator is consumed.
         """
-        canonical_schema: pa.Schema | None = self._schema
         with self._execute_query() as result:
             rows = [dict(row) for row in result.mappings()]
-
             if not rows:
                 logger.debug("SQL source read completed (0 rows).")
                 return iter([])
-            
-            candidate = pa.Table.from_pylist(rows)
+            batch, _ = self._create_batch(rows, self._schema)
 
-            if canonical_schema is None:
-                canonical_schema = candidate.schema
-            
-            self._validate_batch_schema(candidate, canonical_schema)
-            table = candidate.cast(canonical_schema, safe=True)
-            logger.debug("SQL source read completed (%d rows).", len(rows))
-            return iter([Batch(table)])
+            return iter([batch])
 
     def _yield_batch(self) -> Iterator[Batch]:
         """Incrementally consume the query result and yield Arrow-backed batches.
@@ -191,16 +182,26 @@ class SqlSource:
 
             for partition in partitions:
                 rows = [dict(row) for row in partition]
+                batch, schema = self._create_batch(rows, canonical_schema)
+                canonical_schema = schema
+                yield batch
 
-                candidate = pa.Table.from_pylist(rows)
+    def _create_batch(
+        self,
+        rows: list[dict[str, Any]],
+        expected_schema: pa.Schema | None = None,
+    ) -> tuple[Batch, pa.Schema]:
+        candidate = pa.Table.from_pylist(rows)
+        canonical_schema = expected_schema if expected_schema is not None else candidate.schema
 
-                if canonical_schema is None:
-                    canonical_schema = candidate.schema
+        self._validate_batch_schema(candidate, canonical_schema)
 
-                self._validate_batch_schema(candidate, canonical_schema)
-                table = candidate.cast(canonical_schema, safe=True)
-                logger.debug("SQL source read completed batch (%d rows).", len(rows))
-                yield Batch(table)
+        table = (
+            candidate if expected_schema is None else candidate.cast(canonical_schema, safe=True)
+        )
+
+        logger.debug("SQL source created batch (%d rows).", len(rows))
+        return Batch(table), canonical_schema
 
     @contextmanager
     def _execute_query(self, streaming: bool = False) -> Generator[CursorResult, None, None]:
@@ -237,28 +238,18 @@ class SqlSource:
                 self._parameters,
             )
             try:
-                self._validate_column_names(list(result.keys()))
+                column_names = list(result.keys())
+                self._validate_column_names(column_names)
+
+                if self._schema is not None and column_names != self._schema.names:
+                    raise ValueError(
+                        "Incompatible names or ordering: "
+                        f"expected {self._schema.names}, got {column_names}"
+                    )
+
                 yield result
             finally:
                 result.close()
-
-    @staticmethod
-    def _validate_column_names(
-        column_names: Sequence[str],
-    ) -> None:
-        """Ensure result column names are unique.
-
-        Args:
-            column_names: Column names returned by the SQL query.
-
-        Raises:
-            ValueError: If one or more column names occur more than once.
-                The exception identifies the duplicated names.
-        """
-        duplicates = sorted(name for name, count in Counter(column_names).items() if count > 1)
-
-        if duplicates:
-            raise ValueError(f"SQL query returned duplicate column names: {duplicates}")
 
     @staticmethod
     def validate_batch_size(batch_size: int | None) -> None:
@@ -277,6 +268,15 @@ class SqlSource:
         ):
             return
         raise ValueError("Batch size must be a positive integer.")
+
+    @staticmethod
+    def _validate_column_names(
+        column_names: Sequence[str],
+    ) -> None:
+        duplicates = sorted(name for name, count in Counter(column_names).items() if count > 1)
+
+        if duplicates:
+            raise ValueError(f"SQL query returned duplicate column names: {duplicates}")
 
     @staticmethod
     def _validate_batch_schema(table: pa.Table, expected_schema: pa.Schema) -> None:
@@ -320,10 +320,7 @@ class SqlSource:
             actual_type = actual_field.type
             expected_type = expected_field.type
 
-            if actual_type.equals(expected_type):
-                continue
-
-            if pa.types.is_null(actual_type):
+            if actual_type.equals(expected_type) or pa.types.is_null(actual_type):
                 continue
 
             raise ValueError(
