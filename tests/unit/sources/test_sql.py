@@ -38,6 +38,17 @@ class TestSqlSource:
         result.mappings.return_value = rows
         return result
 
+    def make_empty_result(self, columns: list[str]) -> MagicMock:
+        """Create an empty SQLAlchemy result supporting eager and streaming reads."""
+        result = self.make_result(columns, [])
+
+        mappings = MagicMock()
+        mappings.__iter__.return_value = iter([])
+        mappings.partitions.return_value = iter([])
+
+        result.mappings.return_value = mappings
+        return result
+
     def test_read_executes_query_and_returns_one_batch(self, sqlalchemy_mocks) -> None:
         """Execute the parameterized query and convert its rows to a batch."""
         engine, connection, connection_context = sqlalchemy_mocks
@@ -164,6 +175,92 @@ class TestSqlSource:
         connection_context.__exit__.assert_called_once()
         assert connection_context.__exit__.call_args.args[0] is pa.ArrowInvalid
         engine.dispose.assert_not_called()
+
+    @pytest.mark.parametrize(
+        "batch_size",
+        [None, 1],
+        ids=["eager", "streaming"],
+    )
+    @pytest.mark.parametrize(
+        "schema",
+        [
+            pytest.param(
+                pa.schema(
+                    [
+                        pa.field("wrong_id", pa.int64()),
+                        pa.field("name", pa.string()),
+                    ]
+                ),
+                id="column-name-mismatch",
+            ),
+            pytest.param(
+                pa.schema(
+                    [
+                        pa.field("name", pa.string()),
+                        pa.field("id", pa.int64()),
+                    ]
+                ),
+                id="column-order-mismatch",
+            ),
+        ],
+    )
+    def test_read_rejects_incompatible_explicit_schema_for_empty_result(
+        self,
+        sqlalchemy_mocks,
+        batch_size: int | None,
+        schema: pa.Schema,
+    ) -> None:
+        """Reject an explicit schema incompatible with empty query result columns."""
+        engine, connection, connection_context = sqlalchemy_mocks
+        result = self.make_empty_result(["id", "name"])
+        connection.execute.return_value = result
+
+        source = SqlSource(
+            engine,
+            "SELECT id, name FROM customers WHERE 1 = 0",
+            batch_size=batch_size,
+            schema=schema,
+        )
+
+        with pytest.raises(ValueError):
+            list(source.read())
+
+        result.close.assert_called_once_with()
+        connection_context.__exit__.assert_called_once()
+
+    @pytest.mark.parametrize(
+        "batch_size",
+        [None, 1],
+        ids=["eager", "streaming"],
+    )
+    def test_read_accepts_matching_explicit_schema_for_empty_result(
+        self,
+        sqlalchemy_mocks,
+        batch_size: int | None,
+    ) -> None:
+        """Return no batches when an empty result matches its explicit schema."""
+        engine, connection, connection_context = sqlalchemy_mocks
+        result = self.make_empty_result(["id", "name"])
+        connection.execute.return_value = result
+
+        schema = pa.schema(
+            [
+                pa.field("id", pa.int64()),
+                pa.field("name", pa.string()),
+            ]
+        )
+
+        source = SqlSource(
+            engine,
+            "SELECT id, name FROM customers WHERE 1 = 0",
+            batch_size=batch_size,
+            schema=schema,
+        )
+
+        assert list(source.read()) == []
+
+        result.close.assert_called_once_with()
+        connection_context.__exit__.assert_called_once_with(None, None, None)
 
 
 class TestSqlSourceBatch:

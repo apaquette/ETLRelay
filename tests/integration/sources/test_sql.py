@@ -168,7 +168,7 @@ def test_read_logs_row_count_without_query_parameters(
         record.message for record in caplog.records if record.name == "etlrelay.sources.sql"
     ]
 
-    assert messages == ["SQL source read completed (1 rows)."]
+    assert messages == ["SQL source created batch (1 rows)."]
     assert batches[0].table.to_pylist() == [{"value": secret}]
     assert secret not in caplog.text
     assert "SELECT :secret" not in caplog.text
@@ -780,10 +780,7 @@ def test_explicit_schema_preserves_type_for_entirely_null_column(
             check_metadata=False,
         )
 
-    assert sum(
-        batch.table.column("optional_value").null_count
-        for batch in batches
-    ) == 2
+    assert sum(batch.table.column("optional_value").null_count for batch in batches) == 2
 
 
 @pytest.mark.parametrize(
