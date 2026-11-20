@@ -26,12 +26,28 @@ class SqlSource:
     and yielded in batches containing no more than the configured number of rows.
     The final batch may contain fewer rows.
 
-    An empty result set produces no batches. Result ordering follows the order
-    returned by the database; use an SQL ``ORDER BY`` clause when deterministic
-    ordering is required.
+    An optional Arrow schema can be supplied to establish the canonical schema
+    for the query, regardless of whether batching is enabled. Its field names
+    and ordering must match the SQL result columns, and result values must be
+    compatible with its field types and nullability.
 
-    The source manages the connections and query results it acquires but does
-    not own or dispose of the supplied engine.
+    When no schema is supplied, the schema is inferred from the complete result
+    in unbatched mode or from the first non-empty batch in batched mode.
+    Subsequent batches retain the inferred schema and must contain compatible
+    field names, ordering, data types, and nullability.
+
+    Null-only columns in subsequent batches retain their established data types.
+    However, a column initially inferred as the Arrow null type cannot be
+    promoted to a concrete type by later batches. Supplying a schema allows
+    callers to specify concrete types for columns containing only null values.
+
+    An empty result set produces no batches. Supplied schema names and ordering
+    are validated even when the result contains no rows. Result ordering follows
+    the order returned by the database; use an SQL ``ORDER BY`` clause when
+    deterministic ordering is required.
+
+    The source manages the connections and query results it acquires but
+    does not own or dispose of the supplied engine.
     """
 
     def __init__(
@@ -41,6 +57,7 @@ class SqlSource:
         *,
         parameters: Mapping[str, Any] | None = None,
         batch_size: int | None = None,
+        schema: pa.Schema | None = None,
     ) -> None:
         """Initialize the SQL source.
 
@@ -53,19 +70,26 @@ class SqlSource:
                 Values are bound separately from the SQL statement.
             batch_size: Optional maximum number of rows per batch. When ``None``,
                 the complete result is returned as a single batch. When specified,
-                results are consumed incrementally in batches of this size.
+                results are consumed incrementally in batches of this size. Every
+                batch produced by the query retains a consistent Arrow schema.
+            schema: Optional canonical Arrow schema for the query. Its field
+                names and ordering must match the SQL result columns. Result
+                values must be compatible with the declared field types and
+                nullability. When omitted, the schema is inferred from the
+                query result.
 
         Raises:
             ValueError: If ``batch_size`` is not ``None`` or a positive integer.
                 Boolean values are not accepted as integers.
         """
-        self._validate_batch_size(batch_size)
+        self.validate_batch_size(batch_size)
 
         self._engine = engine
         self._query = query
         self._parameters = parameters
         self._batch_size = batch_size
         self._execution_mode = self._fetch_batch if batch_size is None else self._yield_batch
+        self._schema = schema
 
     def read(self) -> Iterator[Batch]:
         """Execute the query and return its results as an iterator of batches.
@@ -86,7 +110,9 @@ class SqlSource:
             when batching is enabled.
 
         Raises:
-            ValueError: If the query returns duplicate column names.
+            ValueError: If the query returns duplicate column names, its result
+                columns do not match the supplied schema, or result data has an
+                incompatible schema.
             SQLAlchemyError: If establishing the connection or executing the
                 query fails.
             Exception: Other exceptions raised during result retrieval or Arrow
@@ -97,6 +123,14 @@ class SqlSource:
             closed before this method returns. In batched mode, they remain open
             while the generator is being consumed and are closed when iteration
             completes, an exception occurs, or the generator is closed.
+
+            When a schema is supplied, it establishes the canonical schema
+            regardless of execution mode. Otherwise, the schema is inferred
+            from the complete result in unbatched mode or from the first
+            non-empty batch in batched mode.
+
+            Schema incompatibilities are raised when the incompatible result
+            is processed. In streaming mode, this occurs during iteration.
 
             Consumers that stop iterating before exhaustion should explicitly
             close the generator to release SQL resources promptly.
@@ -124,9 +158,8 @@ class SqlSource:
             if not rows:
                 logger.debug("SQL source read completed (0 rows).")
                 return iter([])
+            batch, _ = self._create_batch(rows, self._schema)
 
-            batch = self._rows_to_batch(rows)
-            logger.debug("SQL source read completed (%d rows).", len(rows))
             return iter([batch])
 
     def _yield_batch(self) -> Iterator[Batch]:
@@ -136,25 +169,75 @@ class SqlSource:
         Result rows are consumed in partitions no larger than the configured
         batch size, with each partition converted into a separate batch.
 
-        An empty result produces no batches. The final batch may contain fewer
-        rows than the configured batch size.
+        The supplied schema, when present, establishes the canonical schema
+        for the query execution. Otherwise, the schema inferred from the first
+        non-empty batch establishes the canonical schema. Subsequent batches
+        must have compatible field names, ordering, data types, and nullability.
+
+        Null-only columns in subsequent batches retain their corresponding
+        types from the canonical schema. Incompatible populated values cause
+        a ValueError rather than automatic type promotion or conversion.
+
+        An empty result produces no batches. The final batch may contain
+        fewer rows than the configured batch size.
 
         Yields:
             Arrow-backed batches containing no more than the configured number
-            of rows.
+            of rows and sharing a consistent schema.
+
+        Raises:
+            ValueError: If the supplied or inferred canonical schema is
+                incompatible with a batch.
 
         Note:
-            The query result and connection remain open while the generator is
-            being consumed. They are released when iteration completes, an
-            exception occurs, or the generator is closed.
+            The canonical schema is established independently for each
+            execution. The query result and connection remain open while
+            the generator is being consumed. They are released when iteration
+            completes, an exception occurs, or the generator is closed.
         """
+        canonical_schema: pa.Schema | None = self._schema
         with self._execute_query(streaming=True) as result:
             partitions = result.mappings().partitions(self._batch_size)
 
             for partition in partitions:
                 rows = [dict(row) for row in partition]
-                batch = self._rows_to_batch(rows)
+                batch, canonical_schema = self._create_batch(rows, canonical_schema)
                 yield batch
+
+    def _create_batch(
+        self,
+        rows: list[dict[str, Any]],
+        expected_schema: pa.Schema | None = None,
+    ) -> tuple[Batch, pa.Schema]:
+        """Create an Arrow-backed batch using a canonical schema.
+
+        The candidate Arrow table is constructed from the supplied rows.
+        When an expected schema is provided, the candidate is validated
+        against it and converted to that schema. Otherwise, its inferred
+        schema becomes the canonical schema.
+
+        Args:
+            rows: Rows retrieved from the SQL query.
+            expected_schema: Optional canonical schema established by the
+                caller or an earlier batch.
+
+        Returns:
+            The constructed batch and the canonical schema used for it.
+
+        Raises:
+            ValueError: If the candidate table has incompatible field names,
+                ordering, data types, or nullability.
+        """
+        candidate = pa.Table.from_pylist(rows)
+        canonical_schema = expected_schema if expected_schema is not None else candidate.schema
+
+        self._validate_batch_schema(candidate, canonical_schema)
+
+        table = (
+            candidate if expected_schema is None else candidate.cast(canonical_schema, safe=True)
+        )
+        logger.debug("SQL source created batch (%d rows).", len(rows))
+        return Batch(table), canonical_schema
 
     @contextmanager
     def _execute_query(self, streaming: bool = False) -> Generator[CursorResult, None, None]:
@@ -162,7 +245,9 @@ class SqlSource:
 
         A connection is acquired from the caller-provided engine and used to
         execute the configured query and parameters. Result column names are
-        validated before the result is made available.
+        validated for uniqueness and, when an explicit schema is supplied,
+        against its field names and ordering. This validation occurs even when
+        the query returns no rows.
 
         When streaming is enabled, SQLAlchemy's ``yield_per`` execution option
         is configured using the source's batch size before query execution.
@@ -175,7 +260,8 @@ class SqlSource:
             The SQLAlchemy cursor result containing the query results.
 
         Raises:
-            ValueError: If the query returns duplicate column names.
+            ValueError: If the query returns duplicate column names or its
+                result columns do not match the supplied schema.
             SQLAlchemyError: If connection acquisition or query execution fails.
 
         Note:
@@ -191,10 +277,36 @@ class SqlSource:
                 self._parameters,
             )
             try:
-                self._validate_column_names(list(result.keys()))
+                column_names = list(result.keys())
+                self._validate_column_names(column_names)
+
+                if self._schema is not None and column_names != self._schema.names:
+                    raise ValueError(
+                        "Incompatible names or ordering: "
+                        f"expected {self._schema.names}, got {column_names}"
+                    )
+
                 yield result
             finally:
                 result.close()
+
+    @staticmethod
+    def validate_batch_size(batch_size: int | None) -> None:
+        """Validate the optional batch size.
+
+        Args:
+            batch_size: Maximum number of rows per batch. ``None`` disables
+                batching and preserves the default single-batch behaviour.
+
+        Raises:
+            ValueError: If ``batch_size`` is neither ``None`` nor a positive
+                integer. Boolean values are explicitly rejected.
+        """
+        if batch_size is None or (
+            isinstance(batch_size, int) and batch_size > 0 and not isinstance(batch_size, bool)
+        ):
+            return
+        raise ValueError("Batch size must be a positive integer.")
 
     @staticmethod
     def _validate_column_names(
@@ -215,32 +327,51 @@ class SqlSource:
             raise ValueError(f"SQL query returned duplicate column names: {duplicates}")
 
     @staticmethod
-    def _rows_to_batch(rows: list[dict[str, Any]]) -> Batch:
-        """Convert materialized SQL rows into an Arrow-backed batch.
+    def _validate_batch_schema(table: pa.Table, expected_schema: pa.Schema) -> None:
+        """Validate a batch against its expected Arrow schema.
+
+        Field names and ordering must match. Field data types must match,
+        except that an inferred null type is compatible with an expected
+        nullable field. Actual null values are rejected when the expected
+        field is non-nullable.
+
+        Schema and field metadata differences are ignored. This method
+        validates compatibility without modifying or converting the table.
 
         Args:
-            rows: Non-empty list of database rows represented as dictionaries.
-
-        Returns:
-            A batch containing a PyArrow table constructed from the supplied rows.
-            PyArrow infers column types from the row values.
-        """
-        return Batch(table=pa.Table.from_pylist(rows))
-
-    @staticmethod
-    def _validate_batch_size(batch_size: int | None) -> None:
-        """Validate the optional batch size.
-
-        Args:
-            batch_size: Maximum number of rows per batch. ``None`` disables
-                batching and preserves the default single-batch behaviour.
+            table: Arrow table representing the current batch.
+            expected_schema: Canonical schema established for the query.
 
         Raises:
-            ValueError: If ``batch_size`` is not ``None`` or a positive integer.
-                Boolean values are explicitly rejected.
+            ValueError: If field names, ordering, data types, or nullability
+                are incompatible with the expected schema.
         """
-        if batch_size is None or (
-            isinstance(batch_size, int) and batch_size > 0 and not isinstance(batch_size, bool)
+        actual_schema = table.schema
+
+        if actual_schema.names != expected_schema.names:
+            raise ValueError(
+                "Incompatible names or ordering: "
+                f"expected {expected_schema.names}, got {actual_schema.names}"
+            )
+
+        for index, (actual_field, expected_field) in enumerate(
+            zip(actual_schema, expected_schema, strict=True)
         ):
-            return
-        raise ValueError("Batch size must be a positive integer.")
+            null_count = table.column(index).null_count
+
+            if not expected_field.nullable and null_count > 0:
+                raise ValueError(
+                    f"Schema field '{expected_field.name}' is non-nullable "
+                    f"but contains {null_count} null values."
+                )
+
+            actual_type = actual_field.type
+            expected_type = expected_field.type
+
+            if actual_type.equals(expected_type) or pa.types.is_null(actual_type):
+                continue
+
+            raise ValueError(
+                f"Incompatible type for schema field '{expected_field.name}': "
+                f"expected {expected_type}, got {actual_type}"
+            )
