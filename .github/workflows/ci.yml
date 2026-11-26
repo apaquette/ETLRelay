@@ -446,6 +446,9 @@ jobs:
 
       - name: Verify installed dependency consistency
         run: uv pip check --python .venv/bin/python
+      
+      - name: Verify PostgreSQL test database configuration
+        run: test -n "$ETLRELAY_TEST_POSTGRES_URL"
 
       - name: Run PostgreSQL integration tests
         run: uv run pytest -k postgresql
