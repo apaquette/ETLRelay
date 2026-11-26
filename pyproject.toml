@@ -41,6 +41,9 @@ ci = [
     "pyright>=1.1,<2",
 ]
 
+[project.optional-dependencies]
+postgres = ["psycopg[binary]>=3.3.6,<4"]
+
 [tool.hatch.build.targets.wheel]
 packages = ["src/etlrelay"]
 
