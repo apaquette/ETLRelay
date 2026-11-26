@@ -7,7 +7,7 @@ from contextlib import contextmanager
 from typing import Any
 
 import pyarrow as pa
-from sqlalchemy import CursorResult, text
+from sqlalchemy import CursorResult, Select, text
 from sqlalchemy.engine import Engine
 
 from etlrelay.core import Batch
@@ -49,11 +49,10 @@ class SqlSource:
     The source manages the connections and query results it acquires but
     does not own or dispose of the supplied engine.
     """
-
     def __init__(
         self,
         engine: Engine,
-        query: str,
+        query: str | Select,
         *,
         parameters: Mapping[str, Any] | None = None,
         batch_size: int | None = None,
@@ -79,17 +78,18 @@ class SqlSource:
                 query result.
 
         Raises:
-            ValueError: If ``batch_size`` is not ``None`` or a positive integer.
-                Boolean values are not accepted as integers.
+            ValueError: If any constructor argument fails validation. Validation
+                errors are aggregated into a single exception message.
         """
-        self.validate_batch_size(batch_size)
-
         self._engine = engine
         self._query = query
         self._parameters = parameters
         self._batch_size = batch_size
-        self._execution_mode = self._fetch_batch if batch_size is None else self._yield_batch
         self._schema = schema
+
+        self._validate()
+
+        self._execution_mode = self._fetch_batch if batch_size is None else self._yield_batch
 
     def read(self) -> Iterator[Batch]:
         """Execute the query and return its results as an iterator of batches.
@@ -239,6 +239,17 @@ class SqlSource:
         logger.debug("SQL source created batch (%d rows).", len(rows))
         return Batch(table), canonical_schema
 
+    def _validate(self) -> None:
+        errors = []
+        errors.extend(self.validate_engine(self._engine))
+        errors.extend(self.validate_query(self._query))
+        errors.extend(self.validate_parameters(self._parameters))
+        errors.extend(self.validate_batch_size(self._batch_size))
+        errors.extend(self.validate_schema(self._schema))
+
+        if errors:
+            raise ValueError("\n".join(errors))
+
     @contextmanager
     def _execute_query(self, streaming: bool = False) -> Generator[CursorResult, None, None]:
         """Execute the configured SQL query within a managed connection context.
@@ -272,8 +283,14 @@ class SqlSource:
         with self._engine.connect() as connection:
             if streaming:
                 connection.execution_options(yield_per=self._batch_size)
+
+            statement = self._query
+
+            if isinstance(statement, str):
+                statement = text(statement)
+
             result = connection.execute(
-                text(self._query),
+                statement,
                 self._parameters,
             )
             try:
@@ -291,7 +308,40 @@ class SqlSource:
                 result.close()
 
     @staticmethod
-    def validate_batch_size(batch_size: int | None) -> None:
+    def validate_engine(engine: Any) -> list[str]:
+        errors = []
+        if not isinstance(engine, Engine):
+            errors.append("engine must satisfy sqlalchemy type `Engine`")
+        return errors
+
+    @staticmethod
+    def validate_query(query: Any) -> list[str]:
+        errors = []
+        if (
+            not isinstance(query, Select)
+            and not isinstance(query, str)
+            or (isinstance(query, str) and not query.strip())
+        ):
+            errors.append("Query is invalid.")
+        return errors
+
+    @staticmethod
+    def validate_parameters(parameters: Any | None) -> list[str]:
+        if parameters is None:
+            return []
+
+        errors = []
+        if not isinstance(parameters, Mapping):
+            errors.append("Parameters must be of type `Mapping`")
+        else:
+            keys = parameters.keys()
+            if not all(isinstance(key, str) and key for key in keys):
+                errors.append("Parameter keys must be non-empty strings")
+
+        return errors
+
+    @staticmethod
+    def validate_batch_size(batch_size: Any | None) -> list[str]:
         """Validate the optional batch size.
 
         Args:
@@ -302,11 +352,19 @@ class SqlSource:
             ValueError: If ``batch_size`` is neither ``None`` nor a positive
                 integer. Boolean values are explicitly rejected.
         """
-        if batch_size is None or (
-            isinstance(batch_size, int) and batch_size > 0 and not isinstance(batch_size, bool)
+        errors = []
+        if batch_size is not None and (
+            not isinstance(batch_size, int) or batch_size <= 0 or isinstance(batch_size, bool)
         ):
-            return
-        raise ValueError("Batch size must be a positive integer.")
+            errors.append("Batch size must be a positive integer.")
+        return errors
+
+    @staticmethod
+    def validate_schema(schema: Any | None) -> list[str]:
+        errors = []
+        if schema is not None and not isinstance(schema, pa.Schema):
+            errors.append("schema must satisfy type `pa.Schema`")
+        return errors
 
     @staticmethod
     def _validate_column_names(
