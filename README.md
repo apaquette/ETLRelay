@@ -149,9 +149,9 @@ For the changes introduced in each release, see the
 ETLRelay v1.0.1 retains the stable functionality and public contracts
 established in v1.0.0.
 
-The supported feature set covers synchronous local CSV/Parquet and SQLite
-pipelines, the three existing processors, YAML schema version `1`, and CLI
-execution. Public Python interfaces and documented behavior follow the
+The published v1.0.1 feature set covers synchronous local CSV/Parquet and
+SQLite pipelines, the three existing processors, YAML schema version `1`, and
+CLI execution. Public Python interfaces and documented behavior follow the
 [compatibility policy](https://apaquette.github.io/ETLRelay/1.0.1/compatibility/).
 
 The stable release retains the reviewed schema, exception, resource ownership,
@@ -318,7 +318,7 @@ For file-based pipelines, the current implementation supports the local filesyst
 
 ### SQL Sources and Sinks
 
-`SqlSource` and `SqlSink` implement the core source/sink contracts using SQLAlchemy. They are separate from file storage and file-format readers/writers. Query values can be supplied as bound parameters; the sink appends to an existing table using one transaction per non-empty batch. The caller owns the SQLAlchemy engine. SQLite is the reference integration-test backend; see [SQL source and sink](https://apaquette.github.io/ETLRelay/1.0.1/architecture/sql_source_and_sink/) for identifier handling, empty-data behavior, transaction boundaries, and limitations.
+`SqlSource` and `SqlSink` implement the core source/sink contracts using SQLAlchemy. They are separate from file storage and file-format readers/writers. Query values can be supplied as bound parameters; the sink appends to an existing table using one transaction per non-empty batch. The caller owns the SQLAlchemy engine. SQLite remains the self-contained reference integration-test backend. The development branch additionally verifies PostgreSQL source and sink integration with Psycopg 3 against PostgreSQL 15–18. This work is not part of the published v1.0.1 package; it will be included in a release that ships the optional `postgres` extra. See [SQL source and sink](docs/architecture/sql_source_and_sink.md) for the driver, installation, tested data types, identifier handling, transactions, and limitations.
 
 ### Declarative YAML Configuration
 

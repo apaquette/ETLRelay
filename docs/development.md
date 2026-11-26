@@ -144,6 +144,14 @@ The primary CI job runs on Ubuntu with Python 3.12 and checks:
 - Installed CLI behavior and a complete local CSV pipeline.
 - Selected CLI failure codes and sensitive-data disclosure regressions.
 
+A separate `postgresql-integration` job runs the SQL integration tests
+against PostgreSQL 15, 16, 17, and 18 using GitHub Actions service containers.
+It installs the optional `postgres` extra and sets
+`ETLRELAY_TEST_POSTGRES_URL`. The `pytest -k postgresql` selection runs the
+PostgreSQL variants of shared SQL tests, the PostgreSQL-specific source and
+sink tests, and the SQL round-trip test. The job fails if the PostgreSQL
+integration tests fail or the database URL is not configured.
+
 The compatibility matrix verifies the same built wheel and source distribution in these additional configurations:
 
 | Platform | Python | Verification |

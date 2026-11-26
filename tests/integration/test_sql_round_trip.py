@@ -1,11 +1,22 @@
 """Integration tests for SQL source and sink round trips."""
 
+import os
 from collections.abc import Iterator
 from pathlib import Path
+from uuid import uuid4
 
 import pyarrow as pa
 import pytest
-from sqlalchemy import Column, Float, Integer, MetaData, String, Table, create_engine
+from sqlalchemy import (
+    Column,
+    Float,
+    Integer,
+    MetaData,
+    String,
+    Table,
+    create_engine,
+    text,
+)
 from sqlalchemy.engine import Engine
 
 from etlrelay.core import Batch
@@ -13,12 +24,9 @@ from etlrelay.sinks import SqlSink
 from etlrelay.sources import SqlSource
 
 
-@pytest.fixture
-def sqlite_engine(tmp_path: Path) -> Iterator[Engine]:
-    """Create a temporary SQLite database with a target table."""
-    engine = create_engine(f"sqlite:///{tmp_path / 'sql_round_trip.db'}")
+def _create_transaction_records(engine: Engine) -> None:
+    """Create and seed the common customer table in an isolated database/schema."""
     metadata = MetaData()
-
     Table(
         "transactions",
         metadata,
@@ -29,16 +37,63 @@ def sqlite_engine(tmp_path: Path) -> Iterator[Engine]:
 
     metadata.create_all(engine)
 
+
+@pytest.fixture
+def sqlite_engine(tmp_path: Path) -> Iterator[Engine]:
+    """Create a temporary SQLite database with a target table."""
+    engine = create_engine(f"sqlite:///{tmp_path / 'sql_round_trip.db'}")
+
     try:
+        _create_transaction_records(engine)
         yield engine
     finally:
         engine.dispose()
 
 
+@pytest.fixture
+def postgresql_engine() -> Iterator[Engine]:
+    """Create a temporary PostgreSQL database with a target table."""
+    postgres_url = os.environ.get("ETLRELAY_TEST_POSTGRES_URL")
+    if not postgres_url:
+        pytest.skip("ETLRELAY_TEST_POSTGRES_URL is not set")
+
+    admin_engine = create_engine(postgres_url)
+    schema = f"etlrelay_test_{uuid4().hex}"
+    schema_created = False
+
+    try:
+        with admin_engine.begin() as connection:
+            connection.execute(text(f'CREATE SCHEMA "{schema}"'))
+        schema_created = True
+
+        engine = create_engine(
+            postgres_url,
+            connect_args={"options": f"-c search_path={schema}"},
+        )
+        try:
+            _create_transaction_records(engine)
+            yield engine
+        finally:
+            engine.dispose()
+    finally:
+        try:
+            if schema_created:
+                with admin_engine.begin() as connection:
+                    connection.execute(text(f'DROP SCHEMA "{schema}" CASCADE'))
+        finally:
+            admin_engine.dispose()
+
+
+@pytest.fixture(params=("sqlite_engine", "postgresql_engine"), ids=("sqlite", "postgresql"))
+def sql_engine(request: pytest.FixtureRequest) -> Engine:
+    """Run shared SQL sink tests against each configured database engine."""
+    return request.getfixturevalue(request.param)
+
+
 class TestSqlRoundTrip:
     def test_sql_sink_output_can_be_read_by_sql_source(
         self,
-        sqlite_engine: Engine,
+        sql_engine: Engine,
     ) -> None:
         """Preserve values and nulls across a SQL sink/source round trip."""
         table = pa.table(
@@ -55,11 +110,11 @@ class TestSqlRoundTrip:
             }
         )
 
-        sink = SqlSink(sqlite_engine, "transactions")
+        sink = SqlSink(sql_engine, "transactions")
         sink.write([Batch(table=table)])
 
         source = SqlSource(
-            sqlite_engine,
+            sql_engine,
             """
             SELECT id, description, amount
             FROM transactions

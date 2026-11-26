@@ -47,6 +47,16 @@ def verify_dependencies(declared: list[str], packaged: list[str], artifact: str)
     )
 
 
+def is_extra_dependency(requirement: str) -> bool:
+    """Identify dependencies conditional on an optional extra."""
+    parsed = Requirement(requirement)
+
+    return (
+        parsed.marker is not None
+        and re.search(r"(?<!['\"])\bextra\b(?!['\"])", str(parsed.marker)) is not None
+    )
+
+
 def read_metadata(text: str):
     """Parse Python core distribution metadata."""
     return Parser().parsestr(text)
@@ -122,7 +132,13 @@ def main() -> None:
             "Wheel Python requirement differs from pyproject.toml.",
         )
 
-        verify_dependencies(project["dependencies"], metadata.get_all("Requires-Dist", []), "Wheel")
+        packaged_dependencies = [
+            requirement
+            for requirement in metadata.get_all("Requires-Dist", [])
+            if not is_extra_dependency(requirement)
+        ]
+
+        verify_dependencies(project["dependencies"], packaged_dependencies, "Wheel")
 
         entry_points = configparser.ConfigParser()
         entry_points.read_string(wheel.read(f"{dist_info}/entry_points.txt").decode("utf-8"))
@@ -183,7 +199,14 @@ def main() -> None:
             == normalize_python_requirement(python_requirement),
             "Sdist Python requirement differs from pyproject.toml.",
         )
-        verify_dependencies(project["dependencies"], metadata.get_all("Requires-Dist", []), "Sdist")
+
+        packaged_dependencies = [
+            requirement
+            for requirement in metadata.get_all("Requires-Dist", [])
+            if not is_extra_dependency(requirement)
+        ]
+
+        verify_dependencies(project["dependencies"], packaged_dependencies, "Sdist")
 
     print(f"Source distribution verified: {sdists[0].name}")
     print(f"Verified {len(source_modules)} packaged Python modules.")

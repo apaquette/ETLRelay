@@ -100,9 +100,93 @@ owned by that factory after the pipeline has finished.
 
 ## Database support
 
-The API accepts a SQLAlchemy `Engine`, so the actual connection URL, dialect, and DBAPI driver determine which database can be connected to. SQLite is the reference backend used by the automated integration tests because it is self-contained and repeatable.
+The SQL components accept a SQLAlchemy `Engine`. The connection URL selects
+the SQLAlchemy dialect and DBAPI driver. ETLRelay currently has automated
+integration coverage for SQLite and PostgreSQL:
 
-The project does not currently promise equal behavior or continuous integration coverage for every SQLAlchemy dialect. A database other than SQLite needs its appropriate SQLAlchemy dialect/driver and should be verified against the queries, column types, constraints, and transaction behavior used by an application. Connection URLs may contain credentials in real deployments; examples in this documentation deliberately use in-memory SQLite and contain no credentials.
+| Database | SQLAlchemy dialect / driver | Tested server versions | Verification |
+| --- | --- | --- | --- |
+| SQLite | `sqlite+pysqlite` / Python's SQLite driver | SQLite supplied by the test runtime | Shared SQL source and sink integration tests, plus the SQL round-trip test |
+| PostgreSQL | `postgresql+psycopg` / Psycopg 3 (synchronous) | PostgreSQL 15, 16, 17, and 18 | Shared SQL source and sink integration tests, PostgreSQL-specific tests, and the SQL round-trip test |
+
+SQLite remains the self-contained reference backend. PostgreSQL 15 is the
+baseline for the PostgreSQL integration matrix; CI also verifies PostgreSQL
+16–18. These results establish the tested combinations above, not universal
+compatibility with every SQLAlchemy dialect, server version, driver, or database
+type. Other database backends require their own integration verification.
+
+### PostgreSQL installation
+
+The PostgreSQL driver is an optional dependency. Install the `postgres` extra
+from an ETLRelay release that includes PostgreSQL support:
+
+```bash
+python -m pip install "ETLRelay[postgres]"
+```
+
+In a development checkout, synchronize the project with the optional extra:
+
+```bash
+uv sync --extra postgres
+```
+
+The extra currently installs `psycopg[binary]>=3.3.6,<4`. ETLRelay uses the
+synchronous Psycopg 3 driver through SQLAlchemy's `postgresql+psycopg`
+dialect. Psycopg 2 and alternative PostgreSQL drivers are not part of the
+verified integration.
+
+A SQLAlchemy connection URL has this form:
+
+```text
+postgresql+psycopg://user:password@host:5432/database
+```
+
+Keep credentials in the application's secret/configuration mechanism rather
+than committing them to source control. For integration tests, provide
+`ETLRELAY_TEST_POSTGRES_URL` pointing to a disposable PostgreSQL database.
+The PostgreSQL CI job provisions its own service container and runs the SQL
+integration tests against each server version in the matrix.
+
+### Verified PostgreSQL data types
+
+The integration tests exercise representative conversions in both directions:
+PostgreSQL result values into Arrow through `SqlSource`, and Arrow values into
+PostgreSQL columns through `SqlSink`.
+
+| PostgreSQL type / test value | Arrow representation verified |
+| --- | --- |
+| `SMALLINT`, `INTEGER`, `BIGINT` | `int64` |
+| `REAL`, `DOUBLE PRECISION` | `float64` |
+| `NUMERIC(7, 2)` | Decimal type with scale 2 |
+| `BOOLEAN` | `bool` |
+| `TEXT`, `VARCHAR(20)` | `string` |
+| `DATE` | `date32` |
+| `TIME` | `time64` |
+| `TIMESTAMP` | Timestamp without a timezone |
+| `TIMESTAMPTZ` | Timezone-aware timestamp |
+| A typed SQL `NULL` / nullable integer value | Arrow null value |
+
+This is a representative test set, not a claim that every precision, scale,
+timezone, temporal range, PostgreSQL extension type, or SQL type is supported.
+Types not covered by these tests—including arrays, JSON/JSONB, UUID, enums,
+network types, intervals, and custom types—are outside the currently verified
+scope.
+
+### PostgreSQL-specific integration coverage
+
+The PostgreSQL tests also verify:
+
+- Schema-qualified queries and writes using a non-default schema.
+- Reserved table names and quoted mixed-case table and column identifiers.
+- SQLAlchemy reflection of existing destination tables.
+- Per-nonempty-batch transaction behavior, including rollback of a failed
+  batch while preserving a previously committed batch.
+- Connection return to the SQLAlchemy pool after streaming early termination,
+  source result-processing failure, and successful or failed sink writes.
+
+Shared SQL source and sink contract tests run against both SQLite and
+PostgreSQL. The dedicated PostgreSQL CI matrix runs those PostgreSQL variants
+alongside the PostgreSQL-specific integration tests.
 
 ## Query values and identifiers
 
@@ -171,7 +255,7 @@ the pipeline's separate output-schema compatibility checks.
 - **No automatic retries:** connection, query, constraint, and write failures propagate to the caller.
 - **No pipeline-wide transaction:** transactions are scoped to individual non-empty sink batches.
 - **No database-specific bulk strategy or pagination guarantee:** a non-empty source query is materialized as one batch, so large query results may require significant memory.
-- **No universal dialect guarantee:** SQLite is the continuously exercised integration backend; other configured SQLAlchemy dialects need application-level verification.
+- **Limited dialect coverage:** SQLite and PostgreSQL have automated integration coverage as described above. Other configured SQLAlchemy dialects need independent verification.
 - **No automatic credential management or authorization layer:** the caller is responsible for configuring connections, managing secrets, and limiting database permissions.
 
 These limits are deliberate. Additional write modes, ORM support, migrations, retries, pagination, and broader database integration should be introduced only with explicit requirements and corresponding tests.
