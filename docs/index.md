@@ -62,8 +62,12 @@ ETLRelay includes:
 - Resource lifecycle management and documented error propagation.
 - Unit, integration, functional, and installed-distribution tests.
 
-SQLite is the reference SQL integration-test backend. Other SQLAlchemy
-dialects require appropriate drivers and application-level verification.
+SQLite is the self-contained reference SQL integration-test backend.
+The development branch also verifies PostgreSQL source and sink integration
+with Psycopg 3 against PostgreSQL 15–18. This PostgreSQL work is not part of
+the published v1.0.1 package; it will be included in a release that ships the
+optional `postgres` extra. Other SQLAlchemy dialects require their own
+integration verification.
 
 ETLRelay supports CPython 3.12, 3.13, and 3.14.
 
