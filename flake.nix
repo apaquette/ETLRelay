@@ -36,6 +36,9 @@
               pkgs.ruff
               pkgs.pyright
 
+              # Container tooling
+              pkgs.docker
+
               fix-python.packages.${system}.default
             ];
 
@@ -67,6 +70,7 @@
               echo "uv:     $(uv --version)"
               echo "Ruff:   $(ruff --version)"
               echo "Pyright: $(pyright --version)"
+              echo "Docker: $(docker --version)"
 
               # Git Configuration
               git config --global user.name "Alex Paquette"
