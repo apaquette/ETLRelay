@@ -122,10 +122,9 @@ class SqlSinkConfigValidator:
         if mapping["type"] != "sql":
             errors.append(f"{path}.type must be 'sql'.")
 
-        for key in {"connection_url_env", "table_name"}:
-            error = non_empty_string_error(mapping[key], f"{path}.{key}")
-            if error is not None:
-                errors.append(error)
+        error = non_empty_string_error(mapping["connection_url_env"], f"{path}.connection_url_env")
+        if error is not None:
+            errors.append(error)
 
         connection_reference = mapping["connection_url_env"]
 
@@ -136,26 +135,9 @@ class SqlSinkConfigValidator:
         ):
             errors.append(f"{path}.connection_url_env must name a valid environment variable.")
 
+        errors.extend(SqlSink.validate_table_name(mapping["table_name"]))
+
         if "schema" in mapping:
-            errors.extend(self._validate_schema(mapping, path))
+            errors.extend(SqlSink.validate_schema(mapping["schema"]))
 
         return errors
-
-    def _validate_schema(self, mapping: Mapping[str, object], path: str) -> list[str]:
-        """Validate the optional SQL schema field.
-
-        Args:
-            mapping: SQL sink configuration mapping containing ``schema``.
-            path: Configuration path used to identify validation errors.
-
-        Returns:
-            An empty list if ``schema`` is a non-empty string; otherwise, a
-            list containing an error message for the schema field.
-        """
-        schema = mapping["schema"]
-        schema_path = f"{path}.schema"
-
-        if not isinstance(schema, str) or not schema.strip():
-            return [f"{schema_path} must be a string."]
-
-        return []

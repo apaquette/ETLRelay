@@ -144,7 +144,7 @@ class SqlSink:
         """
         errors = []
         if not isinstance(table_name, str) or not table_name.strip():
-            errors.append("Table Name must be a non-empty string.")
+            errors.append("sink.table_name must be a non-empty string.")
         return errors
 
     @staticmethod
@@ -164,7 +164,7 @@ class SqlSink:
 
         errors = []
         if not isinstance(schema, str) or not schema.strip():
-            errors.append("Schema must be a non-empty string.")
+            errors.append("sink.schema must be a non-empty string.")
         return errors
 
     def _reflect_table(self, connection: Connection) -> Table:
