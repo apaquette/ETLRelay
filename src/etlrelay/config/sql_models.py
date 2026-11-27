@@ -175,9 +175,7 @@ class SqlSourceConfigModel:
         if error is not None:
             errors.append(error)
         elif isinstance(connection_reference, str) and not connection_reference.isidentifier():
-            errors.append(
-                f"{path}.connection_url_env must name a valid environment variable."
-            )
+            errors.append(f"{path}.connection_url_env must name a valid environment variable.")
 
         query = mapping["query"]
         if not isinstance(query, str):
@@ -186,14 +184,10 @@ class SqlSourceConfigModel:
             errors.extend(_rebase_errors(SqlSource.validate_query(query), "source", path))
 
         parameters = mapping.get("parameters")
-        errors.extend(
-            _rebase_errors(SqlSource.validate_parameters(parameters), "source", path)
-        )
+        errors.extend(_rebase_errors(SqlSource.validate_parameters(parameters), "source", path))
 
         batch_size = mapping.get("batch_size")
-        errors.extend(
-            _rebase_errors(SqlSource.validate_batch_size(batch_size), "source", path)
-        )
+        errors.extend(_rebase_errors(SqlSource.validate_batch_size(batch_size), "source", path))
 
         arrow_schema, schema_errors = _parse_arrow_schema(
             mapping.get("schema"),
@@ -201,9 +195,7 @@ class SqlSourceConfigModel:
         )
         errors.extend(schema_errors)
         if arrow_schema is not None:
-            errors.extend(
-                _rebase_errors(SqlSource.validate_schema(arrow_schema), "source", path)
-            )
+            errors.extend(_rebase_errors(SqlSource.validate_schema(arrow_schema), "source", path))
 
         if errors:
             return None, errors

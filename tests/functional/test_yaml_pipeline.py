@@ -145,10 +145,7 @@ def test_yaml_sql_pipeline_batches_and_closes_builder_owned_engine(
     try:
         with setup_engine.begin() as connection:
             connection.execute(
-                text(
-                    "CREATE TABLE source_records "
-                    "(id INTEGER NOT NULL, name TEXT NOT NULL)"
-                )
+                text("CREATE TABLE source_records (id INTEGER NOT NULL, name TEXT NOT NULL)")
             )
             connection.execute(
                 text(
@@ -216,8 +213,7 @@ def test_yaml_sql_pipeline_batches_and_closes_builder_owned_engine(
             ]
         )
         assert all(
-            batch.table.schema.equals(expected_schema, check_metadata=False)
-            for batch in batches
+            batch.table.schema.equals(expected_schema, check_metadata=False) for batch in batches
         )
 
         pipeline.run()

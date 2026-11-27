@@ -32,16 +32,10 @@ def test_postgresql_yaml_pipeline_executes_through_cli(
     try:
         with engine.begin() as connection:
             connection.execute(
-                text(
-                    f'CREATE TABLE "{source_table}" '
-                    "(id BIGINT PRIMARY KEY, name TEXT NOT NULL)"
-                )
+                text(f'CREATE TABLE "{source_table}" (id BIGINT PRIMARY KEY, name TEXT NOT NULL)')
             )
             connection.execute(
-                text(
-                    f'CREATE TABLE "{sink_table}" '
-                    "(id BIGINT PRIMARY KEY, name TEXT NOT NULL)"
-                )
+                text(f'CREATE TABLE "{sink_table}" (id BIGINT PRIMARY KEY, name TEXT NOT NULL)')
             )
             connection.execute(
                 text(
@@ -84,9 +78,11 @@ def test_postgresql_yaml_pipeline_executes_through_cli(
         )
 
         with engine.connect() as connection:
-            rows = connection.execute(
-                text(f'SELECT id, name FROM "{sink_table}" ORDER BY id')
-            ).mappings().all()
+            rows = (
+                connection.execute(text(f'SELECT id, name FROM "{sink_table}" ORDER BY id'))
+                .mappings()
+                .all()
+            )
         assert [dict(row) for row in rows] == [
             {"id": 1, "name": "Ada"},
             {"id": 2, "name": "Grace"},

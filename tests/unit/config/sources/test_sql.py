@@ -178,9 +178,7 @@ def test_accepts_declarative_arrow_schema(validator: SqlSourceConfigValidator) -
 
 
 @pytest.mark.parametrize("value", [42, True, {"type": "select"}, ["SELECT 1"]])
-def test_yaml_query_must_be_sql_text(
-    validator: SqlSourceConfigValidator, value: object
-) -> None:
+def test_yaml_query_must_be_sql_text(validator: SqlSourceConfigValidator, value: object) -> None:
     config = valid_source()
     config["query"] = value
 
@@ -209,9 +207,7 @@ def test_yaml_query_must_be_sql_text(
         {"fields": ["not-a-field"]},
     ],
 )
-def test_rejects_invalid_arrow_schema(
-    validator: SqlSourceConfigValidator, schema: object
-) -> None:
+def test_rejects_invalid_arrow_schema(validator: SqlSourceConfigValidator, schema: object) -> None:
     config = valid_source()
     config["schema"] = schema
 

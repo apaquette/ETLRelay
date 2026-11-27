@@ -540,9 +540,7 @@ def test_installed_cli_runs_batched_sql_source_with_declared_schema(
     """Validate and execute a batched SQL YAML source through the installed CLI."""
     database_path = tmp_path / "source.db"
     with sqlite3.connect(database_path) as connection:
-        connection.execute(
-            "CREATE TABLE source_records (id INTEGER NOT NULL, name TEXT NOT NULL)"
-        )
+        connection.execute("CREATE TABLE source_records (id INTEGER NOT NULL, name TEXT NOT NULL)")
         connection.executemany(
             "INSERT INTO source_records VALUES (?, ?)",
             [(1, "Ada"), (2, "Grace"), (3, "Linus")],
