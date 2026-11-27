@@ -2,15 +2,14 @@
 
 from unittest.mock import Mock
 
+import pyarrow as pa
 from sqlalchemy.engine import Engine
 
 from etlrelay.config.sources.sql import SqlSourceConfigFactory
 from etlrelay.sources.sql import SqlSource
 
 
-def test_build_constructs_sql_source_with_configured_arguments(
-    monkeypatch,
-) -> None:
+def test_build_constructs_sql_source_with_configured_arguments(monkeypatch) -> None:
     engine = Mock(spec=Engine)
     engine_factory = Mock()
     engine_factory.create.return_value = engine
@@ -23,6 +22,11 @@ def test_build_constructs_sql_source_with_configured_arguments(
         "query": "SELECT id FROM records WHERE state = :state",
         "parameters": {"state": "ready"},
         "batch_size": 10,
+        "schema": {
+            "fields": [
+                {"name": "id", "type": "int64", "nullable": False},
+            ]
+        },
     }
 
     result = factory.build(config)
@@ -33,11 +37,12 @@ def test_build_constructs_sql_source_with_configured_arguments(
         query="SELECT id FROM records WHERE state = :state",
         parameters={"state": "ready"},
         batch_size=10,
+        schema=pa.schema([pa.field("id", pa.int64(), nullable=False)]),
     )
     assert result is source_constructor.return_value
 
 
-def test_build_passes_none_when_parameters_are_omitted(monkeypatch) -> None:
+def test_build_passes_none_for_omitted_optional_source_settings(monkeypatch) -> None:
     engine = Mock(spec=Engine)
     engine_factory = Mock()
     engine_factory.create.return_value = engine
@@ -58,4 +63,5 @@ def test_build_passes_none_when_parameters_are_omitted(monkeypatch) -> None:
         query="SELECT id FROM records",
         parameters=None,
         batch_size=None,
+        schema=None,
     )

@@ -155,3 +155,88 @@ def test_rejects_invalid_batch_size_values(
 
     assert errors
     assert any("batch_size" in error for error in errors)
+
+
+def test_accepts_nullable_or_omitted_arrow_schema(validator: SqlSourceConfigValidator) -> None:
+    config = valid_source()
+    config["schema"] = None
+
+    assert validator.validate(config, "source") == []
+
+
+def test_accepts_declarative_arrow_schema(validator: SqlSourceConfigValidator) -> None:
+    config = valid_source()
+    config["schema"] = {
+        "fields": [
+            {"name": "id", "type": "int64", "nullable": False},
+            {"name": "name", "type": "string"},
+            {"name": "created_at", "type": "timestamp"},
+        ]
+    }
+
+    assert validator.validate(config, "source") == []
+
+
+@pytest.mark.parametrize("value", [42, True, {"type": "select"}, ["SELECT 1"]])
+def test_yaml_query_must_be_sql_text(
+    validator: SqlSourceConfigValidator, value: object
+) -> None:
+    config = valid_source()
+    config["query"] = value
+
+    errors = validator.validate(config, "source")
+
+    assert any("source.query" in error for error in errors)
+
+
+@pytest.mark.parametrize(
+    "schema",
+    [
+        [],
+        {"fields": []},
+        {"unexpected": []},
+        {"fields": [{"name": "id"}]},
+        {"fields": [{"name": "id", "type": "decimal"}]},
+        {"fields": [{"name": "id", "type": "int64", "nullable": "yes"}]},
+        {
+            "fields": [
+                {"name": "id", "type": "int64"},
+                {"name": "id", "type": "string"},
+            ]
+        },
+        {"fields": [{"name": "", "type": "int64"}]},
+        {"fields": ["not-a-field"]},
+    ],
+)
+def test_rejects_invalid_arrow_schema(
+    validator: SqlSourceConfigValidator, schema: object
+) -> None:
+    config = valid_source()
+    config["schema"] = schema
+
+    errors = validator.validate(config, "source")
+
+    assert errors
+    assert any("source.schema" in error for error in errors)
+
+
+def test_rejects_unknown_sql_source_property(
+    validator: SqlSourceConfigValidator,
+) -> None:
+    config = valid_source()
+    config["driver"] = "psycopg"
+
+    errors = validator.validate(config, "source")
+
+    assert any("source.driver" in error for error in errors)
+
+
+def test_custom_validation_path_is_preserved(
+    validator: SqlSourceConfigValidator,
+) -> None:
+    config = valid_source()
+    config["batch_size"] = 0
+
+    errors = validator.validate(config, "pipeline.source")
+
+    assert any("pipeline.source.batch_size" in error for error in errors)
