@@ -68,7 +68,6 @@ def test_build_passes_none_for_omitted_optional_source_settings(monkeypatch) -> 
     )
 
 
-
 def test_build_rejects_invalid_yaml_source_before_creating_engine() -> None:
     engine_factory = Mock()
     factory = SqlSourceConfigFactory(engine_factory=engine_factory)

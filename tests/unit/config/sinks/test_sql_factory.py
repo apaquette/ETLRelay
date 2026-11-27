@@ -57,7 +57,6 @@ def test_build_passes_none_when_schema_is_omitted(monkeypatch) -> None:
     )
 
 
-
 def test_build_rejects_invalid_yaml_sink_before_creating_engine() -> None:
     engine_factory = Mock()
     factory = SqlSinkConfigFactory(engine_factory=engine_factory)
