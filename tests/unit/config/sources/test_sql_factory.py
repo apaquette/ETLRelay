@@ -65,3 +65,25 @@ def test_build_passes_none_for_omitted_optional_source_settings(monkeypatch) -> 
         batch_size=None,
         schema=None,
     )
+
+
+
+def test_build_rejects_invalid_yaml_source_before_creating_engine() -> None:
+    engine_factory = Mock()
+    factory = SqlSourceConfigFactory(engine_factory=engine_factory)
+
+    try:
+        factory.build(
+            {
+                "type": "sql",
+                "connection_url_env": "SOURCE_DATABASE_URL",
+                "query": "SELECT id FROM records",
+                "batch_size": 0,
+            }
+        )
+    except ValueError as error:
+        assert "source.batch_size" in str(error)
+    else:
+        raise AssertionError("Expected invalid SQL source configuration to fail.")
+
+    engine_factory.create.assert_not_called()

@@ -111,3 +111,14 @@ def test_rejects_connection_url_as_environment_reference(
 
     assert secret_url not in str(errors)
     assert "secret-password" not in str(errors)
+
+
+def test_custom_validation_path_is_preserved(
+    validator: SqlSinkConfigValidator,
+) -> None:
+    config = valid_sink()
+    config["table_name"] = ""
+
+    errors = validator.validate(config, "pipeline.sink")
+
+    assert any("pipeline.sink.table_name" in error for error in errors)

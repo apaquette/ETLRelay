@@ -43,10 +43,7 @@ _ARROW_TYPES: Final[dict[str, pa.DataType]] = {
 def _rebase_errors(errors: list[str], source_path: str, path: str) -> list[str]:
     """Replace a static component validator's default path with the caller path."""
     prefix = f"{source_path}."
-    return [
-        f"{path}.{message[len(prefix):]}" if message.startswith(prefix) else message
-        for message in errors
-    ]
+    return [message.replace(prefix, f"{path}.", 1) for message in errors]
 
 
 def _parse_arrow_schema(
@@ -126,10 +123,7 @@ def _parse_arrow_schema(
     if errors:
         return None, errors
 
-    try:
-        return pa.schema(fields), []
-    except (TypeError, ValueError, pa.ArrowException) as error:
-        return None, [f"{path} could not be constructed as an Arrow schema ({type(error).__name__})."]
+    return pa.schema(fields), []
 
 
 @dataclass(frozen=True)

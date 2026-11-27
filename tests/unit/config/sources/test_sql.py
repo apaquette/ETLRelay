@@ -240,3 +240,15 @@ def test_custom_validation_path_is_preserved(
     errors = validator.validate(config, "pipeline.source")
 
     assert any("pipeline.source.batch_size" in error for error in errors)
+
+
+@pytest.mark.parametrize("schema", [{"fields": "not-a-list"}, {"fields": 42}])
+def test_schema_fields_must_be_a_non_empty_list(
+    validator: SqlSourceConfigValidator, schema: object
+) -> None:
+    config = valid_source()
+    config["schema"] = schema
+
+    errors = validator.validate(config, "source")
+
+    assert any("source.schema.fields" in error for error in errors)
