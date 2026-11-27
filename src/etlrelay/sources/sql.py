@@ -21,6 +21,11 @@ class SqlSource:
     The source executes a SQL query using a caller-provided SQLAlchemy engine
     and converts the results into PyArrow-backed :class:`Batch` objects.
 
+    Queries may be supplied as SQL strings or SQLAlchemy :class:`Select`
+    expressions. SQL strings support named bind parameters using SQLAlchemy's
+    ``:name`` syntax. Parameter values are bound separately from the SQL
+    statement.
+
     By default, all query results are materialized and returned as a single
     batch. When ``batch_size`` is configured, results are consumed incrementally
     and yielded in batches containing no more than the configured number of rows.
@@ -49,6 +54,7 @@ class SqlSource:
     The source manages the connections and query results it acquires but
     does not own or dispose of the supplied engine.
     """
+
     def __init__(
         self,
         engine: Engine,
@@ -63,8 +69,9 @@ class SqlSource:
         Args:
             engine: SQLAlchemy engine used to establish database connections.
                 The caller retains responsibility for its lifecycle.
-            query: SQL query to execute. Named bind parameters can be specified
-                using SQLAlchemy's ``:name`` syntax.
+            query: SQL query to execute. Accepts either a SQL string or a
+                SQLAlchemy ``Select`` expression. SQL strings can specify named
+                bind parameters using SQLAlchemy's ``:name`` syntax.
             parameters: Optional mapping of named bind parameters to their values.
                 Values are bound separately from the SQL statement.
             batch_size: Optional maximum number of rows per batch. When ``None``,
@@ -240,6 +247,14 @@ class SqlSource:
         return Batch(table), canonical_schema
 
     def _validate(self) -> None:
+        """Validate all constructor arguments.
+
+        Calls the public static validation methods and aggregates their error
+        messages.
+
+        Raises:
+            ValueError: If one or more constructor arguments are invalid.
+        """
         errors = []
         errors.extend(self.validate_engine(self._engine))
         errors.extend(self.validate_query(self._query))
@@ -309,6 +324,15 @@ class SqlSource:
 
     @staticmethod
     def validate_engine(engine: Any) -> list[str]:
+        """Validate a SQLAlchemy engine.
+
+        Args:
+            engine: Object to validate as a SQLAlchemy ``Engine``.
+
+        Returns:
+            An empty list when the engine is valid; otherwise, a list containing
+            validation error messages.
+        """
         errors = []
         if not isinstance(engine, Engine):
             errors.append("engine must satisfy sqlalchemy type `Engine`")
@@ -316,6 +340,21 @@ class SqlSource:
 
     @staticmethod
     def validate_query(query: Any) -> list[str]:
+        """Validate a SQL query.
+
+        Args:
+            query: Query to validate. Accepts a non-empty SQL string or a
+                SQLAlchemy ``Select`` expression.
+
+        Returns:
+            An empty list when the query is valid; otherwise, a list containing
+            validation error messages.
+
+        Note:
+            This method validates the query's accepted type and, for SQL strings,
+            that the query is non-empty. It does not validate SQL syntax, query
+            semantics, or whether the query is safe to execute.
+        """
         errors = []
         if (
             not isinstance(query, Select)
@@ -327,6 +366,21 @@ class SqlSource:
 
     @staticmethod
     def validate_parameters(parameters: Any | None) -> list[str]:
+        """Validate SQL query parameters.
+
+        Args:
+            parameters: Optional mapping of named bind parameter keys to their
+                corresponding values.
+
+        Returns:
+            An empty list when the parameters are valid; otherwise, a list
+            containing validation error messages.
+
+        Note:
+            Parameter values are not restricted to specific Python types.
+            Their compatibility is determined by SQLAlchemy and the database
+            driver when the query is executed.
+        """
         if parameters is None:
             return []
 
@@ -348,9 +402,13 @@ class SqlSource:
             batch_size: Maximum number of rows per batch. ``None`` disables
                 batching and preserves the default single-batch behaviour.
 
-        Raises:
-            ValueError: If ``batch_size`` is neither ``None`` nor a positive
-                integer. Boolean values are explicitly rejected.
+        Returns:
+            An empty list when the batch size is valid; otherwise, a list
+            containing validation error messages.
+
+        Note:
+            Boolean values are rejected even though ``bool`` is a subclass
+            of ``int`` in Python.
         """
         errors = []
         if batch_size is not None and (
@@ -361,6 +419,16 @@ class SqlSource:
 
     @staticmethod
     def validate_schema(schema: Any | None) -> list[str]:
+        """Validate an optional Arrow schema.
+
+        Args:
+            schema: Optional PyArrow schema to use as the canonical schema
+                for query results.
+
+        Returns:
+            An empty list when the schema is valid; otherwise, a list
+            containing validation error messages.
+        """
         errors = []
         if schema is not None and not isinstance(schema, pa.Schema):
             errors.append("schema must satisfy type `pa.Schema`")
