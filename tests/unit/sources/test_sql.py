@@ -319,6 +319,41 @@ class TestSqlSource:
         connection_context.__exit__.assert_called_once_with(None, None, None)
         engine.dispose.assert_not_called()
 
+    def test_sql_source_closes_result_and_connection_when_iteration_fails(self) -> None:
+        """Close owned SQL resources while preserving the query failure."""
+        engine = MagicMock(spec=Engine)
+
+        connection_context = MagicMock()
+        connection = MagicMock()
+
+        connection_context.__enter__.return_value = connection
+        engine.connect.return_value = connection_context
+
+        result = MagicMock()
+        result.keys.return_value = ["id"]
+
+        failure = RuntimeError("query-fetch-failure")
+
+        def failing_rows():
+            yield {"id": 1}
+            raise failure
+
+        result.mappings.return_value = failing_rows()
+        connection.execute.return_value = result
+
+        source = SqlSource(engine, "SELECT id FROM records")
+
+        with pytest.raises(RuntimeError) as exc_info:
+            source.read()
+
+        assert exc_info.value is failure
+
+        result.close.assert_called_once_with()
+        connection_context.__exit__.assert_called_once()
+
+        # SqlSource borrows the engine; it must never dispose of it.
+        engine.dispose.assert_not_called()
+
 
 class TestSqlSourceBatch:
     @pytest.fixture
