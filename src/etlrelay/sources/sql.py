@@ -1,16 +1,17 @@
 """SQL-backed data source."""
 
 import logging
-from collections import Counter
-from collections.abc import Generator, Iterator, Mapping, Sequence
+from collections.abc import Generator, Iterator, Mapping
 from contextlib import contextmanager
 from typing import Any
 
 import pyarrow as pa
-from sqlalchemy import CursorResult, text
+from sqlalchemy import CursorResult, Select, text
 from sqlalchemy.engine import Engine
 
 from etlrelay.core import Batch
+from etlrelay.validation.sql import validate_engine as _validate_engine
+from etlrelay.validation.sql import validate_unique_columns
 
 logger = logging.getLogger(__name__)
 
@@ -20,6 +21,11 @@ class SqlSource:
 
     The source executes a SQL query using a caller-provided SQLAlchemy engine
     and converts the results into PyArrow-backed :class:`Batch` objects.
+
+    Queries may be supplied as SQL strings or SQLAlchemy :class:`Select`
+    expressions. SQL strings support named bind parameters using SQLAlchemy's
+    ``:name`` syntax. Parameter values are bound separately from the SQL
+    statement.
 
     By default, all query results are materialized and returned as a single
     batch. When ``batch_size`` is configured, results are consumed incrementally
@@ -50,10 +56,13 @@ class SqlSource:
     does not own or dispose of the supplied engine.
     """
 
+    validate_engine = staticmethod(_validate_engine)
+    _validate_column_names = staticmethod(validate_unique_columns)
+
     def __init__(
         self,
         engine: Engine,
-        query: str,
+        query: str | Select[*tuple[Any, ...]],
         *,
         parameters: Mapping[str, Any] | None = None,
         batch_size: int | None = None,
@@ -64,8 +73,9 @@ class SqlSource:
         Args:
             engine: SQLAlchemy engine used to establish database connections.
                 The caller retains responsibility for its lifecycle.
-            query: SQL query to execute. Named bind parameters can be specified
-                using SQLAlchemy's ``:name`` syntax.
+            query: SQL query to execute. Accepts either a SQL string or a
+                SQLAlchemy ``Select`` expression. SQL strings can specify named
+                bind parameters using SQLAlchemy's ``:name`` syntax.
             parameters: Optional mapping of named bind parameters to their values.
                 Values are bound separately from the SQL statement.
             batch_size: Optional maximum number of rows per batch. When ``None``,
@@ -79,17 +89,18 @@ class SqlSource:
                 query result.
 
         Raises:
-            ValueError: If ``batch_size`` is not ``None`` or a positive integer.
-                Boolean values are not accepted as integers.
+            ValueError: If any constructor argument fails validation. Validation
+                errors are aggregated into a single exception message.
         """
-        self.validate_batch_size(batch_size)
-
         self._engine = engine
         self._query = query
         self._parameters = parameters
         self._batch_size = batch_size
-        self._execution_mode = self._fetch_batch if batch_size is None else self._yield_batch
         self._schema = schema
+
+        self._validate()
+
+        self._execution_mode = self._fetch_batch if batch_size is None else self._yield_batch
 
     def read(self) -> Iterator[Batch]:
         """Execute the query and return its results as an iterator of batches.
@@ -239,6 +250,25 @@ class SqlSource:
         logger.debug("SQL source created batch (%d rows).", len(rows))
         return Batch(table), canonical_schema
 
+    def _validate(self) -> None:
+        """Validate all constructor arguments.
+
+        Calls the public static validation methods and aggregates their error
+        messages.
+
+        Raises:
+            ValueError: If one or more constructor arguments are invalid.
+        """
+        errors = []
+        errors.extend(self.validate_engine(self._engine))
+        errors.extend(self.validate_query(self._query))
+        errors.extend(self.validate_parameters(self._parameters))
+        errors.extend(self.validate_batch_size(self._batch_size))
+        errors.extend(self.validate_schema(self._schema))
+
+        if errors:
+            raise ValueError("\n".join(errors))
+
     @contextmanager
     def _execute_query(self, streaming: bool = False) -> Generator[CursorResult, None, None]:
         """Execute the configured SQL query within a managed connection context.
@@ -272,8 +302,14 @@ class SqlSource:
         with self._engine.connect() as connection:
             if streaming:
                 connection.execution_options(yield_per=self._batch_size)
+
+            statement = self._query
+
+            if isinstance(statement, str):
+                statement = text(statement)
+
             result = connection.execute(
-                text(self._query),
+                statement,
                 self._parameters,
             )
             try:
@@ -291,40 +327,108 @@ class SqlSource:
                 result.close()
 
     @staticmethod
-    def validate_batch_size(batch_size: int | None) -> None:
+    def validate_query(query: Any) -> list[str]:
+        """Validate a SQL query.
+
+        Args:
+            query: Query to validate. Accepts a non-empty SQL string or a
+                SQLAlchemy ``Select`` expression.
+
+        Returns:
+            An empty list when the query is valid; otherwise, a list containing
+            validation error messages.
+
+        Note:
+            This method validates the query's accepted type and, for SQL strings,
+            that the query is non-empty. It does not validate SQL syntax, query
+            semantics, or whether the query is safe to execute.
+        """
+        errors = []
+        if (
+            not isinstance(query, Select)
+            and not isinstance(query, str)
+            or (isinstance(query, str) and not query.strip())
+        ):
+            errors.append("source.query must be a non-empty string.")
+        return errors
+
+    @staticmethod
+    def validate_parameters(parameters: Any | None) -> list[str]:
+        """Validate SQL query parameters.
+
+        Args:
+            parameters: Optional mapping of named bind parameter keys to their
+                corresponding values.
+
+        Returns:
+            An empty list when the parameters are valid; otherwise, a list
+            containing validation error messages.
+
+        Note:
+            Parameter values are not restricted to specific Python types.
+            Their compatibility is determined by SQLAlchemy and the database
+            driver when the query is executed.
+        """
+        if parameters is None:
+            return []
+
+        errors = []
+
+        if not isinstance(parameters, Mapping):
+            return ["source.parameters must be of type `Mapping`"]
+
+        for name, value in parameters.items():
+            if not isinstance(name, str) or not name.strip():
+                errors.append("source.parameters keys must be non-empty strings.")
+                continue
+
+            if value is not None and type(value) not in (str, int, float, bool):
+                errors.append(
+                    f"source.parameters.{name} must be a scalar "
+                    "string, integer, float, boolean, or null."
+                )
+
+        return errors
+
+    @staticmethod
+    def validate_batch_size(batch_size: Any | None) -> list[str]:
         """Validate the optional batch size.
 
         Args:
             batch_size: Maximum number of rows per batch. ``None`` disables
                 batching and preserves the default single-batch behaviour.
 
-        Raises:
-            ValueError: If ``batch_size`` is neither ``None`` nor a positive
-                integer. Boolean values are explicitly rejected.
+        Returns:
+            An empty list when the batch size is valid; otherwise, a list
+            containing validation error messages.
+
+        Note:
+            Boolean values are rejected even though ``bool`` is a subclass
+            of ``int`` in Python.
         """
-        if batch_size is None or (
-            isinstance(batch_size, int) and batch_size > 0 and not isinstance(batch_size, bool)
+        errors = []
+        if batch_size is not None and (
+            not isinstance(batch_size, int) or batch_size <= 0 or isinstance(batch_size, bool)
         ):
-            return
-        raise ValueError("Batch size must be a positive integer.")
+            errors.append("source.batch_size must be a positive integer.")
+        return errors
 
     @staticmethod
-    def _validate_column_names(
-        column_names: Sequence[str],
-    ) -> None:
-        """Ensure result column names are unique.
+    def validate_schema(schema: Any | None) -> list[str]:
+        """Validate an optional Arrow schema.
 
         Args:
-            column_names: Column names returned by the SQL query.
+            schema: Optional PyArrow schema to use as the canonical schema
+                for query results.
 
-        Raises:
-            ValueError: If one or more column names occur more than once.
-                The exception identifies the duplicated names.
+        Returns:
+            An empty list when the schema is valid; otherwise, a list
+            containing validation error messages.
         """
-        duplicates = sorted(name for name, count in Counter(column_names).items() if count > 1)
-
-        if duplicates:
-            raise ValueError(f"SQL query returned duplicate column names: {duplicates}")
+        errors = []
+        if schema is not None and not isinstance(schema, pa.Schema):
+            errors.append("schema must satisfy type `pa.Schema`")
+        return errors
 
     @staticmethod
     def _validate_batch_schema(table: pa.Table, expected_schema: pa.Schema) -> None:

@@ -14,7 +14,11 @@ from sqlalchemy import (
     MetaData,
     String,
     Table,
+    bindparam,
+    column,
     create_engine,
+    select,
+    table,
     text,
 )
 from sqlalchemy.engine import Engine
@@ -130,3 +134,76 @@ class TestSqlRoundTrip:
         assert result.column_names == table.column_names
         assert result.to_pylist() == table.to_pylist()
         assert result.schema.equals(table.schema, check_metadata=False)
+
+    @pytest.mark.parametrize(
+        "batch_size",
+        [None, 1],
+        ids=["eager", "streaming"],
+    )
+    def test_sqlalchemy_select_can_read_from_database(
+        self,
+        sql_engine: Engine,
+        batch_size: int | None,
+    ) -> None:
+        """Execute a SQLAlchemy Select expression against a real database."""
+        input_table = pa.table(
+            {
+                "id": pa.array([1, 2, 3], type=pa.int64()),
+                "description": pa.array(
+                    ["Payment", "Refund", "Transfer"],
+                    type=pa.string(),
+                ),
+                "amount": pa.array(
+                    [12.5, None, 30.0],
+                    type=pa.float64(),
+                ),
+            }
+        )
+
+        SqlSink(sql_engine, "transactions").write([Batch(input_table)])
+
+        transactions = table(
+            "transactions",
+            column("id"),
+            column("description"),
+            column("amount"),
+        )
+
+        query = (
+            select(
+                transactions.c.id,
+                transactions.c.description,
+                transactions.c.amount,
+            )
+            .where(transactions.c.id > bindparam("minimum_id"))
+            .order_by(transactions.c.id)
+        )
+
+        source = SqlSource(
+            sql_engine,
+            query,
+            parameters={"minimum_id": 1},
+            batch_size=batch_size,
+            schema=pa.schema(
+                [
+                    pa.field("id", pa.int64()),
+                    pa.field("description", pa.string()),
+                    pa.field("amount", pa.float64()),
+                ]
+            ),
+        )
+
+        batches = list(source.read())
+
+        expected_rows = [
+            {"id": 2, "description": "Refund", "amount": None},
+            {"id": 3, "description": "Transfer", "amount": 30.0},
+        ]
+
+        assert [row for batch in batches for row in batch.table.to_pylist()] == expected_rows
+
+        expected_batch_count = 1 if batch_size is None else 2
+        assert len(batches) == expected_batch_count
+
+        assert all(isinstance(batch, Batch) for batch in batches)
+        assert all(batch.table.column_names == ["id", "description", "amount"] for batch in batches)

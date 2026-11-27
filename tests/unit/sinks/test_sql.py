@@ -3,7 +3,7 @@
 import logging
 from collections.abc import Generator
 from contextlib import contextmanager
-from unittest.mock import MagicMock, Mock, call, patch
+from unittest.mock import MagicMock, call, patch
 
 import pyarrow as pa
 import pytest
@@ -12,14 +12,13 @@ from sqlalchemy.engine import Engine
 
 from etlrelay.core import Batch
 from etlrelay.sinks import SqlSink
-from etlrelay.sources import SqlSource
 
 
 class TestSqlSink:
     @pytest.fixture
     def sqlalchemy_mocks(self):
         """Provide a mocked engine, transaction, connection, and table."""
-        engine = MagicMock()
+        engine = MagicMock(spec=Engine)
         transaction_context = MagicMock()
         transaction_context.__exit__.return_value = False
 
@@ -113,7 +112,7 @@ class TestSqlSink:
             names=["id", "id"],
         )
 
-        with pytest.raises(ValueError, match="duplicate column names"):
+        with pytest.raises(ValueError, match="Duplicate column names detected"):
             sink.write([Batch(table=table)])
 
         engine.begin.assert_not_called()
@@ -256,150 +255,148 @@ class TestSqlSink:
             valid_rows,
         )
 
+    def test_sql_sink_logs_commit_only_after_transaction_completes(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        caplog: pytest.LogCaptureFixture,
+    ) -> None:
+        """Report successful commits only after the transaction exits."""
+        batch = Batch(table=pa.table({"id": [1]}))
 
-def test_sql_sink_logs_commit_only_after_transaction_completes(
-    monkeypatch: pytest.MonkeyPatch,
-    caplog: pytest.LogCaptureFixture,
-) -> None:
-    """Report successful commits only after the transaction exits."""
-    batch = Batch(table=pa.table({"id": [1]}))
+        engine = MagicMock(spec=Engine)
+        connection = MagicMock()
 
-    engine = Mock(spec=Engine)
-    connection = Mock()
+        target_table = Table(
+            "records",
+            MetaData(),
+            Column("id", Integer),
+        )
 
-    target_table = Table(
-        "records",
-        MetaData(),
-        Column("id", Integer),
-    )
+        messages_before_commit: list[str] = []
 
-    messages_before_commit: list[str] = []
+        @contextmanager
+        def transaction() -> Generator[MagicMock, None, None]:
+            yield connection
 
-    @contextmanager
-    def transaction() -> Generator[Mock, None, None]:
-        yield connection
+            # Observe logging immediately before the transaction
+            # context manager finishes its simulated commit.
+            messages_before_commit.extend(caplog.messages)
 
-        # Observe logging immediately before the transaction
-        # context manager finishes its simulated commit.
-        messages_before_commit.extend(caplog.messages)
+        engine.begin.side_effect = transaction
 
-    engine.begin.side_effect = transaction
+        sink = SqlSink(engine, "records")
+        monkeypatch.setattr(
+            sink,
+            "_reflect_table",
+            lambda _: target_table,
+        )
 
-    sink = SqlSink(engine, "records")
-    monkeypatch.setattr(
-        sink,
-        "_reflect_table",
-        lambda _: target_table,
-    )
-
-    with caplog.at_level(logging.DEBUG, logger="etlrelay.sinks.sql"):
-        sink.write([batch])
-
-    commit_message = "SQL sink committed batch (1 rows)."
-
-    assert commit_message not in messages_before_commit
-    assert commit_message in caplog.messages
-
-    connection.execute.assert_called_once()
-    engine.dispose.assert_not_called()
-
-
-def test_sql_sink_does_not_log_success_when_commit_fails(
-    monkeypatch: pytest.MonkeyPatch,
-    caplog: pytest.LogCaptureFixture,
-) -> None:
-    """Preserve commit failures without reporting a successful commit."""
-    batch = Batch(table=pa.table({"id": [1]}))
-
-    engine = Mock(spec=Engine)
-    connection = Mock()
-
-    target_table = Table(
-        "records",
-        MetaData(),
-        Column("id", Integer),
-    )
-
-    commit_error = RuntimeError("secret-commit-failure")
-
-    @contextmanager
-    def failing_transaction() -> Generator[Mock, None, None]:
-        yield connection
-        raise commit_error
-
-    engine.begin.side_effect = failing_transaction
-
-    sink = SqlSink(engine, "records")
-    monkeypatch.setattr(
-        sink,
-        "_reflect_table",
-        lambda _: target_table,
-    )
-
-    with caplog.at_level(logging.DEBUG, logger="etlrelay.sinks.sql"):
-        with pytest.raises(RuntimeError) as exc_info:
+        with caplog.at_level(logging.DEBUG, logger="etlrelay.sinks.sql"):
             sink.write([batch])
 
-    assert exc_info.value is commit_error
+        commit_message = "SQL sink committed batch (1 rows)."
 
-    assert "SQL sink committed batch" not in caplog.text
-    assert "secret-commit-failure" not in caplog.text
+        assert commit_message not in messages_before_commit
+        assert commit_message in caplog.messages
 
-    connection.execute.assert_called_once()
-    engine.dispose.assert_not_called()
+        connection.execute.assert_called_once()
+        engine.dispose.assert_not_called()
 
+    def test_sql_sink_does_not_log_success_when_commit_fails(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        caplog: pytest.LogCaptureFixture,
+    ) -> None:
+        """Preserve commit failures without reporting a successful commit."""
+        batch = Batch(table=pa.table({"id": [1]}))
 
-def test_sql_source_closes_result_and_connection_when_iteration_fails() -> None:
-    """Close owned SQL resources while preserving the query failure."""
-    engine = Mock(spec=Engine)
+        engine = MagicMock(spec=Engine)
+        connection = MagicMock()
 
-    connection_context = MagicMock()
-    connection = Mock()
-
-    connection_context.__enter__.return_value = connection
-    engine.connect.return_value = connection_context
-
-    result = Mock()
-    result.keys.return_value = ["id"]
-
-    failure = RuntimeError("query-fetch-failure")
-
-    def failing_rows():
-        yield {"id": 1}
-        raise failure
-
-    result.mappings.return_value = failing_rows()
-    connection.execute.return_value = result
-
-    source = SqlSource(engine, "SELECT id FROM records")
-
-    with pytest.raises(RuntimeError) as exc_info:
-        source.read()
-
-    assert exc_info.value is failure
-
-    result.close.assert_called_once_with()
-    connection_context.__exit__.assert_called_once()
-
-    # SqlSource borrows the engine; it must never dispose of it.
-    engine.dispose.assert_not_called()
-
-
-def test_sql_sink_skips_empty_batch_without_opening_transaction() -> None:
-    """An empty batch must not open a transaction or dispose the engine."""
-    engine = Mock(spec=Engine)
-
-    sink = SqlSink(engine, "records")
-
-    batch = Batch(
-        table=pa.table(
-            {
-                "id": pa.array([], type=pa.int64()),
-            }
+        target_table = Table(
+            "records",
+            MetaData(),
+            Column("id", Integer),
         )
-    )
 
-    sink.write([batch])
+        commit_error = RuntimeError("secret-commit-failure")
 
-    engine.begin.assert_not_called()
-    engine.dispose.assert_not_called()
+        @contextmanager
+        def failing_transaction() -> Generator[MagicMock, None, None]:
+            yield connection
+            raise commit_error
+
+        engine.begin.side_effect = failing_transaction
+
+        sink = SqlSink(engine, "records")
+        monkeypatch.setattr(
+            sink,
+            "_reflect_table",
+            lambda _: target_table,
+        )
+
+        with caplog.at_level(logging.DEBUG, logger="etlrelay.sinks.sql"):
+            with pytest.raises(RuntimeError) as exc_info:
+                sink.write([batch])
+
+        assert exc_info.value is commit_error
+
+        assert "SQL sink committed batch" not in caplog.text
+        assert "secret-commit-failure" not in caplog.text
+
+        connection.execute.assert_called_once()
+        engine.dispose.assert_not_called()
+
+    def test_sql_sink_skips_empty_batch_without_opening_transaction(self) -> None:
+        """An empty batch must not open a transaction or dispose the engine."""
+        engine = MagicMock(spec=Engine)
+
+        sink = SqlSink(engine, "records")
+
+        batch = Batch(
+            table=pa.table(
+                {
+                    "id": pa.array([], type=pa.int64()),
+                }
+            )
+        )
+
+        sink.write([batch])
+
+        engine.begin.assert_not_called()
+        engine.dispose.assert_not_called()
+
+    def test_sql_sink_with_invalid_engine_raises(self) -> None:
+        engine = MagicMock()
+
+        with pytest.raises(ValueError):
+            SqlSink(engine, "records")
+
+
+class TestSqlSinkValidation:
+    def test_invalid_engine_raises(self) -> None:
+        errors = SqlSink.validate_engine(MagicMock())
+        assert errors
+
+    def test_validate_engine(self) -> None:
+        errors = SqlSink.validate_engine(MagicMock(spec=Engine))
+        assert not errors
+
+    @pytest.mark.parametrize("value", [0, -10, -100, 3.14, True, False, "", " "])
+    def test_invalid_table_name_raises(self, value) -> None:
+        errors = SqlSink.validate_table_name(value)
+        assert errors
+
+    def test_valid_table_name(self) -> None:
+        errors = SqlSink.validate_table_name("records")
+        assert not errors
+
+    @pytest.mark.parametrize("value", [0, -10, -100, 3.14, True, False, "", " "])
+    def test_invalid_schema_raises(self, value) -> None:
+        errors = SqlSink.validate_schema(value)
+        assert errors
+
+    @pytest.mark.parametrize("value", [None, "records"])
+    def test_valid_schema(self, value) -> None:
+        errors = SqlSink.validate_schema(value)
+        assert not errors

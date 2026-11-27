@@ -1,13 +1,15 @@
 """SQL-backed data sink."""
 
 import logging
-from collections import Counter
 from collections.abc import Iterable, Sequence
+from typing import Any
 
 from sqlalchemy import MetaData, Table
 from sqlalchemy.engine import Connection, Engine
 
 from etlrelay.core import Batch
+from etlrelay.validation.sql import validate_engine as _validate_engine
+from etlrelay.validation.sql import validate_unique_columns
 
 logger = logging.getLogger(__name__)
 
@@ -21,6 +23,9 @@ class SqlSink:
 
     The sink does not own or dispose of the supplied engine.
     """
+
+    validate_engine = staticmethod(_validate_engine)
+    _validate_unique_columns = staticmethod(validate_unique_columns)
 
     def __init__(
         self,
@@ -37,10 +42,16 @@ class SqlSink:
             table_name: Name of the existing database table to which batches
                 will be appended.
             schema: Optional database schema containing the target table.
+
+        Raises:
+            ValueError: If any constructor argument fails validation. Validation
+                errors are aggregated into a single exception message.
         """
         self._engine = engine
         self._table_name = table_name
         self._schema = schema
+
+        self._validate()
 
     def write(self, batches: Iterable[Batch]) -> None:
         """Append batches to the target SQL table.
@@ -103,6 +114,59 @@ class SqlSink:
                 len(rows),
             )
 
+    def _validate(self) -> None:
+        """Validate all constructor arguments.
+
+        Calls the public static validation methods and aggregates their error
+        messages.
+
+        Raises:
+            ValueError: If one or more constructor arguments are invalid.
+        """
+        errors = []
+        errors.extend(self.validate_engine(self._engine))
+        errors.extend(self.validate_table_name(self._table_name))
+        errors.extend(self.validate_schema(self._schema))
+
+        if errors:
+            raise ValueError("\n".join(errors))
+
+    @staticmethod
+    def validate_table_name(table_name: Any) -> list[str]:
+        """Validate a database table name.
+
+        Args:
+            table_name: Object to validate as a non-empty string.
+
+        Returns:
+            An empty list when the table name is valid; otherwise, a list
+            containing validation error messages.
+        """
+        errors = []
+        if not isinstance(table_name, str) or not table_name.strip():
+            errors.append("sink.table_name must be a non-empty string.")
+        return errors
+
+    @staticmethod
+    def validate_schema(schema: Any | None) -> list[str]:
+        """Validate an optional database schema name.
+
+        Args:
+            schema: Optional database schema name. ``None`` indicates that
+                the database's default schema should be used.
+
+        Returns:
+            An empty list when the schema is valid; otherwise, a list
+            containing validation error messages.
+        """
+        if schema is None:
+            return []
+
+        errors = []
+        if not isinstance(schema, str) or not schema.strip():
+            errors.append("sink.schema must be a non-empty string.")
+        return errors
+
     def _reflect_table(self, connection: Connection) -> Table:
         """Reflect the target table's metadata using an active connection.
 
@@ -119,22 +183,6 @@ class SqlSink:
             schema=self._schema,
             autoload_with=connection,
         )
-
-    @staticmethod
-    def _validate_unique_columns(column_names: Sequence[str]) -> None:
-        """Reject batches containing duplicate column names.
-
-        Args:
-            column_names: Column names present in the batch.
-
-        Raises:
-            ValueError: If one or more column names appear more than once.
-                The exception identifies the duplicated names.
-        """
-        duplicates = sorted(name for name, count in Counter(column_names).items() if count > 1)
-
-        if duplicates:
-            raise ValueError(f"Batch contains duplicate column names: {duplicates}")
 
     @staticmethod
     def _validate_columns(

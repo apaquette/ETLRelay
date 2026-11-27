@@ -2,9 +2,13 @@
 
 from collections.abc import Callable
 from pathlib import Path
+from unittest.mock import Mock
 
+import pyarrow as pa
 import pyarrow.csv as pacsv
+import pytest
 import yaml
+from sqlalchemy import create_engine, text
 
 from etlrelay.config.loader import ConfigLoader
 from etlrelay.config.pipeline_builder import PipelineBuilder
@@ -128,3 +132,98 @@ def test_yaml_csv_pipeline_matches_equivalent_direct_python_composition(
         {"record_id": 3, "amount": 25},
     ]
     assert yaml_table.equals(direct_table)
+
+
+def test_yaml_sql_pipeline_batches_and_closes_builder_owned_engine(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Exercise SQL YAML validation, batching, schema conversion, and cleanup."""
+    database_path = tmp_path / "source.db"
+    database_url = f"sqlite:///{database_path}"
+    setup_engine = create_engine(database_url)
+    try:
+        with setup_engine.begin() as connection:
+            connection.execute(
+                text("CREATE TABLE source_records (id INTEGER NOT NULL, name TEXT NOT NULL)")
+            )
+            connection.execute(
+                text(
+                    "INSERT INTO source_records (id, name) VALUES "
+                    "(1, 'Ada'), (2, 'Grace'), (3, 'Linus')"
+                )
+            )
+    finally:
+        setup_engine.dispose()
+
+    engine = create_engine(database_url)
+    dispose = Mock(wraps=engine.dispose)
+    monkeypatch.setattr(engine, "dispose", dispose)
+    engine_factory = SqlEngineFactory(
+        getenv=lambda name: database_url if name == "SOURCE_DATABASE_URL" else None,
+        engine_creator=lambda _url: engine,
+    )
+    components = create_default_component_catalog(sql_engine_factory=engine_factory)
+    loader = ConfigLoader(
+        LocalFileSystem(path_validator=PathValidator(base_path=tmp_path)),
+        YamlReader(),
+        components.config_validator,
+    )
+    builder = PipelineBuilder(
+        source_registry=components.source_registry,
+        sink_registry=components.sink_registry,
+        processor_registry=components.processor_registry,
+        getenv=lambda name: database_url if name == "SOURCE_DATABASE_URL" else None,
+        sql_engine_factory=engine_factory,
+    )
+    config = {
+        "version": 1,
+        "source": {
+            "type": "sql",
+            "connection_url_env": "SOURCE_DATABASE_URL",
+            "query": "SELECT id, name FROM source_records ORDER BY id",
+            "batch_size": 2,
+            "schema": {
+                "fields": [
+                    {"name": "id", "type": "int64", "nullable": False},
+                    {"name": "name", "type": "string", "nullable": False},
+                ]
+            },
+        },
+        "processors": [],
+        "sink": {
+            "type": "file",
+            "path": "output.csv",
+            "format": "csv",
+            "storage": {"type": "local", "base_path": str(tmp_path)},
+        },
+    }
+    config_path = tmp_path / "sql-pipeline.yml"
+    config_path.write_text(yaml.safe_dump(config, sort_keys=False), encoding="utf-8")
+
+    try:
+        validated_config = loader.load(config_path.name)
+        pipeline = builder.build(validated_config)
+        batches = list(pipeline.source.read())
+        assert [batch.table.num_rows for batch in batches] == [2, 1]
+        expected_schema = pa.schema(
+            [
+                pa.field("id", pa.int64(), nullable=False),
+                pa.field("name", pa.string(), nullable=False),
+            ]
+        )
+        assert all(
+            batch.table.schema.equals(expected_schema, check_metadata=False) for batch in batches
+        )
+
+        pipeline.run()
+        output = pacsv.read_csv(str(tmp_path / "output.csv"))
+        assert output.to_pylist() == [
+            {"id": 1, "name": "Ada"},
+            {"id": 2, "name": "Grace"},
+            {"id": 3, "name": "Linus"},
+        ]
+    finally:
+        builder.close()
+
+    dispose.assert_called_once_with()

@@ -6,8 +6,10 @@ from unittest.mock import MagicMock, patch
 
 import pyarrow as pa
 import pytest
+from sqlalchemy import bindparam, column, select, table
 from sqlalchemy.engine import Connection, Engine
 from sqlalchemy.exc import OperationalError
+from sqlalchemy.sql import Select
 
 from etlrelay.core import Batch
 from etlrelay.sources.sql import SqlSource
@@ -17,7 +19,7 @@ class TestSqlSource:
     @pytest.fixture
     def sqlalchemy_mocks(self):
         """Provide a mocked engine, connection, and connection context."""
-        engine = MagicMock()
+        engine = MagicMock(spec=Engine)
         connection_context = MagicMock()
         connection_context.__exit__.return_value = False
 
@@ -107,7 +109,7 @@ class TestSqlSource:
 
         source = SqlSource(engine, "SELECT id, id FROM customers")
 
-        with pytest.raises(ValueError, match="duplicate column names"):
+        with pytest.raises(ValueError, match="Duplicate column names detected"):
             source.read()
 
         result.mappings.assert_not_called()
@@ -261,6 +263,96 @@ class TestSqlSource:
 
         result.close.assert_called_once_with()
         connection_context.__exit__.assert_called_once_with(None, None, None)
+
+    def test_read_executes_sqlalchemy_select_and_returns_one_batch(
+        self,
+        sqlalchemy_mocks,
+    ) -> None:
+        """Execute a SQLAlchemy Select expression and convert its rows to a batch."""
+        engine, connection, connection_context = sqlalchemy_mocks
+
+        customers = table(
+            "customers",
+            column("id"),
+            column("name"),
+        )
+
+        query = (
+            select(customers.c.id, customers.c.name)
+            .where(customers.c.id > bindparam("minimum_id"))
+            .order_by(customers.c.id)
+        )
+
+        parameters = {"minimum_id": 1}
+
+        result = self.make_result(
+            ["id", "name"],
+            [
+                {"id": 2, "name": "Alice"},
+                {"id": 3, "name": "Bob"},
+            ],
+        )
+        connection.execute.return_value = result
+
+        source = SqlSource(engine, query, parameters=parameters)
+
+        with patch("etlrelay.sources.sql.text") as text_mock:
+            batches = list(source.read())
+
+        # SQLAlchemy Select expressions should be executed directly.
+        text_mock.assert_not_called()
+
+        connection.execute.assert_called_once()
+        executed_query, executed_parameters = connection.execute.call_args.args
+
+        assert executed_query is query
+        assert executed_parameters == parameters
+
+        assert len(batches) == 1
+        assert isinstance(batches[0], Batch)
+        assert batches[0].table.to_pylist() == [
+            {"id": 2, "name": "Alice"},
+            {"id": 3, "name": "Bob"},
+        ]
+
+        result.close.assert_called_once_with()
+        connection_context.__exit__.assert_called_once_with(None, None, None)
+        engine.dispose.assert_not_called()
+
+    def test_sql_source_closes_result_and_connection_when_iteration_fails(self) -> None:
+        """Close owned SQL resources while preserving the query failure."""
+        engine = MagicMock(spec=Engine)
+
+        connection_context = MagicMock()
+        connection = MagicMock()
+
+        connection_context.__enter__.return_value = connection
+        engine.connect.return_value = connection_context
+
+        result = MagicMock()
+        result.keys.return_value = ["id"]
+
+        failure = RuntimeError("query-fetch-failure")
+
+        def failing_rows():
+            yield {"id": 1}
+            raise failure
+
+        result.mappings.return_value = failing_rows()
+        connection.execute.return_value = result
+
+        source = SqlSource(engine, "SELECT id FROM records")
+
+        with pytest.raises(RuntimeError) as exc_info:
+            source.read()
+
+        assert exc_info.value is failure
+
+        result.close.assert_called_once_with()
+        connection_context.__exit__.assert_called_once()
+
+        # SqlSource borrows the engine; it must never dispose of it.
+        engine.dispose.assert_not_called()
 
 
 class TestSqlSourceBatch:
@@ -527,11 +619,11 @@ class TestSqlSourceBatch:
         self,
         batch_size: int,
     ) -> None:
-        engine = MagicMock()
+        engine = MagicMock(spec=Engine)
         query = "SELECT id, name FROM customers"
         parameters = {"minimum_id": 1}
 
-        with pytest.raises(ValueError, match="Batch size must be a positive integer"):
+        with pytest.raises(ValueError, match="source.batch_size must be a positive integer"):
             SqlSource(engine, query, parameters=parameters, batch_size=batch_size)
 
     def test_result_with_smaller_configured_batch_size(
@@ -757,7 +849,7 @@ class TestSqlSourceBatch:
 
         batches = source.read()
 
-        with pytest.raises(ValueError, match="duplicate column names"):
+        with pytest.raises(ValueError, match="Duplicate column names detected"):
             next(batches)
 
         result.mappings.assert_not_called()
@@ -766,3 +858,32 @@ class TestSqlSourceBatch:
         connection_context.__exit__.assert_called_once()
         assert connection_context.__exit__.call_args.args[0] is ValueError
         engine.dispose.assert_not_called()
+
+
+class TestSqlSourceValidation:
+    def test_invalid_engine_raises(self) -> None:
+        errors = SqlSource.validate_engine(MagicMock())
+        assert errors
+
+    def test_validate_engine(self) -> None:
+        errors = SqlSource.validate_engine(MagicMock(spec=Engine))
+        assert not errors
+
+    @pytest.mark.parametrize("value", [0, -10, -100, 3.14, True, False, "", " "])
+    def test_invalid_query_raises(self, value) -> None:
+        errors = SqlSource.validate_query(value)
+        assert errors
+
+    @pytest.mark.parametrize("value", ["SELECT id, id FROM customers", MagicMock(spec=Select)])
+    def test_valid_query_does_not_raise(self, value) -> None:
+        errors = SqlSource.validate_query(value)
+        assert not errors
+
+    @pytest.mark.parametrize("value", [MagicMock(), {True: "value"}, {" ": "value"}, {"": "value"}])
+    def test_invalid_parameters(self, value) -> None:
+        errors = SqlSource.validate_parameters(value)
+        assert errors
+
+    def test_invalid_schema(self) -> None:
+        errors = SqlSource.validate_schema(schema=MagicMock())
+        assert errors

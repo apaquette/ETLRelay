@@ -99,7 +99,7 @@ The schema version is independent of the ETLRelay package version. Version 1 has
 | Area | `type` / name | Properties beyond `type` | Notes |
 |---|---|---|---|
 | Source | `file` | `path`, `format`, `storage` | Format must support reading. |
-| Source | `sql` | `connection_url_env`, `query`; optional `parameters` | Uses a preflighted connection URL from the named environment variable. |
+| Source | `sql` | `connection_url_env`, `query`; optional `parameters`, `batch_size`, `schema` | Uses a preflighted connection URL; optional batching and a declarative Arrow schema. |
 | Sink | `file` | `path`, `format`, `storage` | Format must support writing. |
 | Sink | `sql` | `connection_url_env`, `table_name`; optional `schema` | Appends to an existing table. |
 | Processor | `select_columns` | `columns` | Ordered list of unique string column names. |
@@ -137,7 +137,9 @@ Source and sink formats are selected independently, so all four file-to-file com
 | `type` | Yes | string: `sql` | Selects `SqlSource`. |
 | `connection_url_env` | Yes | valid environment-variable identifier | Name of an environment variable containing a SQLAlchemy connection URL; literal URLs are not accepted in this field. |
 | `query` | Yes | non-empty string | Caller-authored SQL query. Use named bind parameters for query values. |
-| `parameters` | No | mapping | Named bind-parameter values. Keys must be strings; values may be strings, integers, floats, Booleans, or `null`. |
+| `parameters` | No | mapping | Named bind-parameter values. Keys must be non-empty strings; values may be strings, integers, floats, Booleans, or `null`. |
+| `batch_size` | No | positive integer | Maximum rows per source batch. Omitted or `null` preserves the existing single-batch behavior. |
+| `schema` | No | mapping or `null` | Optional canonical Arrow schema. Omitted or `null` enables schema inference. The YAML representation is a mapping with a non-empty ordered `fields` list; each field has `name`, a supported primitive Arrow `type` alias, and optional Boolean `nullable` (default `true`). |
 
 Nested mappings and sequences are not supported as query-parameter values. Bound parameters are for values, not identifiers such as table or column names. Configuration validation does not parse SQL or enforce database authorization policy.
 
@@ -150,7 +152,21 @@ source:
   query: "SELECT id, amount, state FROM source_records WHERE state = :state ORDER BY id"
   parameters:
     state: ready
+  batch_size: 500
+  schema:
+    fields:
+      - name: id
+        type: int64
+        nullable: false
+      - name: amount
+        type: float64
+      - name: state
+        type: string
 ```
+
+The supported YAML Arrow type aliases are `null`, `bool`, `int8`, `int16`, `int32`, `int64`, `uint8`, `uint16`, `uint32`, `uint64`, `float16`, `float32`, `float64`, `string`, `large_string`, `binary`, `large_binary`, `date32`, `date64`, `time`, and `timestamp`. The `time` and `timestamp` aliases use microsecond units. Parameterized types such as decimals, timezones, lists, structs, and maps are not represented by this bounded YAML schema format; use the Python API when those schemas are required.
+
+When `schema` is omitted or `null`, `SqlSource` infers its schema using the existing source contract. When supplied, the field names and order must match the SQL result columns, and values must satisfy the declared types and nullability.
 
 ## SQL sink
 
@@ -161,7 +177,7 @@ source:
 | `table_name` | Yes | non-empty string | Existing destination table to append rows to. |
 | `schema` | No | non-empty string | Optional database schema name. |
 
-The destination table must already exist and accept the processed batch columns. The sink does not create, truncate, replace, or migrate tables. Each non-empty batch is written in its own transaction; a later failure does not roll back earlier committed batches. SQLite is the reference integration-test backend. Other SQLAlchemy dialects require their relevant drivers and independent verification.
+The destination table must already exist and accept the processed batch columns. The sink does not create, truncate, replace, or migrate tables. Each non-empty batch is written in its own transaction; a later failure does not roll back earlier committed batches. SQLite and PostgreSQL are covered by automated integration tests; other SQLAlchemy dialects require their relevant drivers and independent verification.
 
 SQL source and sink components can use the same environment-variable name or different names.
 
@@ -176,7 +192,18 @@ validate the contents of the resolved URL, establish a database
 connection as part of preflight, or verify database authorization.
 
 Connection values must be supplied securely by the application's
-execution environment.
+execution environment. YAML does not install database drivers or modify the
+Python environment. SQLite uses the base installation; PostgreSQL requires
+the optional `postgres` extra to be installed before the YAML pipeline is run:
+
+```bash
+python -m pip install 'etlrelay[postgres]'
+```
+
+For a development checkout, use `uv sync --locked --all-groups --extra postgres`.
+Use a SQLAlchemy URL with the explicit Psycopg 3 driver, such as
+`postgresql+psycopg://user:password@host:5432/database`, in the referenced
+environment variable. Keep the actual URL and credentials out of YAML.
 
 ## Processor definitions
 

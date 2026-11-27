@@ -61,8 +61,10 @@ Leaf validators own their own property rules:
 - File source: required `path`, `format`, and nested `storage`; the format registry must support reading.
 - File sink: required `path`, `format`, and nested `storage`; the format registry must support writing.
 - SQL source: `connection_url_env` must be a valid environment-variable
-  identifier; `query` must be a nonempty string. Optional `parameters`
-  must map string keys to supported scalar values or `None`.
+  identifier; YAML `query` must be a nonempty SQL string. Optional `parameters`
+  must map nonempty string keys to supported scalar values or `None`;
+  optional `batch_size` must be a positive integer; optional `schema` must
+  use the bounded declarative Arrow schema mapping and supported type aliases.
 - SQL sink: `connection_url_env` must be a valid environment-variable
   identifier; `table_name` must be a nonempty string. Optional `schema`
   must be a nonempty string.

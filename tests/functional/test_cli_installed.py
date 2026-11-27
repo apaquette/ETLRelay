@@ -533,6 +533,70 @@ def test_installed_cli_runs_processed_parquet_sql_pipeline(
         ]
 
 
+def test_installed_cli_runs_batched_sql_source_with_declared_schema(
+    installed_cli: Path,
+    tmp_path: Path,
+) -> None:
+    """Validate and execute a batched SQL YAML source through the installed CLI."""
+    database_path = tmp_path / "source.db"
+    with sqlite3.connect(database_path) as connection:
+        connection.execute("CREATE TABLE source_records (id INTEGER NOT NULL, name TEXT NOT NULL)")
+        connection.executemany(
+            "INSERT INTO source_records VALUES (?, ?)",
+            [(1, "Ada"), (2, "Grace"), (3, "Linus")],
+        )
+
+    config = {
+        "version": 1,
+        "source": {
+            "type": "sql",
+            "connection_url_env": "ETLRELAY_FUNCTIONAL_SQLITE_URL",
+            "query": "SELECT id, name FROM source_records ORDER BY id",
+            "batch_size": 2,
+            "schema": {
+                "fields": [
+                    {"name": "id", "type": "int64", "nullable": False},
+                    {"name": "name", "type": "string", "nullable": False},
+                ]
+            },
+        },
+        "processors": [],
+        "sink": {
+            "type": "file",
+            "path": "output.csv",
+            "format": "csv",
+            "storage": {"type": "local", "base_path": str(tmp_path.resolve())},
+        },
+    }
+    config_path = _write_config(tmp_path, config)
+    environment = {
+        "ETLRELAY_FUNCTIONAL_SQLITE_URL": f"sqlite:///{database_path.as_posix()}",
+    }
+
+    validation = _run(
+        [str(installed_cli), "validate", str(config_path)],
+        cwd=tmp_path,
+        env=environment,
+    )
+    assert validation.returncode == 0, (validation.stdout, validation.stderr)
+    assert validation.stderr == ""
+    assert not (tmp_path / "output.csv").exists()
+
+    result = _run(
+        [str(installed_cli), "run", str(config_path)],
+        cwd=tmp_path,
+        env=environment,
+    )
+    assert result.returncode == 0, (result.stdout, result.stderr)
+    assert result.stderr == ""
+    output = pacsv.read_csv(tmp_path / "output.csv")
+    assert output.to_pylist() == [
+        {"id": 1, "name": "Ada"},
+        {"id": 2, "name": "Grace"},
+        {"id": 3, "name": "Linus"},
+    ]
+
+
 def test_installed_cli_run_failure_does_not_leak_payload(
     installed_cli: Path,
     tmp_path: Path,
