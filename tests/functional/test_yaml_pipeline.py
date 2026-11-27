@@ -6,6 +6,7 @@ from unittest.mock import Mock
 
 import pyarrow as pa
 import pyarrow.csv as pacsv
+import pytest
 import yaml
 from sqlalchemy import create_engine, text
 
