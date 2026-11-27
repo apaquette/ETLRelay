@@ -349,7 +349,7 @@ class SqlSource:
             and not isinstance(query, str)
             or (isinstance(query, str) and not query.strip())
         ):
-            errors.append("Query is invalid.")
+            errors.append("source.query must be a non-empty string.")
         return errors
 
     @staticmethod
@@ -373,12 +373,20 @@ class SqlSource:
             return []
 
         errors = []
+
         if not isinstance(parameters, Mapping):
-            errors.append("Parameters must be of type `Mapping`")
-        else:
-            keys = parameters.keys()
-            if not all(isinstance(key, str) and key.strip() for key in keys):
-                errors.append("Parameter keys must be non-empty strings")
+            return ["source.parameters must be of type `Mapping`"]
+
+        for name, value in parameters.items():
+            if not isinstance(name, str) or not name.strip():
+                errors.append("source.parameters keys must be non-empty strings.")
+                continue
+
+            if value is not None and type(value) not in (str, int, float, bool):
+                errors.append(
+                    f"source.parameters.{name} must be a scalar "
+                    "string, integer, float, boolean, or null."
+                )
 
         return errors
 

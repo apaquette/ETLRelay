@@ -135,10 +135,9 @@ class SqlSourceConfigValidator:
         if mapping["type"] != "sql":
             errors.append(f"{path}.type must be 'sql'.")
 
-        for key in ("connection_url_env", "query"):
-            error = non_empty_string_error(mapping[key], f"{path}.{key}")
-            if error is not None:
-                errors.append(error)
+        error = non_empty_string_error(mapping["connection_url_env"], f"{path}.connection_url_env")
+        if error is not None:
+            errors.append(error)
 
         connection_reference = mapping["connection_url_env"]
 
@@ -148,43 +147,14 @@ class SqlSourceConfigValidator:
             and not connection_reference.isidentifier()
         ):
             errors.append(f"{path}.connection_url_env must name a valid environment variable.")
+        
+        errors.extend(SqlSource.validate_query(mapping["query"]))
 
         if "parameters" in mapping:
-            errors.extend(self._validate_parameters(mapping, path))
+            errors.extend(SqlSource.validate_parameters(mapping["parameters"]))
+        
+        # validate batch_size
 
-        return errors
-
-    def _validate_parameters(self, mapping: Mapping[str, object], path: str) -> list[str]:
-        """Validate SQL query parameters.
-
-        Parameters must be supplied as a mapping with string keys. Values may
-        be strings, integers, floats, booleans, or ``None``.
-
-        Args:
-            mapping: SQL source configuration mapping containing
-                ``parameters``.
-            path: Configuration path used to identify validation errors.
-
-        Returns:
-            A list of validation error messages. The list is empty when all
-            parameter names and values satisfy the required types.
-        """
-        errors = []
-        parameters_path = f"{path}.parameters"
-
-        if not isinstance(mapping["parameters"], Mapping):
-            errors.append(f"{parameters_path} must be a mapping.")
-            return errors
-
-        for name, value in mapping["parameters"].items():
-            if not isinstance(name, str):
-                errors.append(f"{parameters_path} keys must be strings.")
-                continue
-
-            if value is not None and type(value) not in self._SCALAR_TYPES:
-                errors.append(
-                    f"{parameters_path}.{name} must be a scalar "
-                    "string, integer, float, boolean, or null."
-                )
+        # validate schema
 
         return errors
