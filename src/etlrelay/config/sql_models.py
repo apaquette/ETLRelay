@@ -5,6 +5,8 @@ shared by the leaf validators and component factories so configuration is
 validated and materialized consistently before runtime construction.
 """
 
+from __future__ import annotations
+
 from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any, Final, cast
