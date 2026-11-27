@@ -1,8 +1,7 @@
 """SQL-backed data source."""
 
 import logging
-from collections import Counter
-from collections.abc import Generator, Iterator, Mapping, Sequence
+from collections.abc import Generator, Iterator, Mapping
 from contextlib import contextmanager
 from typing import Any
 
@@ -11,6 +10,8 @@ from sqlalchemy import CursorResult, Select, text
 from sqlalchemy.engine import Engine
 
 from etlrelay.core import Batch
+from etlrelay.validation.sql import validate_engine as _validate_engine
+from etlrelay.validation.sql import validate_unique_columns
 
 logger = logging.getLogger(__name__)
 
@@ -55,10 +56,13 @@ class SqlSource:
     does not own or dispose of the supplied engine.
     """
 
+    validate_engine = staticmethod(_validate_engine)
+    _validate_column_names = staticmethod(validate_unique_columns)
+
     def __init__(
         self,
         engine: Engine,
-        query: str | Select,
+        query: str | Select[*tuple[Any, ...]],
         *,
         parameters: Mapping[str, Any] | None = None,
         batch_size: int | None = None,
@@ -323,22 +327,6 @@ class SqlSource:
                 result.close()
 
     @staticmethod
-    def validate_engine(engine: Any) -> list[str]:
-        """Validate a SQLAlchemy engine.
-
-        Args:
-            engine: Object to validate as a SQLAlchemy ``Engine``.
-
-        Returns:
-            An empty list when the engine is valid; otherwise, a list containing
-            validation error messages.
-        """
-        errors = []
-        if not isinstance(engine, Engine):
-            errors.append("engine must satisfy sqlalchemy type `Engine`")
-        return errors
-
-    @staticmethod
     def validate_query(query: Any) -> list[str]:
         """Validate a SQL query.
 
@@ -389,7 +377,7 @@ class SqlSource:
             errors.append("Parameters must be of type `Mapping`")
         else:
             keys = parameters.keys()
-            if not all(isinstance(key, str) and key for key in keys):
+            if not all(isinstance(key, str) and key.strip() for key in keys):
                 errors.append("Parameter keys must be non-empty strings")
 
         return errors
@@ -433,24 +421,6 @@ class SqlSource:
         if schema is not None and not isinstance(schema, pa.Schema):
             errors.append("schema must satisfy type `pa.Schema`")
         return errors
-
-    @staticmethod
-    def _validate_column_names(
-        column_names: Sequence[str],
-    ) -> None:
-        """Ensure result column names are unique.
-
-        Args:
-            column_names: Column names returned by the SQL query.
-
-        Raises:
-            ValueError: If one or more column names occur more than once.
-                The exception identifies the duplicated names.
-        """
-        duplicates = sorted(name for name, count in Counter(column_names).items() if count > 1)
-
-        if duplicates:
-            raise ValueError(f"SQL query returned duplicate column names: {duplicates}")
 
     @staticmethod
     def _validate_batch_schema(table: pa.Table, expected_schema: pa.Schema) -> None:

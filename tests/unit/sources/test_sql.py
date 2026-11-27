@@ -109,7 +109,7 @@ class TestSqlSource:
 
         source = SqlSource(engine, "SELECT id, id FROM customers")
 
-        with pytest.raises(ValueError, match="duplicate column names"):
+        with pytest.raises(ValueError, match="Duplicate column names detected"):
             source.read()
 
         result.mappings.assert_not_called()
@@ -814,7 +814,7 @@ class TestSqlSourceBatch:
 
         batches = source.read()
 
-        with pytest.raises(ValueError, match="duplicate column names"):
+        with pytest.raises(ValueError, match="Duplicate column names detected"):
             next(batches)
 
         result.mappings.assert_not_called()
@@ -830,6 +830,10 @@ class TestSqlSourceValidation:
         errors = SqlSource.validate_engine(MagicMock())
         assert errors
 
+    def test_validate_engine(self) -> None:
+        errors = SqlSource.validate_engine(MagicMock(spec=Engine))
+        assert not errors
+
     @pytest.mark.parametrize("value", [0, -10, -100, 3.14, True, False, "", " "])
     def test_invalid_query_raises(self, value) -> None:
         errors = SqlSource.validate_query(value)
@@ -840,7 +844,7 @@ class TestSqlSourceValidation:
         errors = SqlSource.validate_query(value)
         assert not errors
 
-    @pytest.mark.parametrize("value", [MagicMock(), {True: "value"}])
+    @pytest.mark.parametrize("value", [MagicMock(), {True: "value"}, {" ": "value"}, {"": "value"}])
     def test_invalid_parameters(self, value) -> None:
         errors = SqlSource.validate_parameters(value)
         assert errors

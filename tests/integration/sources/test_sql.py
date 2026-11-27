@@ -160,7 +160,7 @@ class TestSqlSource:
             """,
         )
 
-        with pytest.raises(ValueError, match="duplicate column names"):
+        with pytest.raises(ValueError, match="Duplicate column names detected:"):
             source.read()
 
     def test_read_logs_row_count_without_query_parameters(
