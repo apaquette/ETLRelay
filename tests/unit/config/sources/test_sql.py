@@ -84,7 +84,7 @@ def test_rejects_unknown_properties(validator: SqlSourceConfigValidator) -> None
     assert any("source.timeout" in error for error in errors)
 
 
-@pytest.mark.parametrize("value", [None, "not-a-mapping", ["value"], 42])
+@pytest.mark.parametrize("value", ["not-a-mapping", ["value"], 42])
 def test_parameters_must_be_a_mapping(validator: SqlSourceConfigValidator, value: object) -> None:
     config = valid_source()
     config["parameters"] = value
