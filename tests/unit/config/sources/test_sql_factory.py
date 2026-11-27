@@ -3,6 +3,7 @@
 from unittest.mock import Mock
 
 import pyarrow as pa
+import pytest
 from sqlalchemy.engine import Engine
 
 from etlrelay.config.sources.sql import SqlSourceConfigFactory
@@ -72,7 +73,7 @@ def test_build_rejects_invalid_yaml_source_before_creating_engine() -> None:
     engine_factory = Mock()
     factory = SqlSourceConfigFactory(engine_factory=engine_factory)
 
-    try:
+    with pytest.raises(ValueError, match="source.batch_size"):
         factory.build(
             {
                 "type": "sql",
@@ -81,9 +82,5 @@ def test_build_rejects_invalid_yaml_source_before_creating_engine() -> None:
                 "batch_size": 0,
             }
         )
-    except ValueError as error:
-        assert "source.batch_size" in str(error)
-    else:
-        raise AssertionError("Expected invalid SQL source configuration to fail.")
 
     engine_factory.create.assert_not_called()
