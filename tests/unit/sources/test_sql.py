@@ -623,7 +623,7 @@ class TestSqlSourceBatch:
         query = "SELECT id, name FROM customers"
         parameters = {"minimum_id": 1}
 
-        with pytest.raises(ValueError, match="Batch size must be a positive integer"):
+        with pytest.raises(ValueError, match="source.batch_size must be a positive integer"):
             SqlSource(engine, query, parameters=parameters, batch_size=batch_size)
 
     def test_result_with_smaller_configured_batch_size(

@@ -60,6 +60,7 @@ class SqlSourceConfigFactory:
                 Mapping[str, Any] | None,
                 config.get("parameters"),
             ),
+            batch_size=cast(int | None, config.get("batch_size")),
         )
 
 
@@ -73,12 +74,7 @@ class SqlSourceConfigValidator:
     """
 
     _ALLOWED_KEYS: Final[frozenset[str]] = frozenset(
-        {
-            "type",
-            "connection_url_env",
-            "query",
-            "parameters",
-        }
+        {"type", "connection_url_env", "query", "parameters", "batch_size"}
     )
 
     _REQUIRED_KEYS: Final[frozenset[str]] = frozenset(
@@ -88,8 +84,6 @@ class SqlSourceConfigValidator:
             "query",
         }
     )
-
-    _SCALAR_TYPES: Final[tuple[type, ...]] = (str, int, float, bool)
 
     def validate(self, config: object, path: str) -> list[str]:
         """Validate SQL source configuration and return any errors.
@@ -147,13 +141,15 @@ class SqlSourceConfigValidator:
             and not connection_reference.isidentifier()
         ):
             errors.append(f"{path}.connection_url_env must name a valid environment variable.")
-        
+
         errors.extend(SqlSource.validate_query(mapping["query"]))
 
         if "parameters" in mapping:
             errors.extend(SqlSource.validate_parameters(mapping["parameters"]))
-        
+
         # validate batch_size
+        if "batch_size" in mapping:
+            errors.extend(SqlSource.validate_batch_size(mapping["batch_size"]))
 
         # validate schema
 

@@ -22,6 +22,7 @@ def test_build_constructs_sql_source_with_configured_arguments(
         "connection_url_env": "SOURCE_DATABASE_URL",
         "query": "SELECT id FROM records WHERE state = :state",
         "parameters": {"state": "ready"},
+        "batch_size": 10,
     }
 
     result = factory.build(config)
@@ -31,6 +32,7 @@ def test_build_constructs_sql_source_with_configured_arguments(
         engine=engine,
         query="SELECT id FROM records WHERE state = :state",
         parameters={"state": "ready"},
+        batch_size=10,
     )
     assert result is source_constructor.return_value
 
@@ -55,4 +57,5 @@ def test_build_passes_none_when_parameters_are_omitted(monkeypatch) -> None:
         engine=engine,
         query="SELECT id FROM records",
         parameters=None,
+        batch_size=None,
     )

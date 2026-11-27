@@ -410,7 +410,7 @@ class SqlSource:
         if batch_size is not None and (
             not isinstance(batch_size, int) or batch_size <= 0 or isinstance(batch_size, bool)
         ):
-            errors.append("Batch size must be a positive integer.")
+            errors.append("source.batch_size must be a positive integer.")
         return errors
 
     @staticmethod

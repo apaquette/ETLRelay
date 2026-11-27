@@ -128,3 +128,30 @@ def test_rejects_non_string_property_keys(validator: SqlSourceConfigValidator) -
 
     assert errors
     assert all(isinstance(error, str) for error in errors)
+
+
+@pytest.mark.parametrize("value", [100, 1, 10, 50, 17])
+def test_accepts_valid_batch_size_values(
+    validator: SqlSourceConfigValidator, value: object
+) -> None:
+    config = valid_source()
+    config["batch_size"] = value
+
+    errors = validator.validate(config, "source")
+
+    assert not errors
+
+
+@pytest.mark.parametrize(
+    "value", [[1], {"nested": "value"}, ("tuple",), 0, -10, True, "invalid", 5.5]
+)
+def test_rejects_invalid_batch_size_values(
+    validator: SqlSourceConfigValidator, value: object
+) -> None:
+    config = valid_source()
+    config["batch_size"] = value
+
+    errors = validator.validate(config, "source")
+
+    assert errors
+    assert any("batch_size" in error for error in errors)
