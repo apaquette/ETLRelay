@@ -6,9 +6,8 @@ import os
 from pathlib import Path
 from uuid import uuid4
 
-import yaml
-
 import pytest
+import yaml
 from sqlalchemy import create_engine, text
 from typer.testing import CliRunner
 
@@ -45,8 +44,10 @@ def test_postgresql_yaml_pipeline_executes_through_cli(
                 )
             )
             connection.execute(
-                text(f'INSERT INTO "{source_table}" (id, name) VALUES '
-                     "(1, 'Ada'), (2, 'Grace'), (3, 'Linus')")
+                text(
+                    f'INSERT INTO "{source_table}" (id, name) VALUES '
+                    "(1, 'Ada'), (2, 'Grace'), (3, 'Linus')"
+                )
             )
 
         monkeypatch.setenv("ETLRELAY_YAML_POSTGRES_URL", url)
