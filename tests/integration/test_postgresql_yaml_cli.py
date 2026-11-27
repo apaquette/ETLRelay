@@ -3,7 +3,10 @@
 from __future__ import annotations
 
 import os
+from pathlib import Path
 from uuid import uuid4
+
+import yaml
 
 import pytest
 from sqlalchemy import create_engine, text
@@ -14,8 +17,10 @@ import etlrelay.cli as cli
 runner = CliRunner()
 
 
-@pytest.mark.postgresql
-def test_postgresql_yaml_pipeline_executes_through_cli(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_postgresql_yaml_pipeline_executes_through_cli(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
     """Validate and execute a batched PostgreSQL source-to-sink YAML pipeline."""
     url = os.environ.get("ETLRELAY_TEST_POSTGRES_URL")
     if not url:
@@ -66,11 +71,7 @@ def test_postgresql_yaml_pipeline_executes_through_cli(monkeypatch: pytest.Monke
                 "table_name": sink_table,
             },
         }
-        config_path = __import__("pathlib").Path(
-            __import__("tempfile").mkdtemp(prefix="etlrelay-postgres-yaml-")
-        ) / "pipeline.yml"
-        import yaml
-
+        config_path = tmp_path / "pipeline.yml"
         config_path.write_text(yaml.safe_dump(config, sort_keys=False), encoding="utf-8")
 
         validation = runner.invoke(cli.app, ["validate", str(config_path)])

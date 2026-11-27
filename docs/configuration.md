@@ -177,7 +177,7 @@ When `schema` is omitted or `null`, `SqlSource` infers its schema using the exis
 | `table_name` | Yes | non-empty string | Existing destination table to append rows to. |
 | `schema` | No | non-empty string | Optional database schema name. |
 
-The destination table must already exist and accept the processed batch columns. The sink does not create, truncate, replace, or migrate tables. Each non-empty batch is written in its own transaction; a later failure does not roll back earlier committed batches. SQLite is the reference integration-test backend. Other SQLAlchemy dialects require their relevant drivers and independent verification.
+The destination table must already exist and accept the processed batch columns. The sink does not create, truncate, replace, or migrate tables. Each non-empty batch is written in its own transaction; a later failure does not roll back earlier committed batches. SQLite and PostgreSQL are covered by automated integration tests; other SQLAlchemy dialects require their relevant drivers and independent verification.
 
 SQL source and sink components can use the same environment-variable name or different names.
 

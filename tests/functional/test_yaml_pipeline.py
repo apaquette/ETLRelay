@@ -135,7 +135,7 @@ def test_yaml_csv_pipeline_matches_equivalent_direct_python_composition(
 
 def test_yaml_sql_pipeline_batches_and_closes_builder_owned_engine(
     tmp_path: Path,
-    monkeypatch,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Exercise SQL YAML validation, batching, schema conversion, and cleanup."""
     database_path = tmp_path / "source.db"
@@ -208,15 +208,16 @@ def test_yaml_sql_pipeline_batches_and_closes_builder_owned_engine(
         pipeline = builder.build(validated_config)
         batches = list(pipeline.source.read())
         assert [batch.table.num_rows for batch in batches] == [2, 1]
-        assert all(batch.table.schema.equals(
-            pa.schema(
-                [
-                    pa.field("id", pa.int64(), nullable=False),
-                    pa.field("name", pa.string(), nullable=False),
-                ]
-            ),
-            check_metadata=False,
-        ) for batch in batches)
+        expected_schema = pa.schema(
+            [
+                pa.field("id", pa.int64(), nullable=False),
+                pa.field("name", pa.string(), nullable=False),
+            ]
+        )
+        assert all(
+            batch.table.schema.equals(expected_schema, check_metadata=False)
+            for batch in batches
+        )
 
         pipeline.run()
         output = pacsv.read_csv(str(tmp_path / "output.csv"))
