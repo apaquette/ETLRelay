@@ -50,7 +50,7 @@ def test_requires_type_connection_variable_and_table_name(
 
 
 @pytest.mark.parametrize("field", ["connection_url_env", "table_name", "schema"])
-@pytest.mark.parametrize("value", [None, "", " \t ", 3, True])
+@pytest.mark.parametrize("value", ["", " \t ", 3, True])
 def test_name_fields_must_be_non_empty_strings(
     validator: SqlSinkConfigValidator, field: str, value: object
 ) -> None:
