@@ -250,9 +250,7 @@ class SqlSinkConfigModel:
         if error is not None:
             errors.append(error)
         elif isinstance(connection_reference, str) and not connection_reference.isidentifier():
-            errors.append(
-                f"{path}.connection_url_env must name a valid environment variable."
-            )
+            errors.append(f"{path}.connection_url_env must name a valid environment variable.")
 
         table_name = mapping["table_name"]
         errors.extend(_rebase_errors(SqlSink.validate_table_name(table_name), "sink", path))
