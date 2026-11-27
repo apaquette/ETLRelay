@@ -23,6 +23,8 @@ SqlSource(
     query,
     *,
     parameters=None,
+    batch_size=None,
+    schema=None,
 )
 
 SqlSink(
@@ -37,7 +39,7 @@ See the [API Reference](../api-reference.md) for the generated public signatures
 
 ### `SqlSource`
 
-`SqlSource` executes a caller-provided SQL text query through SQLAlchemy. Optional `parameters` supplies a mapping of parameter names to values, bound through SQLAlchemy rather than interpolated into the query string.
+`SqlSource` executes a caller-provided SQL text query through SQLAlchemy. Optional `parameters` supplies a mapping of parameter names to values, bound through SQLAlchemy rather than interpolated into the query string. Optional `batch_size` enables incremental result consumption with batches no larger than the configured positive row count. When `batch_size` is omitted, the complete result is materialized as one batch. An optional `schema` establishes the canonical Arrow schema; when omitted, the schema is inferred using the source's normal contract.
 
 For a query that returns rows, `SqlSource.read()` converts the result into one `Batch`. All rows are materialized before the connection is closed; the source is therefore batch-oriented, not a streaming or paginated database reader. A query returning no rows produces an empty iterable, not a zero-row batch. Duplicate result-column names are rejected because conversion through row mappings would otherwise make the result ambiguous. Arrow itself can represent duplicate field names.
 
@@ -279,7 +281,7 @@ After preflight succeeds, the SQL factory creates engines on demand and caches t
 
 This is separate from direct Python usage: a caller that constructs `SqlSource(engine, ...)` or `SqlSink(engine, ...)` continues to own and dispose of that supplied engine. The configuration lifecycle does not change the direct API contract.
 
-See [YAML Configuration](../configuration.md) for environment-variable setup, redaction behavior, supported combinations, and complete runnable examples.
+See [YAML Configuration](../configuration.md) for the complete source `batch_size` and schema representation, environment-variable setup, optional driver installation, redaction behavior, supported combinations, and runnable examples.
 
 ## Class diagram: direct SQL API and configuration-managed engines
 
