@@ -197,6 +197,7 @@ def test_yaml_query_must_be_sql_text(
         {"unexpected": []},
         {"fields": [{"name": "id"}]},
         {"fields": [{"name": "id", "type": "decimal"}]},
+        {"fields": [{"name": "id", "type": 42}]},
         {"fields": [{"name": "id", "type": "int64", "nullable": "yes"}]},
         {
             "fields": [

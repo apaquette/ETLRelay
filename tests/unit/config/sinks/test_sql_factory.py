@@ -2,6 +2,7 @@
 
 from unittest.mock import Mock
 
+import pytest
 from sqlalchemy.engine import Engine
 
 from etlrelay.config.sinks.sql import SqlSinkConfigFactory
@@ -54,3 +55,20 @@ def test_build_passes_none_when_schema_is_omitted(monkeypatch) -> None:
         table_name="processed_records",
         schema=None,
     )
+
+
+
+def test_build_rejects_invalid_yaml_sink_before_creating_engine() -> None:
+    engine_factory = Mock()
+    factory = SqlSinkConfigFactory(engine_factory=engine_factory)
+
+    with pytest.raises(ValueError, match="sink.table_name"):
+        factory.build(
+            {
+                "type": "sql",
+                "connection_url_env": "SINK_DATABASE_URL",
+                "table_name": "",
+            }
+        )
+
+    engine_factory.create.assert_not_called()
